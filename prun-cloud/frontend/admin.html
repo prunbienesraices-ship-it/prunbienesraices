@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Administración | Prun Bienes Raíces</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{ --black:#111; --yellow:#F4C300; --cream:#F7F5F0; --gray:#6b6b66; --line:#e4e1d8; --red:#c0392b; --green:#1a7a44; }
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Archivo',sans-serif;}
+h1,h2,h3{font-family:'Archivo Black';text-transform:uppercase;}
+body{background:var(--cream);color:var(--black);}
+button{cursor:pointer;font-family:inherit;}
+input,select,textarea{padding:11px 13px;border:1.5px solid var(--line);width:100%;font-family:inherit;border-radius:2px;}
+.btn{padding:11px 20px;font-weight:800;font-size:13px;text-transform:uppercase;border:2px solid var(--black);background:var(--black);color:#fff;border-radius:2px;}
+.btn:hover{background:var(--yellow);color:var(--black);border-color:var(--yellow);}
+#login-gate{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:999;}
+.login-box{background:#fff;padding:36px;width:100%;max-width:360px;border-top:6px solid var(--yellow);}
+.login-box input{margin-bottom:12px;}
+.error-box{background:#fdeaea;color:var(--red);font-size:12px;padding:9px;margin-bottom:12px;display:none;border-radius:2px;}
+#app{display:none;padding:30px;max-width:1100px;margin:0 auto;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:30px;}
+.stat-card{background:#fff;border:1.5px solid var(--line);padding:20px;}
+.stat-card .n{font-family:'Archivo Black';font-size:26px;}
+.stat-card .l{font-size:11px;color:var(--gray);text-transform:uppercase;margin-top:4px;}
+table{width:100%;border-collapse:collapse;background:#fff;}
+th,td{padding:11px 13px;text-align:left;font-size:13px;border-bottom:1px solid var(--line);}
+th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);}
+.table-wrap{background:#fff;border:1.5px solid var(--line);overflow-x:auto;margin-top:14px;}
+.action-links button{background:none;border:none;font-size:12px;font-weight:700;text-decoration:underline;margin-right:8px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px;z-index:1000;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:#fff;max-width:600px;width:100%;padding:26px;max-height:88vh;overflow-y:auto;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-row{margin-bottom:12px;}
+.form-row label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:5px;color:var(--gray);}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:12px 20px;font-size:13px;z-index:2000;display:none;border-left:4px solid var(--yellow);}
+.page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<div id="login-gate">
+  <div class="login-box">
+    <h1 style="font-size:18px;margin-bottom:6px">Panel de Prun</h1>
+    <p style="color:var(--gray);font-size:12px;margin-bottom:18px">Versión conectada a la nube (Supabase + Render).</p>
+    <div class="error-box" id="login-error"></div>
+    <form id="login-form">
+      <input type="email" id="email" placeholder="Email" value="admin@prunbienes.com" required>
+      <input type="password" id="password" placeholder="Contraseña" required>
+      <button class="btn" type="submit" style="width:100%">Ingresar</button>
+    </form>
+  </div>
+</div>
+
+<div id="app">
+  <div class="page-head">
+    <h2 style="font-size:22px">Dashboard</h2>
+    <div><span id="session-label" style="font-size:12px;color:var(--gray);margin-right:14px"></span><button class="btn" onclick="logout()" style="background:none;color:var(--black)">Salir</button></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="n" id="k-total">0</div><div class="l">Propiedades</div></div>
+    <div class="stat-card"><div class="n" id="k-sale">0</div><div class="l">En venta</div></div>
+    <div class="stat-card"><div class="n" id="k-rent">0</div><div class="l">En alquiler</div></div>
+    <div class="stat-card"><div class="n" id="k-inquiries">0</div><div class="l">Consultas sin leer</div></div>
+  </div>
+
+  <div class="page-head">
+    <h2 style="font-size:20px">Propiedades</h2>
+    <button class="btn" onclick="openPropModal()">+ Nueva propiedad</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="prop-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Consultas</h2>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Nombre</th><th>Email</th><th>Mensaje</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="inq-tbody"></tbody>
+  </table></div>
+</div>
+
+<div class="modal-overlay" id="prop-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="prop-modal-title">Nueva propiedad</h3>
+    <form id="prop-form">
+      <input type="hidden" id="p-id">
+      <div class="form-row"><label>Título</label><input type="text" id="p-title" required></div>
+      <div class="form-row"><label>Descripción</label><textarea id="p-description" rows="3"></textarea></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Operación</label><select id="p-operation"><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
+        <div class="form-row"><label>Categoría</label><select id="p-category"><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="ph">PH</option><option value="terreno">Terreno</option></select></div>
+        <div class="form-row"><label>Precio</label><input type="number" id="p-price" required></div>
+        <div class="form-row"><label>Moneda</label><select id="p-currency"><option value="USD">USD</option><option value="ARS">ARS</option></select></div>
+        <div class="form-row"><label>Ciudad</label><input type="text" id="p-city"></div>
+        <div class="form-row"><label>Estado</label><select id="p-status"><option value="disponible">Disponible</option><option value="reservado">Reservado</option><option value="vendido">Vendido</option><option value="alquilado">Alquilado</option></select></div>
+        <div class="form-row"><label>Dormitorios</label><input type="number" id="p-bedrooms" value="0"></div>
+        <div class="form-row"><label>Baños</label><input type="number" id="p-bathrooms" value="0"></div>
+      </div>
+      <div class="form-row"><label>Fotos</label><input type="file" id="p-photos" multiple accept="image/*"></div>
+      <div class="form-row"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-featured" style="width:auto"> Destacada</label></div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn" type="submit">Guardar</button>
+        <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('prop-modal')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin + '/api';
+let TOKEN = localStorage.getItem('prun_token');
+let USER = JSON.parse(localStorage.getItem('prun_user') || 'null');
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+async function api(path, options={}){
+  const res = await fetch(`${API}${path}`, { ...options, headers: { ...(options.headers||{}), Authorization:`Bearer ${TOKEN}` } });
+  if(res.status===401){ logout(); throw new Error('Sesión inválida'); }
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'Error de servidor');
+  return data;
+}
+
+document.getElementById('login-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('login-error');
+  try{
+    const res = await fetch(`${API}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email,password}) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+    TOKEN = data.token; USER = data.user;
+    localStorage.setItem('prun_token', TOKEN);
+    localStorage.setItem('prun_user', JSON.stringify(USER));
+    startApp();
+  }catch(err){
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+function logout(){
+  localStorage.removeItem('prun_token'); localStorage.removeItem('prun_user');
+  TOKEN=null; USER=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-gate').style.display='flex';
+}
+function startApp(){
+  document.getElementById('login-gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
+  loadStats(); loadProperties(); loadInquiries();
+}
+if(TOKEN && USER){ startApp(); }
+
+async function loadStats(){
+  try{
+    const d = await api('/dashboard/stats');
+    document.getElementById('k-total').textContent = d.totalProperties;
+    document.getElementById('k-sale').textContent = d.forSale;
+    document.getElementById('k-rent').textContent = d.forRent;
+    document.getElementById('k-inquiries').textContent = d.unreadInquiries;
+  }catch(err){}
+}
+async function loadProperties(){
+  const tbody = document.getElementById('prop-tbody');
+  try{
+    const list = await api('/properties?status=disponible').catch(()=>[]);
+    const reservado = await (await fetch(`${API}/properties?status=reservado`)).json();
+    const vendido = await (await fetch(`${API}/properties?status=vendido`)).json();
+    const alquilado = await (await fetch(`${API}/properties?status=alquilado`)).json();
+    const all = [...list, ...reservado, ...vendido, ...alquilado];
+    tbody.innerHTML = all.length ? all.map(p => `
+      <tr>
+        <td>${p.title}</td><td>${p.operation}</td><td>${p.currency} ${Number(p.price).toLocaleString('es-AR')}</td>
+        <td>${p.city||'-'}</td><td>${p.status}</td>
+        <td class="action-links">
+          <button onclick='openPropModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button>
+          <button style="color:var(--red)" onclick="deleteProp(${p.id})">Borrar</button>
+        </td>
+      </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = '<tr><td colspan="6">Error al cargar.</td></tr>'; }
+}
+function openPropModal(p){
+  document.getElementById('prop-modal-title').textContent = p ? 'Editar propiedad' : 'Nueva propiedad';
+  document.getElementById('p-id').value = p ? p.id : '';
+  document.getElementById('p-title').value = p ? p.title : '';
+  document.getElementById('p-description').value = p ? (p.description||'') : '';
+  document.getElementById('p-operation').value = p ? p.operation : 'venta';
+  document.getElementById('p-category').value = p ? p.category : 'casa';
+  document.getElementById('p-price').value = p ? p.price : '';
+  document.getElementById('p-currency').value = p ? p.currency : 'USD';
+  document.getElementById('p-city').value = p ? (p.city||'') : '';
+  document.getElementById('p-status').value = p ? p.status : 'disponible';
+  document.getElementById('p-bedrooms').value = p ? p.bedrooms : 0;
+  document.getElementById('p-bathrooms').value = p ? p.bathrooms : 0;
+  document.getElementById('p-featured').checked = p ? !!p.featured : false;
+  document.getElementById('p-photos').value = '';
+  document.getElementById('prop-modal').classList.add('active');
+}
+document.getElementById('prop-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('p-id').value;
+  const fd = new FormData();
+  ['title','description','operation','category','price','currency','city','status','bedrooms','bathrooms'].forEach(f=>{
+    fd.append(f, document.getElementById('p-'+f).value);
+  });
+  fd.append('featured', document.getElementById('p-featured').checked);
+  const files = document.getElementById('p-photos').files;
+  for(let i=0;i<files.length;i++) fd.append('photos', files[i]);
+  try{
+    const res = await fetch(`${API}/properties${id?'/'+id:''}`, { method: id?'PUT':'POST', headers:{Authorization:`Bearer ${TOKEN}`}, body: fd });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Error al guardar');
+    toast(id ? 'Propiedad actualizada' : 'Propiedad creada');
+    closeModal('prop-modal');
+    loadProperties(); loadStats();
+  }catch(err){ toast(err.message); }
+});
+async function deleteProp(id){
+  if(!confirm('¿Borrar esta propiedad?')) return;
+  try{ await api(`/properties/${id}`, {method:'DELETE'}); toast('Borrada'); loadProperties(); loadStats(); }
+  catch(err){ toast(err.message); }
+}
+async function loadInquiries(){
+  const tbody = document.getElementById('inq-tbody');
+  try{
+    const list = await api('/inquiries');
+    tbody.innerHTML = list.length ? list.map(i => `
+      <tr>
+        <td>${i.name}</td><td>${i.email}</td><td style="max-width:200px">${i.message||'-'}</td>
+        <td>${i.is_read?'Leída':'Nueva'}</td>
+        <td class="action-links">
+          <button onclick="toggleRead(${i.id}, ${i.is_read})">${i.is_read?'Marcar no leída':'Marcar leída'}</button>
+          <button style="color:var(--red)" onclick="deleteInq(${i.id})">Borrar</button>
+        </td>
+      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:30px">Sin consultas todavía.</td></tr>';
+  }catch(err){}
+}
+async function toggleRead(id, current){
+  try{ await api(`/inquiries/${id}/read`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({is_read: !current})}); loadInquiries(); loadStats(); }
+  catch(err){ toast(err.message); }
+}
+async function deleteInq(id){
+  if(!confirm('¿Borrar esta consulta?')) return;
+  try{ await api(`/inquiries/${id}`, {method:'DELETE'}); loadInquiries(); loadStats(); }
+  catch(err){ toast(err.message); }
+}
+</script>
+</body>
+</html>
