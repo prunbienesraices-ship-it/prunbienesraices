@@ -36,6 +36,17 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 .form-row label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:5px;color:var(--gray);}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:12px 20px;font-size:13px;z-index:2000;display:none;border-left:4px solid var(--yellow);}
 .page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.badge{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;}
+.badge.ok{background:#e6f6ec;color:var(--green);}
+.badge.warn{background:#fff4d6;color:#8a6a00;}
+.badge.bad{background:#fdeaea;color:var(--red);}
+.dyn-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end;}
+.dyn-row.two{grid-template-columns:1fr 1fr auto;}
+.dyn-row button{background:none;border:none;color:var(--red);font-size:18px;padding-bottom:10px;}
+.section-label{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--gray);margin:16px 0 10px;display:flex;justify-content:space-between;align-items:center;}
+.btn-sm{padding:6px 12px;font-size:11px;}
+.checkbox-row{display:flex;align-items:center;gap:6px;}
+.checkbox-row input{width:auto;}
 </style>
 </head>
 <body>
@@ -81,6 +92,15 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <thead><tr><th>Nombre</th><th>Email</th><th>Mensaje</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody id="inq-tbody"></tbody>
   </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Inquilinos</h2>
+    <button class="btn" onclick="openTenantModal()">+ Nuevo contrato</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
+    <tbody id="tenant-tbody"></tbody>
+  </table></div>
 </div>
 
 <div class="modal-overlay" id="prop-modal">
@@ -111,6 +131,78 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="tenant-modal">
+  <div class="modal-box" style="max-width:640px">
+    <h3 style="font-size:17px;margin-bottom:16px" id="tenant-modal-title">Nuevo contrato</h3>
+    <form id="tenant-form">
+      <input type="hidden" id="t-id">
+      <div class="form-row"><label>Propiedad</label><select id="t-property" required></select></div>
+
+      <div class="section-label">Datos del inquilino</div>
+      <div class="form-grid">
+        <div class="form-row"><label>Nombre completo</label><input type="text" id="t-name" required></div>
+        <div class="form-row"><label>DNI</label><input type="text" id="t-dni"></div>
+        <div class="form-row"><label>Teléfono</label><input type="tel" id="t-phone"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="t-email"></div>
+      </div>
+
+      <div class="section-label">Datos del propietario</div>
+      <div class="form-grid">
+        <div class="form-row"><label>Nombre</label><input type="text" id="t-owner-name"></div>
+        <div class="form-row"><label>Teléfono</label><input type="tel" id="t-owner-phone"></div>
+      </div>
+
+      <div class="section-label">Datos del contrato</div>
+      <div class="form-grid">
+        <div class="form-row"><label>Fecha de inicio</label><input type="date" id="t-start" required></div>
+        <div class="form-row"><label>Fecha de fin</label><input type="date" id="t-end" required></div>
+        <div class="form-row"><label>Moneda</label><select id="t-currency"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        <div class="form-row"><label>Día de pago</label><input type="number" id="t-payday" min="1" max="31"></div>
+        <div class="form-row"><label>Depósito</label><input type="number" id="t-deposit" min="0"></div>
+        <div class="form-row"><label>Coeficiente de mora diario (%)</label><input type="number" id="t-late-coef" min="0" step="0.01"></div>
+        <div class="form-row"><label>Frecuencia de actualización</label>
+          <select id="t-update-freq">
+            <option value="bimestral">Bimestral</option><option value="trimestral">Trimestral</option>
+            <option value="cuatrimestral">Cuatrimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Índice</label>
+          <select id="t-update-index"><option value="ICL">ICL</option><option value="IPC">IPC</option><option value="libre">Libre</option></select>
+        </div>
+      </div>
+
+      <div class="section-label">
+        <span>Garantes</span>
+        <button type="button" class="btn btn-sm" onclick="addGuarantorRow()">+ Agregar</button>
+      </div>
+      <div id="guarantors-list"></div>
+
+      <div class="section-label">
+        <span>Montos del alquiler (podés cargar uno o varios si van a ir cambiando)</span>
+        <button type="button" class="btn btn-sm" onclick="addScheduleRow()">+ Agregar monto</button>
+      </div>
+      <div id="schedule-list"></div>
+
+      <div class="form-row" style="margin-top:14px"><label>Notas</label><textarea id="t-notes" rows="2"></textarea></div>
+
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn" type="submit">Guardar</button>
+        <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('tenant-modal')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="payments-modal">
+  <div class="modal-box" style="max-width:520px">
+    <h3 style="font-size:17px;margin-bottom:6px">Pagos</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px" id="payments-context"></p>
+    <div id="payments-missing"></div>
+    <button class="btn" type="button" style="width:100%;margin-top:14px;background:#fff;color:var(--black)" onclick="closeModal('payments-modal')">Cerrar</button>
+  </div>
+</div>
+
 
 <script>
 const API = window.location.origin + '/api';
@@ -156,7 +248,7 @@ function startApp(){
   document.getElementById('login-gate').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
-  loadStats(); loadProperties(); loadInquiries();
+  loadStats(); loadProperties(); loadInquiries(); loadTenants();
 }
 if(TOKEN && USER){ startApp(); }
 
@@ -252,6 +344,265 @@ async function deleteInq(id){
   if(!confirm('¿Borrar esta consulta?')) return;
   try{ await api(`/inquiries/${id}`, {method:'DELETE'}); loadInquiries(); loadStats(); }
   catch(err){ toast(err.message); }
+}
+
+// =====================================================================
+// INQUILINOS / CONTRATOS / PAGOS
+// =====================================================================
+const FREQ_MONTHS = { bimestral:2, trimestral:3, cuatrimestral:4, semestral:6, anual:12 };
+let ALL_PROPERTIES = [];
+
+function addMonths(dateStr, months){
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+function periodToDate(period){ const [y,m] = period.split('-').map(Number); return new Date(y, m-1, 1); }
+function dateToPeriod(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function currentPeriodStr(){ const d = new Date(); return dateToPeriod(d); }
+
+function getRentHistory(t){
+  const hist = (t.rent_history && t.rent_history.length) ? t.rent_history : [{date:t.start_date, amount:0}];
+  return hist.slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+}
+function getCurrentRentAmount(t){
+  const hist = getRentHistory(t);
+  const today = new Date();
+  const applicable = hist.filter(h => new Date(h.date) <= today);
+  return applicable.length ? applicable[applicable.length-1].amount : hist[0].amount;
+}
+function getRentAmountForPeriod(t, period){
+  const hist = getRentHistory(t);
+  const periodDate = periodToDate(period);
+  const applicable = hist.filter(h => new Date(h.date) <= periodDate);
+  return applicable.length ? applicable[applicable.length-1].amount : hist[0].amount;
+}
+function getNextIncreaseDate(t){
+  const hist = getRentHistory(t);
+  const today = new Date();
+  const future = hist.find(h => new Date(h.date) > today);
+  if(future) return new Date(future.date);
+  const applicable = hist.filter(h => new Date(h.date) <= today);
+  const lastDate = applicable.length ? applicable[applicable.length-1].date : hist[0].date;
+  const months = FREQ_MONTHS[t.update_freq] || 12;
+  return addMonths(lastDate, months);
+}
+function computeTenantStatus(t){
+  if(t.status_override === 'rescindido') return 'rescindido';
+  const today = new Date();
+  const end = new Date(t.end_date);
+  const warningStart = addMonths(t.end_date, -1);
+  if(end < today) return 'vencido';
+  if(warningStart <= today) return 'por_vencer';
+  return 'vigente';
+}
+function getMissingPayments(t){
+  const status = computeTenantStatus(t);
+  if(status === 'rescindido') return [];
+  const paidPeriods = new Set((t.payments||[]).map(p=>p.period));
+  const start = periodToDate(t.start_date.slice(0,7)+'-01');
+  const today = new Date();
+  const end = new Date(t.end_date);
+  const lastRelevant = end < today ? end : today;
+  const missing = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  while(cursor <= lastRelevant){
+    const period = dateToPeriod(cursor);
+    if(!paidPeriods.has(period)) missing.push(period);
+    cursor.setMonth(cursor.getMonth()+1);
+  }
+  return missing;
+}
+function getLivePaymentInfo(t, period){
+  const base = getRentAmountForPeriod(t, period);
+  const [y,m] = period.split('-').map(Number);
+  const payday = t.payday || 1;
+  const dueDate = new Date(y, m-1, payday);
+  const today = new Date();
+  const daysLate = Math.max(0, Math.floor((today - dueDate) / (1000*60*60*24)));
+  const coef = t.late_coefficient || 0;
+  const amountToday = base * (1 + (coef/100) * daysLate);
+  return { base, daysLate, amountToday };
+}
+
+async function loadTenants(){
+  const tbody = document.getElementById('tenant-tbody');
+  try{
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    const list = await api('/tenants');
+    const statusLabels = { vigente:'ok', por_vencer:'warn', vencido:'bad', rescindido:'bad' };
+    const statusText = { vigente:'Vigente', por_vencer:'Por vencer', vencido:'Vencido', rescindido:'Rescindido' };
+    tbody.innerHTML = list.length ? list.map(t => {
+      const prop = ALL_PROPERTIES.find(p=>p.id===t.property_id);
+      const status = computeTenantStatus(t);
+      const missing = getMissingPayments(t);
+      return `
+      <tr>
+        <td>${t.name}</td>
+        <td>${prop?prop.title:'-'}</td>
+        <td>${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}</td>
+        <td>${new Date(t.end_date).toLocaleDateString('es-AR')}</td>
+        <td><span class="badge ${statusLabels[status]}">${statusText[status]}</span></td>
+        <td>${missing.length ? `<span class="badge bad">${missing.length} sin pagar</span>` : '<span class="badge ok">Al día</span>'}</td>
+        <td class="action-links">
+          <button onclick="openPaymentsModal(${t.id})">Pagos</button>
+          <button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button>
+          <button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>
+        </td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+}
+
+async function openTenantModal(t){
+  document.getElementById('tenant-modal-title').textContent = t ? 'Editar contrato' : 'Nuevo contrato';
+  document.getElementById('t-id').value = t ? t.id : '';
+
+  try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){}
+  const sel = document.getElementById('t-property');
+  sel.innerHTML = ALL_PROPERTIES.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+  if(t) sel.value = t.property_id;
+
+  document.getElementById('t-name').value = t ? t.name : '';
+  document.getElementById('t-dni').value = t ? (t.dni||'') : '';
+  document.getElementById('t-phone').value = t ? (t.phone||'') : '';
+  document.getElementById('t-email').value = t ? (t.email||'') : '';
+  document.getElementById('t-owner-name').value = t ? (t.owner_name||'') : '';
+  document.getElementById('t-owner-phone').value = t ? (t.owner_phone||'') : '';
+  document.getElementById('t-start').value = t ? t.start_date : '';
+  document.getElementById('t-end').value = t ? t.end_date : '';
+  document.getElementById('t-currency').value = t ? t.currency : 'ARS';
+  document.getElementById('t-payday').value = t ? (t.payday||'') : '';
+  document.getElementById('t-deposit').value = t ? (t.deposit||'') : '';
+  document.getElementById('t-late-coef').value = t ? (t.late_coefficient||'') : '';
+  document.getElementById('t-update-freq').value = t ? t.update_freq : 'trimestral';
+  document.getElementById('t-update-index').value = t ? t.update_index : 'ICL';
+  document.getElementById('t-notes').value = t ? (t.notes||'') : '';
+
+  const gList = document.getElementById('guarantors-list');
+  gList.innerHTML = '';
+  if(t && t.guarantors && t.guarantors.length) t.guarantors.forEach(g=>addGuarantorRow(g));
+  else addGuarantorRow();
+
+  const sList = document.getElementById('schedule-list');
+  sList.innerHTML = '';
+  if(t && t.rent_history && t.rent_history.length) t.rent_history.forEach(h=>addScheduleRow(h));
+  else addScheduleRow();
+
+  document.getElementById('tenant-modal').classList.add('active');
+}
+function addGuarantorRow(data){
+  const c = document.getElementById('guarantors-list');
+  const div = document.createElement('div');
+  div.className = 'dyn-row';
+  div.innerHTML = `
+    <input type="text" class="g-name" placeholder="Nombre" value="${data&&data.name?data.name:''}">
+    <input type="tel" class="g-phone" placeholder="Teléfono" value="${data&&data.phone?data.phone:''}">
+    <input type="email" class="g-email" placeholder="Email" value="${data&&data.email?data.email:''}">
+    <button type="button" onclick="this.closest('.dyn-row').remove()">✕</button>`;
+  c.appendChild(div);
+}
+function collectGuarantors(){
+  return Array.from(document.querySelectorAll('#guarantors-list .dyn-row')).map(r => ({
+    name: r.querySelector('.g-name').value, phone: r.querySelector('.g-phone').value, email: r.querySelector('.g-email').value,
+  })).filter(g=>g.name||g.phone||g.email);
+}
+function addScheduleRow(data){
+  const c = document.getElementById('schedule-list');
+  const div = document.createElement('div');
+  div.className = 'dyn-row two';
+  div.innerHTML = `
+    <input type="date" class="s-date" value="${data&&data.date?data.date:''}">
+    <input type="number" class="s-amount" placeholder="Monto" value="${data&&data.amount?data.amount:''}">
+    <button type="button" onclick="this.closest('.dyn-row').remove()">✕</button>`;
+  c.appendChild(div);
+}
+function collectSchedule(){
+  return Array.from(document.querySelectorAll('#schedule-list .dyn-row')).map(r => ({
+    date: r.querySelector('.s-date').value, amount: Number(r.querySelector('.s-amount').value) || 0,
+  })).filter(s=>s.date && s.amount);
+}
+
+document.getElementById('tenant-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('t-id').value;
+  const rentHistory = collectSchedule().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(!rentHistory.length){ toast('Cargá al menos un monto de alquiler.'); return; }
+
+  const body = {
+    property_id: Number(document.getElementById('t-property').value),
+    name: document.getElementById('t-name').value,
+    dni: document.getElementById('t-dni').value,
+    phone: document.getElementById('t-phone').value,
+    email: document.getElementById('t-email').value,
+    owner_name: document.getElementById('t-owner-name').value,
+    owner_phone: document.getElementById('t-owner-phone').value,
+    start_date: document.getElementById('t-start').value,
+    end_date: document.getElementById('t-end').value,
+    currency: document.getElementById('t-currency').value,
+    payday: Number(document.getElementById('t-payday').value) || null,
+    deposit: Number(document.getElementById('t-deposit').value) || 0,
+    late_coefficient: Number(document.getElementById('t-late-coef').value) || 0,
+    update_freq: document.getElementById('t-update-freq').value,
+    update_index: document.getElementById('t-update-index').value,
+    guarantors: collectGuarantors(),
+    rent_history: rentHistory,
+    notes: document.getElementById('t-notes').value,
+  };
+  try{
+    if(id) await api(`/tenants/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/tenants', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast(id ? 'Contrato actualizado' : 'Contrato creado');
+    closeModal('tenant-modal');
+    loadTenants();
+  }catch(err){ toast(err.message); }
+});
+async function deleteTenant(id){
+  if(!confirm('¿Borrar este contrato?')) return;
+  try{ await api(`/tenants/${id}`, {method:'DELETE'}); toast('Borrado'); loadTenants(); }
+  catch(err){ toast(err.message); }
+}
+
+async function openPaymentsModal(tenantId){
+  const t = await api(`/tenants/${tenantId}`);
+  const prop = ALL_PROPERTIES.find(p=>p.id===t.property_id);
+  document.getElementById('payments-context').textContent = `${t.name} — ${prop?prop.title:'-'} — alquiler actual: ${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}`;
+  renderMissingPayments(t);
+  document.getElementById('payments-modal').classList.add('active');
+}
+function renderMissingPayments(t){
+  const box = document.getElementById('payments-missing');
+  const missing = getMissingPayments(t);
+  if(!missing.length){ box.innerHTML = '<p style="color:var(--green);font-weight:700;font-size:13px">✔ Está al día, no hay meses pendientes.</p>'; return; }
+  const coef = t.late_coefficient || 0;
+  box.innerHTML = missing.map(period => {
+    const info = getLivePaymentInfo(t, period);
+    return `
+    <div style="border-bottom:1px solid var(--line);padding:10px 0;font-size:13px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span><strong>${period}</strong> — ${t.currency} ${Number(info.base).toLocaleString('es-AR')}</span>
+        <button class="btn btn-sm" onclick="quickPay(${t.id}, '${period}', ${info.base})">Pagar sin recargo</button>
+      </div>
+      ${coef>0 && info.daysLate>0 ? `
+      <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;background:#fdeaea;padding:6px 8px">
+        <span style="font-size:12px;color:var(--red)">Con ${info.daysLate} días de atraso: ${t.currency} ${Math.round(info.amountToday).toLocaleString('es-AR')}</span>
+        <button class="btn btn-sm" onclick="quickPay(${t.id}, '${period}', ${info.amountToday})">Usar</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+async function quickPay(tenantId, period, amount){
+  try{
+    const t = await api(`/tenants/${tenantId}`);
+    const payments = t.payments || [];
+    const mora = Math.max(0, amount - getRentAmountForPeriod(t, period));
+    payments.push({ period, date: new Date().toISOString().slice(0,10), amount, currency:t.currency, method:'transferencia', mora });
+    await api(`/tenants/${tenantId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
+    toast(`Pago de ${period} registrado.`);
+    const updated = await api(`/tenants/${tenantId}`);
+    renderMissingPayments(updated);
+    loadTenants();
+  }catch(err){ toast(err.message); }
 }
 </script>
 </body>
