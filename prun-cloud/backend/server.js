@@ -10,6 +10,16 @@ const authRoutes = require('./routes/auth.routes');
 const propertiesRoutes = require('./routes/properties.routes');
 const inquiriesRoutes = require('./routes/inquiries.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const tenantsRoutes = require('./routes/tenants.routes');
+const developmentsRoutes = require('./routes/developments.routes');
+const ownersRoutes = require('./routes/owners.routes');
+const repairsRoutes = require('./routes/repairs.routes');
+const providersRoutes = require('./routes/providers.routes');
+const dealsRoutes = require('./routes/deals.routes');
+const collectionsRoutes = require('./routes/collections.routes');
+const settlementsRoutes = require('./routes/settlements.routes');
+const agendaRoutes = require('./routes/agenda.routes');
+const auditRoutes = require('./routes/audit.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +35,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/inquiries', inquiriesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/tenants', tenantsRoutes);
+app.use('/api/developments', developmentsRoutes);
+app.use('/api/owners', ownersRoutes);
+app.use('/api/repairs', repairsRoutes);
+app.use('/api/providers', providersRoutes);
+app.use('/api/deals', dealsRoutes);
+app.use('/api/collections', collectionsRoutes);
+app.use('/api/settlements', settlementsRoutes);
+app.use('/api/agenda', agendaRoutes);
+app.use('/api/audit', auditRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor de Prun Bienes Raíces (nube) funcionando correctamente.' });
