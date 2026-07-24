@@ -101,6 +101,86 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
     <tbody id="tenant-tbody"></tbody>
   </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Edificios / Conjuntos</h2>
+    <button class="btn" onclick="openDevModal()">+ Nuevo edificio</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Nombre</th><th>Tipo</th><th>Ciudad</th><th>Unidades</th><th>Expensas</th><th>Acciones</th></tr></thead>
+    <tbody id="dev-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Propietarios</h2>
+    <button class="btn" onclick="openOwnerModal()">+ Nuevo propietario</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Nombre</th><th>DNI</th><th>CUIT</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
+    <tbody id="owner-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Reparaciones</h2>
+    <button class="btn" onclick="openRepairModal()">+ Nueva reparación</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Propiedad</th><th>Título</th><th>Estado</th><th>Costo</th><th>Paga</th><th>Acciones</th></tr></thead>
+    <tbody id="repair-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Proveedores</h2>
+    <button class="btn" onclick="openProviderModal()">+ Nuevo proveedor</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Categoría</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
+    <tbody id="provider-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Pipeline de Ventas</h2>
+    <button class="btn" onclick="openDealModal()">+ Nuevo lead</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Contacto</th><th>Propiedad</th><th>Monto</th><th>Etapa</th><th>Acciones</th></tr></thead>
+    <tbody id="deal-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Cobranzas (otros conceptos)</h2>
+    <button class="btn" onclick="openChargeModal()">+ Nuevo cargo</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Inquilino</th><th>Concepto</th><th>Período</th><th>Adeudado</th><th>Pagado</th><th>Acciones</th></tr></thead>
+    <tbody id="charge-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Liquidaciones al propietario</h2>
+    <button class="btn" onclick="openSettlementModal()">+ Nueva liquidación</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Inquilino</th><th>Período</th><th>Neto</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="settlement-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Agenda</h2>
+    <button class="btn" onclick="openEventModal()">+ Nuevo evento</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Tipo</th><th>Título</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="event-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Auditoría</h2>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Usuario</th><th>Fecha</th><th>Acción</th><th>Antes</th><th>Después</th></tr></thead>
+    <tbody id="audit-tbody"></tbody>
+  </table></div>
 </div>
 
 <div class="modal-overlay" id="prop-modal">
@@ -203,6 +283,158 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
 </div>
 
+<!-- Edificios -->
+<div class="modal-overlay" id="dev-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="dev-modal-title">Nuevo edificio</h3>
+    <form id="dev-form">
+      <input type="hidden" id="d-id">
+      <div class="form-row"><label>Nombre</label><input type="text" id="d-name" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Tipo</label><select id="d-type"><option value="edificio">Edificio</option><option value="conjunto_viviendas">Conjunto de viviendas</option><option value="barrio_cerrado">Barrio cerrado</option></select></div>
+        <div class="form-row"><label>Ciudad</label><input type="text" id="d-city"></div>
+        <div class="form-row"><label>Dirección</label><input type="text" id="d-address"></div>
+        <div class="form-row"><label>Unidades totales</label><input type="number" id="d-units" value="1"></div>
+        <div class="form-row"><label>Estado</label><select id="d-status"><option value="terminado">Terminado</option><option value="en_construccion">En construcción</option><option value="pozo">En pozo</option></select></div>
+        <div class="form-row"><label>Expensas totales</label><input type="number" id="d-expenses" min="0"></div>
+      </div>
+      <div class="form-row"><label>Descripción</label><textarea id="d-description" rows="2"></textarea></div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('dev-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Propietarios -->
+<div class="modal-overlay" id="owner-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="owner-modal-title">Nuevo propietario</h3>
+    <form id="owner-form">
+      <input type="hidden" id="o-id">
+      <div class="form-row"><label>Nombre completo</label><input type="text" id="o-name" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>DNI</label><input type="text" id="o-dni"></div>
+        <div class="form-row"><label>CUIT</label><input type="text" id="o-cuit"></div>
+        <div class="form-row"><label>Teléfono</label><input type="tel" id="o-phone"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="o-email"></div>
+        <div class="form-row"><label>CBU</label><input type="text" id="o-cbu"></div>
+        <div class="form-row"><label>Alias</label><input type="text" id="o-alias"></div>
+        <div class="form-row"><label>Banco</label><input type="text" id="o-bank"></div>
+        <div class="form-row"><label>Forma de pago</label><select id="o-payment-method"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('owner-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Reparaciones -->
+<div class="modal-overlay" id="repair-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="repair-modal-title">Nueva reparación</h3>
+    <form id="repair-form">
+      <input type="hidden" id="r-id">
+      <div class="form-row"><label>Propiedad</label><select id="r-property" required></select></div>
+      <div class="form-row"><label>Título</label><input type="text" id="r-title" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Tipo</label><select id="r-type"><option value="incidencia">Incidencia</option><option value="reclamo">Reclamo</option></select></div>
+        <div class="form-row"><label>Estado</label><select id="r-status"><option value="reportado">Reportado</option><option value="presupuestando">Presupuestando</option><option value="aprobado">Aprobado</option><option value="en_proceso">En proceso</option><option value="finalizado">Finalizado</option></select></div>
+        <div class="form-row"><label>Costo</label><input type="number" id="r-cost" min="0"></div>
+        <div class="form-row"><label>Paga</label><select id="r-payer"><option value="propietario">Propietario</option><option value="inquilino">Inquilino</option><option value="inmobiliaria">Inmobiliaria</option></select></div>
+        <div class="form-row"><label>Proveedor</label><input type="text" id="r-provider"></div>
+        <div class="form-row"><label>Garantía</label><input type="text" id="r-warranty"></div>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('repair-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Proveedores -->
+<div class="modal-overlay" id="provider-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="provider-modal-title">Nuevo proveedor</h3>
+    <form id="provider-form">
+      <input type="hidden" id="pv-id">
+      <div class="form-row"><label>Categoría</label><select id="pv-category"><option value="electricista">Electricista</option><option value="gasista">Gasista</option><option value="plomero">Plomero</option><option value="arquitecto">Arquitecto</option><option value="cerrajero">Cerrajero</option><option value="pintor">Pintor</option><option value="seguro">Seguro</option><option value="escribania">Escribanía</option><option value="tasador">Tasador</option></select></div>
+      <div class="form-row"><label>Nombre</label><input type="text" id="pv-name" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Teléfono</label><input type="tel" id="pv-phone"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="pv-email"></div>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('provider-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Pipeline -->
+<div class="modal-overlay" id="deal-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="deal-modal-title">Nuevo lead</h3>
+    <form id="deal-form">
+      <input type="hidden" id="dl-id">
+      <div class="form-row"><label>Nombre del contacto</label><input type="text" id="dl-name" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Teléfono</label><input type="tel" id="dl-phone"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="dl-email"></div>
+        <div class="form-row"><label>Monto estimado</label><input type="number" id="dl-amount"></div>
+        <div class="form-row"><label>Agente</label><input type="text" id="dl-agent"></div>
+      </div>
+      <div class="form-row"><label>Etapa</label>
+        <select id="dl-stage"><option value="lead">Lead</option><option value="contacto">Contacto</option><option value="visita">Visita</option><option value="oferta">Oferta</option><option value="contraoferta">Contraoferta</option><option value="reserva">Reserva</option><option value="boleto">Boleto</option><option value="escritura">Escritura</option><option value="finalizado">Finalizado</option></select>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('deal-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Cobranzas -->
+<div class="modal-overlay" id="charge-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px">Nuevo cargo</h3>
+    <form id="charge-form">
+      <div class="form-row"><label>Inquilino</label><select id="ch-tenant" required></select></div>
+      <div class="form-row"><label>Concepto</label><select id="ch-concept"><option value="abl">ABL</option><option value="arba">ARBA</option><option value="luz">Luz</option><option value="gas">Gas</option><option value="agua">Agua</option><option value="seguro">Seguro</option><option value="honorarios">Honorarios</option><option value="comisiones">Comisiones</option><option value="intereses">Intereses</option><option value="multas">Multas</option></select></div>
+      <div class="form-row"><label>Período / descripción</label><input type="text" id="ch-label"></div>
+      <div class="form-row"><label>Monto adeudado</label><input type="number" id="ch-amount" required></div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('charge-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Liquidaciones -->
+<div class="modal-overlay" id="settlement-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px">Nueva liquidación</h3>
+    <form id="settlement-form">
+      <div class="form-row"><label>Inquilino</label><select id="st-tenant" required></select></div>
+      <div class="form-row"><label>Período (AAAA-MM)</label><input type="month" id="st-period" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Alquiler cobrado</label><input type="number" id="st-rent" required></div>
+        <div class="form-row"><label>Comisión</label><input type="number" id="st-commission" value="0"></div>
+        <div class="form-row"><label>Expensas</label><input type="number" id="st-expensas" value="0"></div>
+        <div class="form-row"><label>Reparaciones</label><input type="number" id="st-repairs" value="0"></div>
+        <div class="form-row"><label>Honorarios</label><input type="number" id="st-fees" value="0"></div>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('settlement-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Agenda -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px">Nuevo evento</h3>
+    <form id="event-form">
+      <div class="form-row"><label>Tipo</label><select id="ev-type"><option value="visita">Visita</option><option value="tasacion">Tasación</option><option value="firma">Firma</option><option value="escribania">Escribanía</option><option value="llamada">Llamada</option><option value="recordatorio">Recordatorio</option></select></div>
+      <div class="form-row"><label>Título</label><input type="text" id="ev-title" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Fecha</label><input type="date" id="ev-date" required></div>
+        <div class="form-row"><label>Hora</label><input type="time" id="ev-time"></div>
+      </div>
+      <div class="form-row"><label>Notas</label><textarea id="ev-notes" rows="2"></textarea></div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('event-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
 
 <script>
 const API = window.location.origin + '/api';
@@ -249,6 +481,7 @@ function startApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
+  loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadCharges(); loadSettlements(); loadEvents(); loadAudit();
 }
 if(TOKEN && USER){ startApp(); }
 
@@ -604,6 +837,332 @@ async function quickPay(tenantId, period, amount){
     loadTenants();
   }catch(err){ toast(err.message); }
 }
+
+// =====================================================================
+// EDIFICIOS
+// =====================================================================
+let ALL_DEVELOPMENTS = [];
+async function loadDevelopments(){
+  const tbody = document.getElementById('dev-tbody');
+  try{
+    ALL_DEVELOPMENTS = await api('/developments');
+    tbody.innerHTML = ALL_DEVELOPMENTS.length ? ALL_DEVELOPMENTS.map(d => `
+      <tr><td>${d.name}</td><td>${d.type}</td><td>${d.city||'-'}</td><td>${d.units}</td><td>$${Number(d.expenses).toLocaleString('es-AR')}</td>
+      <td class="action-links"><button onclick='openDevModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDev(${d.id})">Borrar</button></td></tr>`).join('')
+      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin edificios cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+}
+function openDevModal(d){
+  document.getElementById('dev-modal-title').textContent = d ? 'Editar edificio' : 'Nuevo edificio';
+  document.getElementById('d-id').value = d ? d.id : '';
+  document.getElementById('d-name').value = d ? d.name : '';
+  document.getElementById('d-type').value = d ? d.type : 'edificio';
+  document.getElementById('d-city').value = d ? (d.city||'') : '';
+  document.getElementById('d-address').value = d ? (d.address||'') : '';
+  document.getElementById('d-units').value = d ? d.units : 1;
+  document.getElementById('d-status').value = d ? d.status : 'terminado';
+  document.getElementById('d-expenses').value = d ? d.expenses : '';
+  document.getElementById('d-description').value = d ? (d.description||'') : '';
+  document.getElementById('dev-modal').classList.add('active');
+}
+document.getElementById('dev-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('d-id').value;
+  const body = { name: document.getElementById('d-name').value, type: document.getElementById('d-type').value,
+    city: document.getElementById('d-city').value, address: document.getElementById('d-address').value,
+    units: document.getElementById('d-units').value, status: document.getElementById('d-status').value,
+    expenses: document.getElementById('d-expenses').value, description: document.getElementById('d-description').value };
+  try{
+    if(id) await api(`/developments/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/developments', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('dev-modal'); loadDevelopments();
+  }catch(err){ toast(err.message); }
+});
+async function deleteDev(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/developments/${id}`,{method:'DELETE'}); loadDevelopments(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// PROPIETARIOS
+// =====================================================================
+let ALL_OWNERS = [];
+async function loadOwners(){
+  const tbody = document.getElementById('owner-tbody');
+  try{
+    ALL_OWNERS = await api('/owners');
+    tbody.innerHTML = ALL_OWNERS.length ? ALL_OWNERS.map(o => `
+      <tr><td>${o.name}</td><td>${o.dni||'-'}</td><td>${o.cuit||'-'}</td><td>${o.phone||'-'}</td><td>${o.email||'-'}</td>
+      <td class="action-links"><button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button></td></tr>`).join('')
+      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+}
+function openOwnerModal(o){
+  document.getElementById('owner-modal-title').textContent = o ? 'Editar propietario' : 'Nuevo propietario';
+  document.getElementById('o-id').value = o ? o.id : '';
+  document.getElementById('o-name').value = o ? o.name : '';
+  document.getElementById('o-dni').value = o ? (o.dni||'') : '';
+  document.getElementById('o-cuit').value = o ? (o.cuit||'') : '';
+  document.getElementById('o-phone').value = o ? (o.phone||'') : '';
+  document.getElementById('o-email').value = o ? (o.email||'') : '';
+  document.getElementById('o-cbu').value = o ? (o.cbu||'') : '';
+  document.getElementById('o-alias').value = o ? (o.alias||'') : '';
+  document.getElementById('o-bank').value = o ? (o.bank||'') : '';
+  document.getElementById('o-payment-method').value = o ? o.payment_method : 'transferencia';
+  document.getElementById('owner-modal').classList.add('active');
+}
+document.getElementById('owner-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('o-id').value;
+  const body = { name: document.getElementById('o-name').value, dni: document.getElementById('o-dni').value,
+    cuit: document.getElementById('o-cuit').value, phone: document.getElementById('o-phone').value, email: document.getElementById('o-email').value,
+    cbu: document.getElementById('o-cbu').value, alias: document.getElementById('o-alias').value, bank: document.getElementById('o-bank').value,
+    payment_method: document.getElementById('o-payment-method').value };
+  try{
+    if(id) await api(`/owners/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/owners', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('owner-modal'); loadOwners();
+  }catch(err){ toast(err.message); }
+});
+async function deleteOwner(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/owners/${id}`,{method:'DELETE'}); loadOwners(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// REPARACIONES
+// =====================================================================
+async function loadRepairs(){
+  const tbody = document.getElementById('repair-tbody');
+  try{
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    const list = await api('/repairs');
+    tbody.innerHTML = list.length ? list.map(r => {
+      const prop = ALL_PROPERTIES.find(p=>p.id===r.property_id);
+      return `<tr><td>${prop?prop.title:'-'}</td><td>${r.title}</td><td>${r.status}</td><td>$${Number(r.cost).toLocaleString('es-AR')}</td><td>${r.payer}</td>
+      <td class="action-links"><button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin reparaciones cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+}
+function openRepairModal(r){
+  document.getElementById('repair-modal-title').textContent = r ? 'Editar reparación' : 'Nueva reparación';
+  document.getElementById('r-id').value = r ? r.id : '';
+  const sel = document.getElementById('r-property');
+  sel.innerHTML = ALL_PROPERTIES.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+  if(r) sel.value = r.property_id;
+  document.getElementById('r-title').value = r ? r.title : '';
+  document.getElementById('r-type').value = r ? r.type : 'incidencia';
+  document.getElementById('r-status').value = r ? r.status : 'reportado';
+  document.getElementById('r-cost').value = r ? r.cost : '';
+  document.getElementById('r-payer').value = r ? r.payer : 'propietario';
+  document.getElementById('r-provider').value = r ? (r.provider||'') : '';
+  document.getElementById('r-warranty').value = r ? (r.warranty||'') : '';
+  document.getElementById('repair-modal').classList.add('active');
+}
+document.getElementById('repair-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('r-id').value;
+  const body = { property_id: Number(document.getElementById('r-property').value), title: document.getElementById('r-title').value,
+    type: document.getElementById('r-type').value, status: document.getElementById('r-status').value,
+    cost: document.getElementById('r-cost').value, payer: document.getElementById('r-payer').value,
+    provider: document.getElementById('r-provider').value, warranty: document.getElementById('r-warranty').value };
+  try{
+    if(id) await api(`/repairs/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/repairs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('repair-modal'); loadRepairs();
+  }catch(err){ toast(err.message); }
+});
+async function deleteRepair(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/repairs/${id}`,{method:'DELETE'}); loadRepairs(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// PROVEEDORES
+// =====================================================================
+async function loadProviders(){
+  const tbody = document.getElementById('provider-tbody');
+  try{
+    const list = await api('/providers');
+    tbody.innerHTML = list.length ? list.map(p => `
+      <tr><td>${p.category}</td><td>${p.favorite?'⭐ ':''}${p.name}</td><td>${p.phone||'-'}</td><td>${p.email||'-'}</td>
+      <td class="action-links"><button onclick='openProviderModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteProvider(${p.id})">Borrar</button></td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin proveedores cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+function openProviderModal(p){
+  document.getElementById('provider-modal-title').textContent = p ? 'Editar proveedor' : 'Nuevo proveedor';
+  document.getElementById('pv-id').value = p ? p.id : '';
+  document.getElementById('pv-category').value = p ? p.category : 'electricista';
+  document.getElementById('pv-name').value = p ? p.name : '';
+  document.getElementById('pv-phone').value = p ? (p.phone||'') : '';
+  document.getElementById('pv-email').value = p ? (p.email||'') : '';
+  document.getElementById('provider-modal').classList.add('active');
+}
+document.getElementById('provider-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('pv-id').value;
+  const body = { category: document.getElementById('pv-category').value, name: document.getElementById('pv-name').value,
+    phone: document.getElementById('pv-phone').value, email: document.getElementById('pv-email').value };
+  try{
+    if(id) await api(`/providers/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/providers', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('provider-modal'); loadProviders();
+  }catch(err){ toast(err.message); }
+});
+async function deleteProvider(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/providers/${id}`,{method:'DELETE'}); loadProviders(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// PIPELINE DE VENTAS
+// =====================================================================
+async function loadDeals(){
+  const tbody = document.getElementById('deal-tbody');
+  try{
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    const list = await api('/deals');
+    tbody.innerHTML = list.length ? list.map(d => {
+      const prop = ALL_PROPERTIES.find(p=>p.id===d.property_id);
+      return `<tr><td>${d.name}</td><td>${prop?prop.title:'-'}</td><td>$${Number(d.amount).toLocaleString('es-AR')}</td><td>${d.stage}</td>
+      <td class="action-links"><button onclick='openDealModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDeal(${d.id})">Borrar</button></td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin leads cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+function openDealModal(d){
+  document.getElementById('deal-modal-title').textContent = d ? 'Editar lead' : 'Nuevo lead';
+  document.getElementById('dl-id').value = d ? d.id : '';
+  document.getElementById('dl-name').value = d ? d.name : '';
+  document.getElementById('dl-phone').value = d ? (d.phone||'') : '';
+  document.getElementById('dl-email').value = d ? (d.email||'') : '';
+  document.getElementById('dl-amount').value = d ? d.amount : '';
+  document.getElementById('dl-agent').value = d ? (d.agent||'') : '';
+  document.getElementById('dl-stage').value = d ? d.stage : 'lead';
+  document.getElementById('deal-modal').classList.add('active');
+}
+document.getElementById('deal-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('dl-id').value;
+  const body = { name: document.getElementById('dl-name').value, phone: document.getElementById('dl-phone').value,
+    email: document.getElementById('dl-email').value, amount: document.getElementById('dl-amount').value,
+    agent: document.getElementById('dl-agent').value, stage: document.getElementById('dl-stage').value };
+  try{
+    if(id) await api(`/deals/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/deals', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('deal-modal'); loadDeals();
+  }catch(err){ toast(err.message); }
+});
+async function deleteDeal(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/deals/${id}`,{method:'DELETE'}); loadDeals(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// COBRANZAS (otros conceptos)
+// =====================================================================
+let ALL_TENANTS_CACHE = [];
+async function loadCharges(){
+  const tbody = document.getElementById('charge-tbody');
+  try{
+    ALL_TENANTS_CACHE = await api('/tenants');
+    const list = await api('/collections');
+    tbody.innerHTML = list.length ? list.map(c => {
+      const t = ALL_TENANTS_CACHE.find(x=>x.id===c.tenant_id);
+      const paid = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
+      return `<tr><td>${t?t.name:'-'}</td><td>${c.concept}</td><td>${c.label||'-'}</td><td>$${Number(c.amount).toLocaleString('es-AR')}</td><td>$${paid.toLocaleString('es-AR')}</td>
+      <td class="action-links"><button onclick="chargeQuickPay(${c.id})">Pagar</button><button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+}
+function openChargeModal(){
+  const sel = document.getElementById('ch-tenant');
+  sel.innerHTML = ALL_TENANTS_CACHE.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('charge-modal').classList.add('active');
+}
+document.getElementById('charge-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = { tenant_id: Number(document.getElementById('ch-tenant').value), concept: document.getElementById('ch-concept').value,
+    label: document.getElementById('ch-label').value, amount: document.getElementById('ch-amount').value };
+  try{
+    await api('/collections', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Cargo creado'); closeModal('charge-modal'); loadCharges();
+  }catch(err){ toast(err.message); }
+});
+async function chargeQuickPay(id){
+  const amount = prompt('¿Cuánto se pagó?');
+  if(!amount) return;
+  try{
+    const c = await api(`/collections`).then(list => list.find(x=>x.id===id));
+    const payments = c.payments || [];
+    payments.push({ date: new Date().toISOString().slice(0,10), amount: Number(amount), method:'transferencia' });
+    await api(`/collections/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
+    toast('Pago registrado'); loadCharges();
+  }catch(err){ toast(err.message); }
+}
+async function deleteCharge(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/collections/${id}`,{method:'DELETE'}); loadCharges(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// LIQUIDACIONES
+// =====================================================================
+async function loadSettlements(){
+  const tbody = document.getElementById('settlement-tbody');
+  try{
+    const list = await api('/settlements');
+    tbody.innerHTML = list.length ? list.map(s => {
+      const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
+      return `<tr><td>${t?t.name:'-'}</td><td>${s.period}</td><td>$${Number(s.net).toLocaleString('es-AR')}</td><td>${s.transferred?'Transferido':'Pendiente'}</td>
+      <td class="action-links">${!s.transferred?`<button onclick="markTransferred(${s.id})">Transferir</button>`:''}<button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button></td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+function openSettlementModal(){
+  const sel = document.getElementById('st-tenant');
+  sel.innerHTML = ALL_TENANTS_CACHE.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('st-period').value = new Date().toISOString().slice(0,7);
+  document.getElementById('settlement-modal').classList.add('active');
+}
+document.getElementById('settlement-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = { tenant_id: Number(document.getElementById('st-tenant').value), period: document.getElementById('st-period').value,
+    rent: document.getElementById('st-rent').value, commission: document.getElementById('st-commission').value,
+    expensas: document.getElementById('st-expensas').value, repairs: document.getElementById('st-repairs').value,
+    fees: document.getElementById('st-fees').value };
+  try{
+    await api('/settlements', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Liquidación creada'); closeModal('settlement-modal'); loadSettlements();
+  }catch(err){ toast(err.message); }
+});
+async function markTransferred(id){
+  try{ await api(`/settlements/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({transferred:true, transfer_date:new Date().toISOString().slice(0,10)})}); loadSettlements(); }
+  catch(err){ toast(err.message); }
+}
+async function deleteSettlement(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/settlements/${id}`,{method:'DELETE'}); loadSettlements(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// AGENDA
+// =====================================================================
+async function loadEvents(){
+  const tbody = document.getElementById('event-tbody');
+  try{
+    const list = await api('/agenda');
+    tbody.innerHTML = list.length ? list.map(e => `
+      <tr><td>${e.type}</td><td>${e.title}</td><td>${new Date(e.date).toLocaleDateString('es-AR')}</td><td>${e.status}</td>
+      <td class="action-links">${e.status!=='realizado'?`<button onclick="markEventDone(${e.id})">Realizado</button>`:''}<button style="color:var(--red)" onclick="deleteEvent(${e.id})">Borrar</button></td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin eventos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+function openEventModal(){ document.getElementById('event-modal').classList.add('active'); }
+document.getElementById('event-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = { type: document.getElementById('ev-type').value, title: document.getElementById('ev-title').value,
+    date: document.getElementById('ev-date').value, time: document.getElementById('ev-time').value, notes: document.getElementById('ev-notes').value };
+  try{
+    await api('/agenda', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Evento creado'); closeModal('event-modal'); loadEvents();
+  }catch(err){ toast(err.message); }
+});
+async function markEventDone(id){ try{ await api(`/agenda/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'realizado'})}); loadEvents(); }catch(err){ toast(err.message); } }
+async function deleteEvent(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/agenda/${id}`,{method:'DELETE'}); loadEvents(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// AUDITORÍA
+// =====================================================================
+async function loadAudit(){
+  const tbody = document.getElementById('audit-tbody');
+  try{
+    const list = await api('/audit');
+    tbody.innerHTML = list.length ? list.map(a => `
+      <tr><td>${a.user_name}</td><td>${new Date(a.created_at).toLocaleString('es-AR')}</td><td>${a.action}</td><td>${a.old_value}</td><td>${a.new_value}</td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin cambios registrados todavía.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
 </script>
+
 </body>
 </html>
