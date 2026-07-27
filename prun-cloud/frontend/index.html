@@ -6,63 +6,95 @@
 <title>Prun Bienes Raíces</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{ --black:#111; --yellow:#F4C300; --cream:#F7F5F0; --gray:#6b6b66; --line:#e4e1d8; }
+:root{ --black:#111; --yellow:#F4C300; --cream:#F7F5F0; --gray:#6b6b66; --line:#e4e1d8; --red:#c0392b; --green:#1a7a44; }
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Archivo',sans-serif;}
 h1,h2,h3{font-family:'Archivo Black';text-transform:uppercase;}
 body{background:var(--cream);color:var(--black);}
 a{color:inherit;text-decoration:none;}
+button{cursor:pointer;font-family:inherit;}
 .container{max-width:1200px;margin:0 auto;padding:0 24px;}
 .btn{display:inline-block;padding:13px 24px;font-weight:800;font-size:13px;text-transform:uppercase;border:2px solid var(--black);background:var(--black);color:#fff;border-radius:2px;}
 .btn:hover{background:var(--yellow);color:var(--black);border-color:var(--yellow);}
+.btn-outline{background:none;color:#fff;}
+.btn-outline:hover{background:var(--yellow);color:var(--black);}
 nav{position:fixed;top:0;left:0;right:0;background:var(--black);border-bottom:3px solid var(--yellow);z-index:100;}
 .nav-inner{display:flex;justify-content:space-between;align-items:center;height:72px;}
 .logo{color:#fff;font-family:'Archivo Black';font-size:20px;}
 .logo span{color:var(--yellow);}
+.nav-links{display:flex;gap:26px;align-items:center;}
+.nav-links a{color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;}
 #hero{background:var(--black);color:#fff;padding:150px 0 60px;border-bottom:6px solid var(--yellow);}
 .hero-title{font-size:44px;line-height:1;margin-bottom:16px;}
 .hero-title em{color:var(--yellow);font-style:normal;}
 section{padding:70px 0;}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
 .card{background:#fff;border:1.5px solid var(--line);}
-.card-photo{height:190px;background:#222;display:flex;align-items:center;justify-content:center;color:#665;}
+.card-photo{height:190px;background:#222;display:flex;align-items:center;justify-content:center;color:#665;overflow:hidden;}
 .card-photo img{width:100%;height:100%;object-fit:cover;}
 .card-body{padding:18px;}
 .price{font-family:'Archivo Black';font-size:20px;}
-.msg{font-size:12px;padding:9px 11px;margin-bottom:12px;display:none;}
-.msg.error{background:#fdeaea;color:#b33;display:block;}
-.msg.success{background:#eafaf0;color:#1a7a44;display:block;}
-input,select,textarea{padding:11px 13px;border:1.5px solid var(--line);width:100%;font-family:inherit;}
+.msg{font-size:12px;padding:9px 11px;margin-bottom:12px;display:none;border-radius:2px;}
+.msg.error{background:#fdeaea;color:var(--red);display:block;}
+.msg.success{background:#eafaf0;color:var(--green);display:block;}
+input,select,textarea{padding:11px 13px;border:1.5px solid var(--line);width:100%;font-family:inherit;border-radius:2px;}
 footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;font-size:12px;}
-@media(max-width:800px){.grid{grid-template-columns:1fr;}.hero-title{font-size:32px;}}
+.filters{background:#fff;border:1.5px solid var(--line);padding:18px;margin-bottom:26px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:end;}
+.filters label{font-size:10px;font-weight:800;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:4px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px;z-index:1000;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:#fff;max-width:520px;width:100%;padding:26px;max-height:88vh;overflow-y:auto;position:relative;}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;}
+.property-detail-photo{width:100%;height:280px;object-fit:cover;background:#222;}
+@media(max-width:800px){.grid{grid-template-columns:1fr;}.hero-title{font-size:32px;}.filters{grid-template-columns:1fr 1fr;}.nav-links{display:none;}}
 </style>
 </head>
 <body>
 <nav><div class="container nav-inner">
   <a href="#" class="logo">PRUN<span>.</span></a>
-  <div><a href="admin.html" style="color:#fff;font-size:13px;font-weight:700;text-transform:uppercase">Panel admin →</a></div>
+  <div class="nav-links">
+    <a href="#propiedades">Propiedades</a>
+    <a href="#contacto">Contacto</a>
+    <span id="nav-guest">
+      <button class="btn btn-outline" style="margin-right:8px;padding:9px 16px" onclick="openModal('login-modal')">Ingresar</button>
+      <button class="btn" style="padding:9px 16px" onclick="openModal('register-modal')">Registrarme</button>
+    </span>
+    <span id="nav-user" style="display:none;color:#fff;font-size:13px">
+      Hola, <strong id="nav-user-name"></strong>
+      <button class="btn btn-outline" style="margin-left:10px;padding:9px 16px" onclick="userLogout()">Salir</button>
+    </span>
+    <a href="admin.html" style="opacity:.6;font-size:11px">Panel admin →</a>
+  </div>
 </div></nav>
 
 <section id="hero">
   <div class="container">
     <h1 class="hero-title">Encontrá tu próximo <em>lugar</em></h1>
-    <p style="color:#c8c6bd;max-width:480px">Esta es la versión conectada a la nube — cada propiedad que cargues desde el panel ya queda visible acá para cualquiera, desde cualquier lugar.</p>
+    <p style="color:#c8c6bd;max-width:480px">Comprá, alquilá o vendé con acompañamiento real en cada paso.</p>
   </div>
 </section>
 
-<section>
+<section id="propiedades">
   <div class="container">
     <h2 style="margin-bottom:24px">Propiedades</h2>
+    <div class="filters">
+      <div><label>Operación</label><select id="f-operation"><option value="">Todas</option><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></div>
+      <div><label>Categoría</label><select id="f-category"><option value="">Todas</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="ph">PH</option><option value="terreno">Terreno</option></select></div>
+      <div><label>Ciudad</label><input type="text" id="f-city" placeholder="Ej: Buenos Aires"></div>
+      <div><label>Precio máximo</label><input type="number" id="f-price" placeholder="Sin límite"></div>
+      <div><button class="btn" style="width:100%" onclick="loadProperties()">Buscar</button></div>
+    </div>
     <div class="grid" id="grid"><p style="color:var(--gray)">Cargando...</p></div>
   </div>
 </section>
 
-<section style="background:#fff;border-top:1.5px solid var(--line)">
+<section id="contacto" style="background:#fff;border-top:1.5px solid var(--line)">
   <div class="container" style="max-width:520px">
     <h2 style="margin-bottom:20px">Contacto</h2>
     <div class="msg" id="contact-msg"></div>
     <form id="contact-form" onsubmit="return submitContact(event)" style="display:flex;flex-direction:column;gap:12px">
       <input type="text" name="name" placeholder="Nombre" required>
       <input type="email" name="email" placeholder="Email" required>
+      <input type="tel" name="phone" placeholder="Teléfono (opcional)">
       <textarea name="message" placeholder="Mensaje" rows="4" required></textarea>
       <button class="btn" type="submit">Enviar</button>
     </form>
@@ -71,28 +103,149 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 
 <footer>© 2026 Prun Bienes Raíces — versión en la nube</footer>
 
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-box" style="max-width:640px">
+    <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="register-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('register-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Creá tu cuenta</h3>
+    <div class="msg" id="register-msg"></div>
+    <form id="register-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="text" id="reg-name" placeholder="Nombre completo" required>
+      <input type="email" id="reg-email" placeholder="Email" required>
+      <input type="tel" id="reg-phone" placeholder="Teléfono (opcional)">
+      <input type="password" id="reg-password" placeholder="Contraseña" required minlength="6">
+      <select id="reg-role">
+        <option value="client">Quiero comprar/alquilar</option>
+        <option value="owner">Soy propietario</option>
+        <option value="agent">Soy agente</option>
+      </select>
+      <button class="btn" type="submit">Crear cuenta</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="login-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Ingresar</h3>
+    <div class="msg" id="login-msg"></div>
+    <form id="login-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="email" id="log-email" placeholder="Email" required>
+      <input type="password" id="log-password" placeholder="Contraseña" required>
+      <button class="btn" type="submit">Ingresar</button>
+    </form>
+    <p style="font-size:12px;color:var(--gray);margin-top:12px">¿Todavía no tenés cuenta? <a href="#" onclick="closeModal('login-modal');openModal('register-modal');return false" style="text-decoration:underline">Registrate acá</a></p>
+  </div>
+</div>
+
 <script>
 const API = window.location.origin + '/api';
+let SITE_USER = JSON.parse(localStorage.getItem('prun_site_user') || 'null');
+let SITE_TOKEN = localStorage.getItem('prun_site_token');
+let ALL_PROPS = [];
+
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('active'); }));
+
+function refreshUserNav(){
+  if(SITE_USER){
+    document.getElementById('nav-guest').style.display = 'none';
+    document.getElementById('nav-user').style.display = 'inline';
+    document.getElementById('nav-user-name').textContent = SITE_USER.name.split(' ')[0];
+  } else {
+    document.getElementById('nav-guest').style.display = 'inline';
+    document.getElementById('nav-user').style.display = 'none';
+  }
+}
+function userLogout(){
+  localStorage.removeItem('prun_site_user'); localStorage.removeItem('prun_site_token');
+  SITE_USER = null; SITE_TOKEN = null;
+  refreshUserNav();
+}
+document.getElementById('register-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = {
+    name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value,
+    phone: document.getElementById('reg-phone').value, password: document.getElementById('reg-password').value,
+    role: document.getElementById('reg-role').value,
+  };
+  const msg = document.getElementById('register-msg');
+  try{
+    const res = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Error al registrarte');
+    msg.textContent = '¡Cuenta creada! Ya podés ingresar.'; msg.className = 'msg success';
+    setTimeout(()=>{ closeModal('register-modal'); openModal('login-modal'); }, 1200);
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
+document.getElementById('login-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const email = document.getElementById('log-email').value;
+  const password = document.getElementById('log-password').value;
+  const msg = document.getElementById('login-msg');
+  try{
+    const res = await fetch(`${API}/auth/user-login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email,password}) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Error al ingresar');
+    SITE_TOKEN = data.token; SITE_USER = data.user;
+    localStorage.setItem('prun_site_token', SITE_TOKEN);
+    localStorage.setItem('prun_site_user', JSON.stringify(SITE_USER));
+    refreshUserNav();
+    closeModal('login-modal');
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
 
 async function loadProperties(){
   const grid = document.getElementById('grid');
+  grid.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
   try{
-    const res = await fetch(`${API}/properties`);
+    const params = new URLSearchParams();
+    const op = document.getElementById('f-operation').value;
+    const cat = document.getElementById('f-category').value;
+    const city = document.getElementById('f-city').value;
+    const price = document.getElementById('f-price').value;
+    if(op) params.set('operation', op);
+    if(cat) params.set('category', cat);
+    if(city) params.set('city', city);
+    if(price) params.set('maxPrice', price);
+    const res = await fetch(`${API}/properties?${params.toString()}`);
     const data = await res.json();
-    if(!data.length){ grid.innerHTML = '<p style="color:var(--gray)">Todavía no hay propiedades cargadas. Entrá al panel de administración para agregar la primera.</p>'; return; }
+    ALL_PROPS = data;
+    if(!data.length){ grid.innerHTML = '<p style="color:var(--gray)">No encontramos propiedades con esos filtros.</p>'; return; }
     grid.innerHTML = data.map(p => `
       <div class="card">
-        <div class="card-photo">${p.photos && p.photos[0] ? `<img src="${p.photos[0]}">` : 'Sin foto'}</div>
+        <div class="card-photo" onclick="showDetail(${p.id})" style="cursor:pointer">${p.photos && p.photos[0] ? `<img src="${p.photos[0]}">` : 'Sin foto'}</div>
         <div class="card-body">
           <div class="price">${p.currency} ${Number(p.price).toLocaleString('es-AR')}</div>
           <div style="font-weight:700;margin:4px 0">${p.title}</div>
-          <div style="color:var(--gray);font-size:13px">${p.city||''}</div>
+          <div style="color:var(--gray);font-size:13px">${p.city||''} · ${p.operation}</div>
+          <button class="btn" style="width:100%;margin-top:12px;padding:9px" onclick="showDetail(${p.id})">Ver más</button>
         </div>
       </div>
     `).join('');
   }catch(err){
     grid.innerHTML = '<p style="color:var(--gray)">No pudimos conectar con el servidor. Revisá que el backend esté funcionando en Render.</p>';
   }
+}
+function showDetail(id){
+  const p = ALL_PROPS.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('detail-content').innerHTML = `
+    ${p.photos && p.photos[0] ? `<img class="property-detail-photo" src="${p.photos[0]}">` : ''}
+    <h2 style="margin:16px 0 6px;font-size:20px">${p.title}</h2>
+    <div class="price" style="margin-bottom:10px">${p.currency} ${Number(p.price).toLocaleString('es-AR')}</div>
+    <p style="color:var(--gray);font-size:13px;margin-bottom:12px">${p.city||''} · ${p.operation} · ${p.category} · ${p.bedrooms||0} dorm. · ${p.bathrooms||0} baños</p>
+    <p style="font-size:14px;line-height:1.5">${p.description||'Sin descripción.'}</p>
+    <button class="btn" style="width:100%;margin-top:16px" onclick="closeModal('detail-modal');document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Consultar por esta propiedad</button>
+  `;
+  openModal('detail-modal');
 }
 async function submitContact(e){
   e.preventDefault();
@@ -110,6 +263,7 @@ async function submitContact(e){
   }
   return false;
 }
+refreshUserNav();
 loadProperties();
 </script>
 </body>
