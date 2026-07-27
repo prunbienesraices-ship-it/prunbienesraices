@@ -39,6 +39,13 @@ router.get('/:id', async (req, res) => {
   res.json(data);
 });
 
+// ---------- Listar TODAS las propiedades sin filtrar, para uso interno del panel ----------
+router.get('/admin/all', requireAuth, async (req, res) => {
+  const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: 'Error al buscar propiedades.' });
+  res.json(data);
+});
+
 // ---------- Crear propiedad (solo admin logueado) ----------
 router.post('/', requireAuth, upload.array('photos', 20), async (req, res) => {
   try {

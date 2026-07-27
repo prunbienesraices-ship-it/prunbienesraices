@@ -67,4 +67,27 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Login de usuarios del sitio publico (compradores, propietarios, agentes)
+router.post('/user-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Ingresá tu email y contraseña.' });
+    }
+    const { data: user, error } = await supabase
+      .from('site_users').select('*').eq('email', email).maybeSingle();
+    if (error) throw error;
+    if (!user) return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+
+    const valid = bcrypt.compareSync(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+
+    const token = generateToken({ id: user.id, email: user.email, role: user.role, name: user.name });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al iniciar sesión.' });
+  }
+});
+
 module.exports = router;
