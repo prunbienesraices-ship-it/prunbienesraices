@@ -54,6 +54,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   <div class="nav-links">
     <a href="#propiedades">Propiedades</a>
     <a href="#contacto">Contacto</a>
+    <button class="btn" style="padding:9px 16px;background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Agendarme</button>
     <span id="nav-guest">
       <button class="btn btn-outline" style="margin-right:8px;padding:9px 16px" onclick="openModal('login-modal')">Ingresar</button>
       <button class="btn" style="padding:9px 16px" onclick="openModal('register-modal')">Registrarme</button>
@@ -69,7 +70,8 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 <section id="hero">
   <div class="container">
     <h1 class="hero-title">Encontrá tu próximo <em>lugar</em></h1>
-    <p style="color:#c8c6bd;max-width:480px">Comprá, alquilá o vendé con acompañamiento real en cada paso.</p>
+    <p style="color:#c8c6bd;max-width:480px;margin-bottom:20px">Comprá, alquilá o vendé con acompañamiento real en cada paso.</p>
+    <button class="btn" style="background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Quiero que me contacten</button>
   </div>
 </section>
 
@@ -107,6 +109,41 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   <div class="modal-box" style="max-width:640px">
     <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
     <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="survey-modal">
+  <div class="modal-box" style="max-width:520px">
+    <button class="modal-close" onclick="closeModal('survey-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:6px">Quiero que me contacten</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Contanos qué estás buscando y te contactamos para coordinar una visita, una llamada o lo que necesites.</p>
+    <div class="msg" id="survey-msg"></div>
+    <form id="survey-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="text" id="sv-name" placeholder="Nombre completo" required>
+      <input type="email" id="sv-email" placeholder="Email" required>
+      <input type="tel" id="sv-phone" placeholder="Teléfono" required>
+      <select id="sv-interest" required>
+        <option value="">¿Qué estás buscando?</option>
+        <option value="comprar">Comprar</option>
+        <option value="alquilar">Alquilar</option>
+        <option value="vender">Vender una propiedad</option>
+        <option value="invertir">Invertir</option>
+      </select>
+      <input type="text" id="sv-budget" placeholder="Presupuesto aproximado (opcional)">
+      <select id="sv-timeline">
+        <option value="">¿Para cuándo lo necesitás?</option>
+        <option value="inmediato">Lo antes posible</option>
+        <option value="3meses">En los próximos 3 meses</option>
+        <option value="6meses">En los próximos 6 meses</option>
+        <option value="explorando">Todavía estoy explorando</option>
+      </select>
+      <input type="date" id="sv-date" placeholder="Fecha preferida para que te contactemos">
+      <label style="font-size:11px;color:var(--gray);margin-top:-4px">Fecha preferida para el contacto (opcional)</label>
+      <hr style="border:none;border-top:1px solid var(--line);margin:4px 0">
+      <p style="font-size:12px;color:var(--gray)">Si además querés crear una cuenta para hacer seguimiento de tus consultas, elegí una contraseña (opcional):</p>
+      <input type="password" id="sv-password" placeholder="Contraseña (opcional, para crear tu cuenta)">
+      <button class="btn" type="submit">Enviar</button>
+    </form>
   </div>
 </div>
 
@@ -263,6 +300,31 @@ async function submitContact(e){
   }
   return false;
 }
+document.getElementById('survey-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = {
+    name: document.getElementById('sv-name').value,
+    email: document.getElementById('sv-email').value,
+    phone: document.getElementById('sv-phone').value,
+    interest: document.getElementById('sv-interest').value,
+    budget: document.getElementById('sv-budget').value,
+    timeline: document.getElementById('sv-timeline').value,
+    preferred_date: document.getElementById('sv-date').value || null,
+    password: document.getElementById('sv-password').value || undefined,
+  };
+  const msg = document.getElementById('survey-msg');
+  try{
+    const res = await fetch(`${API}/survey`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Error al enviar tu solicitud');
+    msg.textContent = data.accountCreated
+      ? '¡Listo! Te contactaremos pronto, y ya podés ingresar con tu cuenta nueva.'
+      : '¡Listo! Te contactaremos pronto.';
+    msg.className = 'msg success';
+    document.getElementById('survey-form').reset();
+    setTimeout(()=>{ closeModal('survey-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
 refreshUserNav();
 loadProperties();
 </script>
