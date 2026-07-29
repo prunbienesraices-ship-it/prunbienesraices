@@ -54,10 +54,9 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   <div class="nav-links">
     <a href="#propiedades">Propiedades</a>
     <a href="#contacto">Contacto</a>
-    <button class="btn" style="padding:9px 16px;background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Agendarme</button>
+    <button class="btn" style="padding:9px 16px;background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Registrarme</button>
     <span id="nav-guest">
       <button class="btn btn-outline" style="margin-right:8px;padding:9px 16px" onclick="openModal('login-modal')">Ingresar</button>
-      <button class="btn" style="padding:9px 16px" onclick="openModal('register-modal')">Registrarme</button>
     </span>
     <span id="nav-user" style="display:none;color:#fff;font-size:13px">
       Hola, <strong id="nav-user-name"></strong>
@@ -164,6 +163,11 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
           <option value="no">No</option>
           <option value="si">Sí</option>
         </select>
+        <select id="sv-cochera">
+          <option value="">¿Necesitás cochera?</option>
+          <option value="no">No</option>
+          <option value="si">Sí</option>
+        </select>
         <input type="date" id="sv-fecha-mudanza">
         <label style="font-size:11px;color:var(--gray);margin-top:-6px">Fecha en la que necesitás mudarte (opcional)</label>
       </div>
@@ -205,6 +209,9 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
           <option value="usada">Usada</option>
           <option value="no_importa">No importa</option>
         </select>
+        <input type="number" id="sv-c-grupo-familiar" placeholder="Cantidad de personas del grupo familiar">
+        <input type="date" id="sv-c-fecha-compra">
+        <label style="font-size:11px;color:var(--gray);margin-top:-6px">Fecha estimada en la que planeás concretar la compra (opcional)</label>
       </div>
 
       <input type="text" id="sv-budget" placeholder="Presupuesto aproximado (opcional)">
@@ -218,29 +225,9 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
       <input type="date" id="sv-date" placeholder="Fecha preferida para que te contactemos">
       <label style="font-size:11px;color:var(--gray);margin-top:-4px">Fecha preferida para el contacto (opcional)</label>
       <hr style="border:none;border-top:1px solid var(--line);margin:4px 0">
-      <p style="font-size:12px;color:var(--gray)">Si además querés crear una cuenta para hacer seguimiento de tus consultas, elegí una contraseña (opcional):</p>
-      <input type="password" id="sv-password" placeholder="Contraseña (opcional, para crear tu cuenta)">
+      <p style="font-size:12px;color:var(--gray)">Creamos tu cuenta con estos datos para que puedas hacer seguimiento de tu consulta. Elegí una contraseña:</p>
+      <input type="password" id="sv-password" placeholder="Contraseña" required minlength="6">
       <button class="btn" type="submit">Enviar</button>
-    </form>
-  </div>
-</div>
-
-<div class="modal-overlay" id="register-modal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('register-modal')">✕</button>
-    <h3 style="font-size:18px;margin-bottom:14px">Creá tu cuenta</h3>
-    <div class="msg" id="register-msg"></div>
-    <form id="register-form" style="display:flex;flex-direction:column;gap:12px">
-      <input type="text" id="reg-name" placeholder="Nombre completo" required>
-      <input type="email" id="reg-email" placeholder="Email" required>
-      <input type="tel" id="reg-phone" placeholder="Teléfono (opcional)">
-      <input type="password" id="reg-password" placeholder="Contraseña" required minlength="6">
-      <select id="reg-role">
-        <option value="client">Quiero comprar/alquilar</option>
-        <option value="owner">Soy propietario</option>
-        <option value="agent">Soy agente</option>
-      </select>
-      <button class="btn" type="submit">Crear cuenta</button>
     </form>
   </div>
 </div>
@@ -263,7 +250,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
       <input type="password" id="log-password" placeholder="Contraseña" required>
       <button class="btn" type="submit">Ingresar</button>
     </form>
-    <p style="font-size:12px;color:var(--gray);margin-top:12px">¿Todavía no tenés cuenta? <a href="#" onclick="closeModal('login-modal');openModal('register-modal');return false" style="text-decoration:underline">Registrate acá</a></p>
+    <p style="font-size:12px;color:var(--gray);margin-top:12px">¿Todavía no tenés cuenta? <a href="#" onclick="closeModal('login-modal');openModal('survey-modal');return false" style="text-decoration:underline">Registrate acá</a></p>
   </div>
 </div>
 
@@ -320,22 +307,6 @@ function userLogout(){
   SITE_USER = null; SITE_TOKEN = null;
   refreshUserNav();
 }
-document.getElementById('register-form').addEventListener('submit', async e=>{
-  e.preventDefault();
-  const body = {
-    name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value,
-    phone: document.getElementById('reg-phone').value, password: document.getElementById('reg-password').value,
-    role: document.getElementById('reg-role').value,
-  };
-  const msg = document.getElementById('register-msg');
-  try{
-    const res = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error || 'Error al registrarte');
-    msg.textContent = '¡Cuenta creada! Ya podés ingresar.'; msg.className = 'msg success';
-    setTimeout(()=>{ closeModal('register-modal'); openModal('login-modal'); }, 1200);
-  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
-});
 document.getElementById('login-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const email = document.getElementById('log-email').value;
@@ -431,7 +402,7 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
     budget: document.getElementById('sv-budget').value,
     timeline: document.getElementById('sv-timeline').value,
     preferred_date: document.getElementById('sv-date').value || null,
-    password: document.getElementById('sv-password').value || undefined,
+    password: document.getElementById('sv-password').value,
     extra_details: isRental ? {
       localidad: document.getElementById('sv-localidad').value,
       zona: document.getElementById('sv-zona').value,
@@ -444,6 +415,7 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
       ingresos: document.getElementById('sv-ingresos').value,
       garantia: document.getElementById('sv-garantia').value,
       mascotas: document.getElementById('sv-mascotas').value,
+      cochera: document.getElementById('sv-cochera').value,
       fecha_mudanza: document.getElementById('sv-fecha-mudanza').value,
     } : isBuy ? {
       localidad: document.getElementById('sv-c-localidad').value,
@@ -456,6 +428,8 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
       forma_pago: document.getElementById('sv-c-forma-pago').value,
       cochera: document.getElementById('sv-c-cochera').value,
       antiguedad: document.getElementById('sv-c-antiguedad').value,
+      grupo_familiar: document.getElementById('sv-c-grupo-familiar').value,
+      fecha_compra: document.getElementById('sv-c-fecha-compra').value,
     } : {},
   };
   const msg = document.getElementById('survey-msg');
@@ -464,8 +438,8 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Error al enviar tu solicitud');
     msg.textContent = data.accountCreated
-      ? '¡Listo! Te contactaremos pronto, y ya podés ingresar con tu cuenta nueva.'
-      : '¡Listo! Te contactaremos pronto.';
+      ? '¡Listo! Te contactaremos pronto. Ya te creamos una cuenta — podés ingresar con tu email y la contraseña que elegiste.'
+      : '¡Listo! Te contactaremos pronto. Ya tenías una cuenta con ese email, así que usá tu contraseña de siempre para ingresar.';
     msg.className = 'msg success';
     document.getElementById('survey-form').reset();
     toggleRentalFields();
