@@ -7,11 +7,15 @@ const { requireAuth } = require('../auth');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB por foto
 
+// Columnas seguras para mostrar en publico: no incluyen los datos internos
+// de servicios (ABL, ARBA, luz, gas, agua), que son solo para uso interno.
+const PUBLIC_COLUMNS = 'id, title, description, operation, category, price, currency, address, neighborhood, city, province, bedrooms, bathrooms, area_total, area_covered, garage, status, featured, agent, commission, photos, amenities, owner_id, development_id, floor, door, coefficient, created_at, updated_at';
+
 // ---------- Listar propiedades (publico) ----------
 router.get('/', async (req, res) => {
   try {
     const { operation, category, city, minPrice, maxPrice, featured, status } = req.query;
-    let query = supabase.from('properties').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('properties').select(PUBLIC_COLUMNS).order('created_at', { ascending: false });
 
     if (operation) query = query.eq('operation', operation);
     if (category) query = query.eq('category', category);
@@ -33,7 +37,7 @@ router.get('/', async (req, res) => {
 
 // ---------- Ver una propiedad puntual (publico) ----------
 router.get('/:id', async (req, res) => {
-  const { data, error } = await supabase.from('properties').select('*').eq('id', req.params.id).maybeSingle();
+  const { data, error } = await supabase.from('properties').select(PUBLIC_COLUMNS).eq('id', req.params.id).maybeSingle();
   if (error) return res.status(500).json({ error: 'Error al buscar la propiedad.' });
   if (!data) return res.status(404).json({ error: 'Propiedad no encontrada.' });
   res.json(data);
@@ -62,6 +66,7 @@ router.post('/', requireAuth, upload.array('photos', 20), async (req, res) => {
       agent: b.agent || '', commission: Number(b.commission) || 0,
       photos: photoUrls, amenities: b.amenities ? JSON.parse(b.amenities) : [],
       owner_id: b.owner_id ? Number(b.owner_id) : null,
+      services: b.services ? JSON.parse(b.services) : {},
     }]).select().single();
 
     if (error) throw error;
@@ -92,6 +97,7 @@ router.put('/:id', requireAuth, upload.array('photos', 20), async (req, res) => 
     if (b.owner_id !== undefined) updates.owner_id = b.owner_id ? Number(b.owner_id) : null;
     if (b.featured !== undefined) updates.featured = b.featured === 'true' || b.featured === true;
     if (b.amenities !== undefined) updates.amenities = JSON.parse(b.amenities);
+    if (b.services !== undefined) updates.services = JSON.parse(b.services);
     if (newPhotoUrls.length) updates.photos = finalPhotos;
     updates.updated_at = new Date().toISOString();
 
