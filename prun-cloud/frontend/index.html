@@ -61,6 +61,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     </span>
     <span id="nav-user" style="display:none;color:#fff;font-size:13px">
       Hola, <strong id="nav-user-name"></strong>
+      <button class="btn btn-outline" id="nav-owner-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
       <button class="btn btn-outline" style="margin-left:10px;padding:9px 16px" onclick="userLogout()">Salir</button>
     </span>
     <a href="admin.html" style="opacity:.6;font-size:11px">Panel admin →</a>
@@ -122,13 +123,90 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
       <input type="text" id="sv-name" placeholder="Nombre completo" required>
       <input type="email" id="sv-email" placeholder="Email" required>
       <input type="tel" id="sv-phone" placeholder="Teléfono" required>
-      <select id="sv-interest" required>
+      <select id="sv-interest" required onchange="toggleRentalFields()">
         <option value="">¿Qué estás buscando?</option>
         <option value="comprar">Comprar</option>
         <option value="alquilar">Alquilar</option>
         <option value="vender">Vender una propiedad</option>
         <option value="invertir">Invertir</option>
       </select>
+
+      <div id="rental-extra" style="display:none;flex-direction:column;gap:12px;background:var(--cream);padding:14px;border:1px solid var(--line)">
+        <p style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--gray);margin:0">Contanos más sobre el alquiler que buscás</p>
+        <input type="text" id="sv-localidad" placeholder="Localidad">
+        <input type="text" id="sv-zona" placeholder="Zona o barrio">
+        <div style="display:flex;gap:10px">
+          <input type="number" id="sv-alquiler-desde" placeholder="Alquiler desde">
+          <input type="number" id="sv-alquiler-hasta" placeholder="Alquiler hasta">
+        </div>
+        <select id="sv-tipo-propiedad">
+          <option value="">Tipo de propiedad</option>
+          <option value="casa">Casa</option>
+          <option value="departamento">Departamento</option>
+          <option value="ph">PH</option>
+          <option value="otro">Otro</option>
+        </select>
+        <div style="display:flex;gap:10px">
+          <input type="number" id="sv-habitaciones" placeholder="Cantidad de habitaciones">
+          <input type="number" id="sv-m2" placeholder="m² cubiertos">
+        </div>
+        <input type="number" id="sv-grupo-familiar" placeholder="Cantidad de personas del grupo familiar">
+        <input type="text" id="sv-ingresos" placeholder="Ingresos aproximados">
+        <select id="sv-garantia">
+          <option value="">¿Contás con garantía?</option>
+          <option value="propietaria">Sí, garantía propietaria</option>
+          <option value="seguro_caucion">Sí, seguro de caución</option>
+          <option value="recibo_sueldo">Sí, recibo de sueldo</option>
+          <option value="no">Todavía no cuento con garantía</option>
+        </select>
+        <select id="sv-mascotas">
+          <option value="">¿Tenés mascotas?</option>
+          <option value="no">No</option>
+          <option value="si">Sí</option>
+        </select>
+        <input type="date" id="sv-fecha-mudanza">
+        <label style="font-size:11px;color:var(--gray);margin-top:-6px">Fecha en la que necesitás mudarte (opcional)</label>
+      </div>
+
+      <div id="buy-extra" style="display:none;flex-direction:column;gap:12px;background:var(--cream);padding:14px;border:1px solid var(--line)">
+        <p style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--gray);margin:0">Contanos más sobre la propiedad que buscás comprar</p>
+        <input type="text" id="sv-c-localidad" placeholder="Localidad">
+        <input type="text" id="sv-c-zona" placeholder="Zona o barrio">
+        <div style="display:flex;gap:10px">
+          <input type="number" id="sv-c-presupuesto-desde" placeholder="Presupuesto desde">
+          <input type="number" id="sv-c-presupuesto-hasta" placeholder="Presupuesto hasta">
+        </div>
+        <select id="sv-c-tipo-vivienda">
+          <option value="">Tipo de vivienda</option>
+          <option value="casa">Casa</option>
+          <option value="departamento">Departamento</option>
+          <option value="ph">PH</option>
+          <option value="terreno">Terreno</option>
+          <option value="otro">Otro</option>
+        </select>
+        <div style="display:flex;gap:10px">
+          <input type="number" id="sv-c-habitaciones" placeholder="Cantidad de habitaciones">
+          <input type="number" id="sv-c-m2" placeholder="m² cubiertos">
+        </div>
+        <select id="sv-c-forma-pago">
+          <option value="">Forma de pago</option>
+          <option value="contado">Contado</option>
+          <option value="credito">Crédito hipotecario</option>
+          <option value="permuta">Permuta (entrega una propiedad como parte de pago)</option>
+        </select>
+        <select id="sv-c-cochera">
+          <option value="">¿Necesitás cochera?</option>
+          <option value="no">No</option>
+          <option value="si">Sí</option>
+        </select>
+        <select id="sv-c-antiguedad">
+          <option value="">Antigüedad preferida</option>
+          <option value="estrenar">A estrenar</option>
+          <option value="usada">Usada</option>
+          <option value="no_importa">No importa</option>
+        </select>
+      </div>
+
       <input type="text" id="sv-budget" placeholder="Presupuesto aproximado (opcional)">
       <select id="sv-timeline">
         <option value="">¿Para cuándo lo necesitás?</option>
@@ -167,6 +245,14 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   </div>
 </div>
 
+<div class="modal-overlay" id="owner-portal-modal">
+  <div class="modal-box" style="max-width:640px">
+    <button class="modal-close" onclick="closeModal('owner-portal-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Mis propiedades y reclamos</h3>
+    <div id="owner-portal-content"><p style="color:var(--gray)">Cargando...</p></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="login-modal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
@@ -196,10 +282,38 @@ function refreshUserNav(){
     document.getElementById('nav-guest').style.display = 'none';
     document.getElementById('nav-user').style.display = 'inline';
     document.getElementById('nav-user-name').textContent = SITE_USER.name.split(' ')[0];
+    document.getElementById('nav-owner-btn').style.display = SITE_USER.role === 'owner' ? 'inline-block' : 'none';
   } else {
     document.getElementById('nav-guest').style.display = 'inline';
     document.getElementById('nav-user').style.display = 'none';
   }
+}
+async function openOwnerPortal(){
+  openModal('owner-portal-modal');
+  const box = document.getElementById('owner-portal-content');
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    const res = await fetch(`${API}/owner-portal/dashboard`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos cargar tu información.');
+    if(!data.isOwner){
+      box.innerHTML = '<p style="color:var(--gray)">Todavía no encontramos una ficha de propietario asociada a tu email. Si ya sos propietario nuestro, escribinos por Contacto para vincular tu cuenta.</p>';
+      return;
+    }
+    const REPAIR_STATUS_LABELS = { reportado:'Reportado', presupuestando:'Presupuestando', aprobado:'Aprobado', en_proceso:'En proceso', finalizado:'Finalizado', cancelado:'Cancelado' };
+    box.innerHTML = `
+      <h4 style="font-size:14px;margin-bottom:10px">Tus propiedades (${data.properties.length})</h4>
+      ${data.properties.length ? data.properties.map(p => `<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">${p.title} — ${p.city||''}</div>`).join('') : '<p style="color:var(--gray);font-size:13px">No tenés propiedades vinculadas todavía.</p>'}
+      <h4 style="font-size:14px;margin:18px 0 10px">Reclamos / reparaciones (${data.repairs.length})</h4>
+      ${data.repairs.length ? data.repairs.map(r => {
+        const prop = data.properties.find(p=>p.id===r.property_id);
+        return `<div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
+          <strong>${r.title}</strong> — ${prop?prop.title:''}<br>
+          <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''}</span>
+        </div>`;
+      }).join('') : '<p style="color:var(--gray);font-size:13px">No hay reclamos registrados en tus propiedades.</p>'}
+    `;
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
 function userLogout(){
   localStorage.removeItem('prun_site_user'); localStorage.removeItem('prun_site_token');
@@ -300,8 +414,15 @@ async function submitContact(e){
   }
   return false;
 }
+function toggleRentalFields(){
+  const val = document.getElementById('sv-interest').value;
+  document.getElementById('rental-extra').style.display = val === 'alquilar' ? 'flex' : 'none';
+  document.getElementById('buy-extra').style.display = val === 'comprar' ? 'flex' : 'none';
+}
 document.getElementById('survey-form').addEventListener('submit', async e=>{
   e.preventDefault();
+  const isRental = document.getElementById('sv-interest').value === 'alquilar';
+  const isBuy = document.getElementById('sv-interest').value === 'comprar';
   const body = {
     name: document.getElementById('sv-name').value,
     email: document.getElementById('sv-email').value,
@@ -311,6 +432,31 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
     timeline: document.getElementById('sv-timeline').value,
     preferred_date: document.getElementById('sv-date').value || null,
     password: document.getElementById('sv-password').value || undefined,
+    extra_details: isRental ? {
+      localidad: document.getElementById('sv-localidad').value,
+      zona: document.getElementById('sv-zona').value,
+      alquiler_desde: document.getElementById('sv-alquiler-desde').value,
+      alquiler_hasta: document.getElementById('sv-alquiler-hasta').value,
+      tipo_propiedad: document.getElementById('sv-tipo-propiedad').value,
+      habitaciones: document.getElementById('sv-habitaciones').value,
+      m2: document.getElementById('sv-m2').value,
+      grupo_familiar: document.getElementById('sv-grupo-familiar').value,
+      ingresos: document.getElementById('sv-ingresos').value,
+      garantia: document.getElementById('sv-garantia').value,
+      mascotas: document.getElementById('sv-mascotas').value,
+      fecha_mudanza: document.getElementById('sv-fecha-mudanza').value,
+    } : isBuy ? {
+      localidad: document.getElementById('sv-c-localidad').value,
+      zona: document.getElementById('sv-c-zona').value,
+      presupuesto_desde: document.getElementById('sv-c-presupuesto-desde').value,
+      presupuesto_hasta: document.getElementById('sv-c-presupuesto-hasta').value,
+      tipo_vivienda: document.getElementById('sv-c-tipo-vivienda').value,
+      habitaciones: document.getElementById('sv-c-habitaciones').value,
+      m2: document.getElementById('sv-c-m2').value,
+      forma_pago: document.getElementById('sv-c-forma-pago').value,
+      cochera: document.getElementById('sv-c-cochera').value,
+      antiguedad: document.getElementById('sv-c-antiguedad').value,
+    } : {},
   };
   const msg = document.getElementById('survey-msg');
   try{
@@ -322,6 +468,7 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
       : '¡Listo! Te contactaremos pronto.';
     msg.className = 'msg success';
     document.getElementById('survey-form').reset();
+    toggleRentalFields();
     setTimeout(()=>{ closeModal('survey-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
   }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
 });

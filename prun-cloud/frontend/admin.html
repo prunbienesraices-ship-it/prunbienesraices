@@ -143,7 +143,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <button class="btn" onclick="openDealModal()">+ Nuevo lead</button>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Contacto</th><th>Propiedad</th><th>Monto</th><th>Etapa</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Contacto</th><th>Categoría</th><th>Propiedad</th><th>Monto</th><th>Etapa</th><th>Acciones</th></tr></thead>
     <tbody id="deal-tbody"></tbody>
   </table></div>
 
@@ -181,6 +181,22 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <thead><tr><th>Usuario</th><th>Fecha</th><th>Acción</th><th>Antes</th><th>Después</th></tr></thead>
     <tbody id="audit-tbody"></tbody>
   </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Clientes registrados en el sitio</h2>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Rol</th><th>Fecha de registro</th></tr></thead>
+    <tbody id="siteusers-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Cuestionarios "Agendarme" recibidos</h2>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Nombre</th><th>Contacto</th><th>Categoría</th><th>Busca</th><th>Presupuesto</th><th>Plazo</th><th>Fecha recibido</th></tr></thead>
+    <tbody id="surveys-tbody"></tbody>
+  </table></div>
 </div>
 
 <div class="modal-overlay" id="prop-modal">
@@ -199,6 +215,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Estado</label><select id="p-status"><option value="disponible">Disponible</option><option value="reservado">Reservado</option><option value="vendido">Vendido</option><option value="alquilado">Alquilado</option></select></div>
         <div class="form-row"><label>Dormitorios</label><input type="number" id="p-bedrooms" value="0"></div>
         <div class="form-row"><label>Baños</label><input type="number" id="p-bathrooms" value="0"></div>
+        <div class="form-row"><label>Propietario</label><select id="p-owner"><option value="">Sin asignar</option></select></div>
       </div>
       <div class="form-row"><label>Fotos</label><input type="file" id="p-photos" multiple accept="image/*"></div>
       <div class="form-row"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-featured" style="width:auto"> Destacada</label></div>
@@ -481,7 +498,7 @@ function startApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
-  loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadCharges(); loadSettlements(); loadEvents(); loadAudit();
+  loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadCharges(); loadSettlements(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys();
 }
 if(TOKEN && USER){ startApp(); }
 
@@ -513,7 +530,7 @@ async function loadProperties(){
       </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = '<tr><td colspan="6">Error al cargar.</td></tr>'; }
 }
-function openPropModal(p){
+async function openPropModal(p){
   document.getElementById('prop-modal-title').textContent = p ? 'Editar propiedad' : 'Nueva propiedad';
   document.getElementById('p-id').value = p ? p.id : '';
   document.getElementById('p-title').value = p ? p.title : '';
@@ -528,14 +545,20 @@ function openPropModal(p){
   document.getElementById('p-bathrooms').value = p ? p.bathrooms : 0;
   document.getElementById('p-featured').checked = p ? !!p.featured : false;
   document.getElementById('p-photos').value = '';
+  try{
+    if(!ALL_OWNERS.length) ALL_OWNERS = await api('/owners');
+    const ownerSelect = document.getElementById('p-owner');
+    ownerSelect.innerHTML = '<option value="">Sin asignar</option>' + ALL_OWNERS.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+    ownerSelect.value = p && p.owner_id ? p.owner_id : '';
+  }catch(e){}
   document.getElementById('prop-modal').classList.add('active');
 }
 document.getElementById('prop-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('p-id').value;
   const fd = new FormData();
-  ['title','description','operation','category','price','currency','city','status','bedrooms','bathrooms'].forEach(f=>{
-    fd.append(f, document.getElementById('p-'+f).value);
+  ['title','description','operation','category','price','currency','city','status','bedrooms','bathrooms','owner'].forEach(f=>{
+    fd.append(f==='owner'?'owner_id':f, document.getElementById('p-'+f).value);
   });
   fd.append('featured', document.getElementById('p-featured').checked);
   const files = document.getElementById('p-photos').files;
@@ -1008,15 +1031,17 @@ async function deleteProvider(id){ if(!confirm('¿Borrar?')) return; try{ await 
 // =====================================================================
 async function loadDeals(){
   const tbody = document.getElementById('deal-tbody');
+  const CAT_BADGE = { comprador:'ok', inquilino:'warn', propietario:'bad', inversor:'ok' };
+  const CAT_LABEL = { comprador:'Comprador', inquilino:'Inquilino', propietario:'Propietario', inversor:'Inversor' };
   try{
     if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
     const list = await api('/deals');
     tbody.innerHTML = list.length ? list.map(d => {
       const prop = ALL_PROPERTIES.find(p=>p.id===d.property_id);
-      return `<tr><td>${d.name}</td><td>${prop?prop.title:'-'}</td><td>$${Number(d.amount).toLocaleString('es-AR')}</td><td>${d.stage}</td>
+      return `<tr><td>${d.name}</td><td>${d.category?`<span class="badge ${CAT_BADGE[d.category]||'warn'}">${CAT_LABEL[d.category]||d.category}</span>`:'-'}</td><td>${prop?prop.title:'-'}</td><td>$${Number(d.amount).toLocaleString('es-AR')}</td><td>${d.stage}</td>
       <td class="action-links"><button onclick='openDealModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDeal(${d.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin leads cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin leads cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
 }
 function openDealModal(d){
   document.getElementById('deal-modal-title').textContent = d ? 'Editar lead' : 'Nuevo lead';
@@ -1161,6 +1186,30 @@ async function loadAudit(){
       <tr><td>${a.user_name}</td><td>${new Date(a.created_at).toLocaleString('es-AR')}</td><td>${a.action}</td><td>${a.old_value}</td><td>${a.new_value}</td></tr>`).join('')
       : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin cambios registrados todavía.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+
+const ROLE_LABELS_SITE = { client:'Cliente', owner:'Propietario', agent:'Agente' };
+async function loadSiteUsers(){
+  const tbody = document.getElementById('siteusers-tbody');
+  try{
+    const list = await api('/auth/site-users');
+    tbody.innerHTML = list.length ? list.map(u => `
+      <tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone||'-'}</td><td>${ROLE_LABELS_SITE[u.role]||u.role}</td><td>${new Date(u.created_at).toLocaleDateString('es-AR')}</td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no se registró ningún cliente.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+
+const INTEREST_LABELS = { comprar:'Comprar', alquilar:'Alquilar', vender:'Vender', invertir:'Invertir' };
+async function loadSurveys(){
+  const tbody = document.getElementById('surveys-tbody');
+  const CAT_BADGE = { comprador:'ok', inquilino:'warn', propietario:'bad', inversor:'ok' };
+  const CAT_LABEL = { comprador:'Comprador', inquilino:'Inquilino', propietario:'Propietario', inversor:'Inversor' };
+  try{
+    const list = await api('/auth/survey-responses');
+    tbody.innerHTML = list.length ? list.map(s => `
+      <tr><td>${s.name}</td><td>${s.email}${s.phone?' · '+s.phone:''}</td><td>${s.category?`<span class="badge ${CAT_BADGE[s.category]||'warn'}">${CAT_LABEL[s.category]||s.category}</span>`:'-'}</td><td>${INTEREST_LABELS[s.interest]||s.interest||'-'}</td><td>${s.budget||'-'}</td><td>${s.timeline||'-'}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td></tr>`).join('')
+      : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Todavía no llegó ningún cuestionario.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
 }
 </script>
 
