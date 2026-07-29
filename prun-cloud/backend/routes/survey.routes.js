@@ -34,6 +34,7 @@ router.post('/', async (req, res) => {
     const extra = extra_details || {};
 
     let userId = null;
+    let accountCreated = false;
     if (password) {
       const { data: existing } = await supabase.from('site_users').select('id').eq('email', email).maybeSingle();
       if (existing) {
@@ -45,6 +46,7 @@ router.post('/', async (req, res) => {
           .select().single();
         if (userErr) throw userErr;
         userId = newUser.id;
+        accountCreated = true;
       }
     }
 
@@ -88,7 +90,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    res.status(201).json({ ok: true, accountCreated: !!password, category, derivedToOwners, survey });
+    res.status(201).json({ ok: true, accountCreated, category, derivedToOwners, survey });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al guardar tu solicitud. Proba de nuevo en un momento.' });
