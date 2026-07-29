@@ -217,6 +217,16 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Baños</label><input type="number" id="p-bathrooms" value="0"></div>
         <div class="form-row"><label>Propietario</label><select id="p-owner"><option value="">Sin asignar</option></select></div>
       </div>
+
+      <div class="section-label"><span>Números de cuenta de servicios e impuestos (uso interno, no se publican en el sitio)</span></div>
+      <div class="form-grid">
+        <div class="form-row"><label>N° de cuenta ABL (impuesto municipal)</label><input type="text" id="p-svc-municipal"></div>
+        <div class="form-row"><label>N° de cuenta ARBA (impuesto provincial)</label><input type="text" id="p-svc-provincial"></div>
+        <div class="form-row"><label>N° de cuenta de luz</label><input type="text" id="p-svc-luz"></div>
+        <div class="form-row"><label>N° de cuenta de gas</label><input type="text" id="p-svc-gas"></div>
+        <div class="form-row"><label>N° de cuenta de agua</label><input type="text" id="p-svc-agua"></div>
+      </div>
+
       <div class="form-row"><label>Fotos</label><input type="file" id="p-photos" multiple accept="image/*"></div>
       <div class="form-row"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-featured" style="width:auto"> Destacada</label></div>
       <div style="display:flex;gap:10px;margin-top:10px">
@@ -545,6 +555,12 @@ async function openPropModal(p){
   document.getElementById('p-bathrooms').value = p ? p.bathrooms : 0;
   document.getElementById('p-featured').checked = p ? !!p.featured : false;
   document.getElementById('p-photos').value = '';
+  const svc = p && p.services ? p.services : {};
+  document.getElementById('p-svc-municipal').value = svc.municipal || '';
+  document.getElementById('p-svc-provincial').value = svc.provincial || '';
+  document.getElementById('p-svc-luz').value = svc.luz || '';
+  document.getElementById('p-svc-gas').value = svc.gas || '';
+  document.getElementById('p-svc-agua').value = svc.agua || '';
   try{
     if(!ALL_OWNERS.length) ALL_OWNERS = await api('/owners');
     const ownerSelect = document.getElementById('p-owner');
@@ -561,6 +577,13 @@ document.getElementById('prop-form').addEventListener('submit', async e=>{
     fd.append(f==='owner'?'owner_id':f, document.getElementById('p-'+f).value);
   });
   fd.append('featured', document.getElementById('p-featured').checked);
+  fd.append('services', JSON.stringify({
+    municipal: document.getElementById('p-svc-municipal').value,
+    provincial: document.getElementById('p-svc-provincial').value,
+    luz: document.getElementById('p-svc-luz').value,
+    gas: document.getElementById('p-svc-gas').value,
+    agua: document.getElementById('p-svc-agua').value,
+  }));
   const files = document.getElementById('p-photos').files;
   for(let i=0;i<files.length;i++) fd.append('photos', files[i]);
   try{
