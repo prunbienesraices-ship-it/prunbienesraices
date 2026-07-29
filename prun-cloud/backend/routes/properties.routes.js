@@ -61,6 +61,7 @@ router.post('/', requireAuth, upload.array('photos', 20), async (req, res) => {
       garage: Number(b.garage) || 0, status: b.status || 'disponible', featured: b.featured === 'true' || b.featured === true,
       agent: b.agent || '', commission: Number(b.commission) || 0,
       photos: photoUrls, amenities: b.amenities ? JSON.parse(b.amenities) : [],
+      owner_id: b.owner_id ? Number(b.owner_id) : null,
     }]).select().single();
 
     if (error) throw error;
@@ -88,6 +89,7 @@ router.put('/:id', requireAuth, upload.array('photos', 20), async (req, res) => 
     ['price','bedrooms','bathrooms','area_total','area_covered','garage','commission'].forEach(f => {
       if (b[f] !== undefined) updates[f] = Number(b[f]);
     });
+    if (b.owner_id !== undefined) updates.owner_id = b.owner_id ? Number(b.owner_id) : null;
     if (b.featured !== undefined) updates.featured = b.featured === 'true' || b.featured === true;
     if (b.amenities !== undefined) updates.amenities = JSON.parse(b.amenities);
     if (newPhotoUrls.length) updates.photos = finalPhotos;
