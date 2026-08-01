@@ -198,6 +198,35 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <tbody id="surveys-tbody"></tbody>
   </table></div>
 
+  <div id="staff-section" style="display:none">
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Usuarios del panel</h2>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px;margin-bottom:20px">
+      <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Creá una cuenta para cada persona que trabaje con vos, eligiendo qué puede hacer:<br>
+      <strong>Vendedor</strong>: puede agregar y editar información, pero nunca borrar nada.<br>
+      <strong>Secretaria</strong>: acceso operativo completo (agregar, editar y borrar).<br>
+      <strong>Contador</strong>: solo puede consultar información (Cobranzas, Liquidaciones, Auditoría), no puede crear, editar ni borrar.<br>
+      <strong>Administrador</strong>: acceso total, incluyendo Apariencia del sitio y gestión de usuarios.</p>
+      <form id="staff-form" style="display:flex;flex-direction:column;gap:12px">
+        <input type="text" id="st-name" placeholder="Nombre completo" required>
+        <input type="email" id="st-email" placeholder="Email" required>
+        <input type="password" id="st-password" placeholder="Contraseña" required minlength="6">
+        <select id="st-role" required>
+          <option value="vendedor">Vendedor</option>
+          <option value="secretaria">Secretaria</option>
+          <option value="contador">Contador</option>
+          <option value="superadmin">Administrador</option>
+        </select>
+        <button class="btn" type="submit">Crear cuenta</button>
+      </form>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <tbody id="staff-tbody"></tbody>
+    </table></div>
+  </div>
+
   <div id="apariencia-section" style="display:none">
     <div class="page-head" style="margin-top:36px">
       <h2 style="font-size:20px">Apariencia del sitio</h2>
@@ -532,10 +561,67 @@ function startApp(){
   loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadCharges(); loadSettlements(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys();
   if(USER.role === 'superadmin'){
     document.getElementById('apariencia-section').style.display = 'block';
-    loadSiteConfig();
+    document.getElementById('staff-section').style.display = 'block';
+    loadSiteConfig(); loadStaff();
   }
+  applyRolePermissions();
+  const appObserver = new MutationObserver(()=>{
+    clearTimeout(window._rolePermTimer);
+    window._rolePermTimer = setTimeout(applyRolePermissions, 150);
+  });
+  appObserver.observe(document.getElementById('app'), { childList:true, subtree:true });
 }
 if(TOKEN && USER){ startApp(); }
+
+// Vendedor: puede agregar y editar, pero nunca ve el botón "Borrar".
+// Contador: modo solo lectura, no ve ni "Borrar" ni "Editar" ni botones de "+ Nuevo/Agregar".
+function applyRolePermissions(){
+  if(!USER) return;
+  const hideDelete = ['vendedor','contador'].includes(USER.role);
+  const readOnly = USER.role === 'contador';
+  document.querySelectorAll('.action-links button, .table-wrap button').forEach(btn=>{
+    const t = btn.textContent.trim();
+    if(hideDelete && /Borrar|Eliminar/i.test(t)) btn.style.display = 'none';
+    if(readOnly && !/Borrar|Eliminar/i.test(t)) btn.style.display = 'none';
+  });
+  if(readOnly){
+    document.querySelectorAll('.page-head button').forEach(b=>{
+      if(/^\+/.test(b.textContent.trim())) b.style.display = 'none';
+    });
+  }
+}
+
+const STAFF_ROLE_LABELS = { superadmin:'Administrador', secretaria:'Secretaria', vendedor:'Vendedor', contador:'Contador' };
+async function loadStaff(){
+  const tbody = document.getElementById('staff-tbody');
+  try{
+    const list = await api('/auth/staff');
+    tbody.innerHTML = list.length ? list.map(s => `
+      <tr><td>${s.name}</td><td>${s.email}</td><td>${STAFF_ROLE_LABELS[s.role]||s.role}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td>
+      <td class="action-links">${s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`}</td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no creaste ninguna cuenta de personal.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+document.getElementById('staff-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = {
+    name: document.getElementById('st-name').value,
+    email: document.getElementById('st-email').value,
+    password: document.getElementById('st-password').value,
+    role: document.getElementById('st-role').value,
+  };
+  try{
+    await api('/auth/staff', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    toast('Cuenta creada correctamente.');
+    document.getElementById('staff-form').reset();
+    loadStaff();
+  }catch(err){ toast(err.message); }
+});
+async function deleteStaff(id){
+  if(!confirm('¿Borrar esta cuenta de personal?')) return;
+  try{ await api(`/auth/staff/${id}`, {method:'DELETE'}); toast('Cuenta borrada'); loadStaff(); }
+  catch(err){ toast(err.message); }
+}
 
 async function loadStats(){
   try{

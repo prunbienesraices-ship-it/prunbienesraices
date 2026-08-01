@@ -61,6 +61,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <span id="nav-user" style="display:none;color:#fff;font-size:13px">
       Hola, <strong id="nav-user-name"></strong>
       <button class="btn btn-outline" id="nav-owner-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
+      <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openModal('tenant-report-modal')">🔧 Reportar reparación</button>
       <button class="btn btn-outline" style="margin-left:10px;padding:9px 16px" onclick="userLogout()">Salir</button>
     </span>
     <a href="admin.html" style="opacity:.6;font-size:11px">Panel admin →</a>
@@ -240,6 +241,20 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   </div>
 </div>
 
+<div class="modal-overlay" id="tenant-report-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('tenant-report-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:6px">Reportar una reparación</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Contanos qué hay que arreglar en la propiedad que alquilás. El equipo lo va a ver en el sistema y se va a poner en contacto.</p>
+    <div class="msg" id="tenant-report-msg"></div>
+    <form id="tenant-report-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="text" id="tr-title" placeholder="¿Qué hay que reparar? (ej: pierde la canilla de la cocina)" required>
+      <textarea id="tr-notes" placeholder="Detalles adicionales (opcional)" rows="3"></textarea>
+      <button class="btn" type="submit">Enviar reporte</button>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="login-modal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
@@ -270,6 +285,7 @@ function refreshUserNav(){
     document.getElementById('nav-user').style.display = 'inline';
     document.getElementById('nav-user-name').textContent = SITE_USER.name.split(' ')[0];
     document.getElementById('nav-owner-btn').style.display = SITE_USER.role === 'owner' ? 'inline-block' : 'none';
+    document.getElementById('nav-tenant-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
   } else {
     document.getElementById('nav-guest').style.display = 'inline';
     document.getElementById('nav-user').style.display = 'none';
@@ -463,6 +479,22 @@ async function applySiteConfig(){
     }
   }catch(err){ /* si falla, se queda con los valores por defecto */ }
 }
+document.getElementById('tenant-report-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const msg = document.getElementById('tenant-report-msg');
+  try{
+    const res = await fetch(`${API}/tenant-portal/report`, {
+      method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
+      body: JSON.stringify({ title: document.getElementById('tr-title').value, notes: document.getElementById('tr-notes').value }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos enviar tu reporte.');
+    msg.textContent = '¡Listo! Recibimos tu reporte, el equipo se va a poner en contacto.';
+    msg.className = 'msg success';
+    document.getElementById('tenant-report-form').reset();
+    setTimeout(()=>{ closeModal('tenant-report-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
 applySiteConfig();
 refreshUserNav();
 loadProperties();
