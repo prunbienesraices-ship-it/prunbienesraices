@@ -236,6 +236,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px">
       <form id="site-config-form">
         <div class="form-row"><label>Nombre / logo (texto)</label><input type="text" id="sc-logo-text"></div>
+        <div class="form-row"><label>Logo (imagen, opcional)</label><input type="file" id="sc-logo-image" accept="image/*"><div id="sc-logo-image-status" style="font-size:11px;color:var(--green);margin-top:4px"></div></div>
         <div class="form-row"><label>Título principal (hero)</label><input type="text" id="sc-hero-title"></div>
         <div class="form-row"><label>Subtítulo (hero)</label><textarea id="sc-hero-subtitle" rows="2"></textarea></div>
         <div class="form-row"><label>Imagen de fondo del hero (opcional)</label><input type="file" id="sc-hero-image" accept="image/*"><div id="sc-hero-image-status" style="font-size:11px;color:var(--green);margin-top:4px"></div></div>
@@ -1366,6 +1367,7 @@ async function loadSiteConfig(){
     document.getElementById('sc-primary-color').value = c.primary_color || '#F4C300';
     document.getElementById('sc-footer-text').value = c.footer_text || '';
     document.getElementById('sc-hero-image-status').textContent = c.hero_image ? '✔ Ya hay una imagen de fondo cargada. Subí una nueva para reemplazarla.' : '';
+    document.getElementById('sc-logo-image-status').textContent = c.logo_image ? '✔ Ya hay un logo cargado. Subí uno nuevo para reemplazarlo.' : '';
   }catch(err){ toast('No pudimos cargar la apariencia del sitio.'); }
 }
 document.getElementById('site-config-form').addEventListener('submit', async e=>{
@@ -1374,14 +1376,17 @@ document.getElementById('site-config-form').addEventListener('submit', async e=>
   ['logo-text','hero-title','hero-subtitle','contact-phone','contact-email','whatsapp','primary-color','footer-text'].forEach(f=>{
     fd.append(f.replace(/-/g,'_'), document.getElementById('sc-'+f).value);
   });
-  const file = document.getElementById('sc-hero-image').files[0];
-  if(file) fd.append('hero_image', file);
+  const heroFile = document.getElementById('sc-hero-image').files[0];
+  if(heroFile) fd.append('hero_image', heroFile);
+  const logoFile = document.getElementById('sc-logo-image').files[0];
+  if(logoFile) fd.append('logo_image', logoFile);
   try{
     const res = await fetch(`${API}/site-config`, { method:'PUT', headers:{Authorization:`Bearer ${TOKEN}`}, body: fd });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Error al guardar');
     toast('Apariencia del sitio actualizada. Los cambios ya se ven en el sitio público.');
     document.getElementById('sc-hero-image').value = '';
+    document.getElementById('sc-logo-image').value = '';
   }catch(err){ toast(err.message); }
 });
 </script>

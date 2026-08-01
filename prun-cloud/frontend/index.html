@@ -50,7 +50,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 </head>
 <body>
 <nav><div class="container nav-inner">
-  <a href="#" class="logo"><span id="logo-text-el">PRUN</span><span>.</span></a>
+  <a href="#" class="logo" style="display:flex;align-items:center;gap:8px"><img id="logo-image-el" src="" alt="" style="display:none;height:34px;width:auto"><span id="logo-text-el">PRUN</span><span>.</span></a>
   <div class="nav-links">
     <a href="#propiedades">Propiedades</a>
     <a href="#contacto">Contacto</a>
@@ -467,6 +467,10 @@ async function applySiteConfig(){
     const c = await fetch(`${API}/site-config`).then(r=>r.json());
     if(!c || !Object.keys(c).length) return;
     if(c.logo_text) document.getElementById('logo-text-el').textContent = c.logo_text;
+    if(c.logo_image){
+      const img = document.getElementById('logo-image-el');
+      img.src = c.logo_image; img.alt = c.logo_text || 'Logo'; img.style.display = 'block';
+    }
     if(c.hero_title) document.getElementById('hero-title-el').textContent = c.hero_title;
     if(c.hero_subtitle) document.getElementById('hero-subtitle-el').textContent = c.hero_subtitle;
     if(c.footer_text) document.getElementById('footer-text-el').textContent = c.footer_text;
