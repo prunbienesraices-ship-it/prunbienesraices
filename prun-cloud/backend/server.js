@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const supabase = require('./supabaseClient');
 
 const authRoutes = require('./routes/auth.routes');
@@ -23,6 +24,7 @@ const auditRoutes = require('./routes/audit.routes');
 const surveyRoutes = require('./routes/survey.routes');
 const ownerPortalRoutes = require('./routes/owner-portal.routes');
 const siteConfigRoutes = require('./routes/site-config.routes');
+const tenantPortalRoutes = require('./routes/tenant-portal.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +35,27 @@ app.use(express.urlencoded({ extended: true }));
 
 // El sitio publico y el panel se sirven como archivos estaticos desde /frontend
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+// Restriccion de permisos por rol, valida para todas las rutas /api/*.
+// - vendedor: puede agregar y editar, pero nunca borrar (DELETE).
+// - contador: solo puede leer (GET), no puede crear, editar ni borrar nada.
+// El resto de las restricciones puntuales (como Apariencia del sitio, que
+// requiere superadmin) se manejan aparte, en cada ruta.
+const JWT_SECRET = process.env.JWT_SECRET || 'prun_secreto_default';
+app.use('/api', (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return next();
+  try {
+    const payload = jwt.verify(header.split(' ')[1], JWT_SECRET);
+    if (payload.role === 'vendedor' && req.method === 'DELETE') {
+      return res.status(403).json({ error: 'Tu perfil (Vendedor) no tiene permiso para borrar registros.' });
+    }
+    if (payload.role === 'contador' && req.method !== 'GET') {
+      return res.status(403).json({ error: 'Tu perfil (Contador) solo tiene permiso para consultar información, no para modificarla.' });
+    }
+  } catch (e) { /* si el token no es valido, cada ruta lo maneja por su cuenta */ }
+  next();
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertiesRoutes);
@@ -51,6 +74,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/survey', surveyRoutes);
 app.use('/api/owner-portal', ownerPortalRoutes);
 app.use('/api/site-config', siteConfigRoutes);
+app.use('/api/tenant-portal', tenantPortalRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor de Prun Bienes Raíces (nube) funcionando correctamente.' });
