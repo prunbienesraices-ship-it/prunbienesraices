@@ -22,6 +22,7 @@ const agendaRoutes = require('./routes/agenda.routes');
 const auditRoutes = require('./routes/audit.routes');
 const surveyRoutes = require('./routes/survey.routes');
 const ownerPortalRoutes = require('./routes/owner-portal.routes');
+const siteConfigRoutes = require('./routes/site-config.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,7 @@ app.use('/api/agenda', agendaRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/survey', surveyRoutes);
 app.use('/api/owner-portal', ownerPortalRoutes);
+app.use('/api/site-config', siteConfigRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor de Prun Bienes Raíces (nube) funcionando correctamente.' });
