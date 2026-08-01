@@ -15,21 +15,29 @@ router.get('/', async (req, res) => {
 });
 
 // Solo el superadmin puede modificarla; el resto del personal no.
-router.put('/', requireSuperadmin, upload.single('hero_image'), async (req, res) => {
+router.put('/', requireSuperadmin, upload.fields([{ name: 'hero_image', maxCount: 1 }, { name: 'logo_image', maxCount: 1 }]), async (req, res) => {
   try {
     const b = req.body;
     const updates = {};
     ['logo_text', 'hero_title', 'hero_subtitle', 'footer_text', 'contact_phone', 'contact_email', 'whatsapp_number', 'primary_color']
       .forEach(f => { if (b[f] !== undefined) updates[f] = b[f]; });
 
-    if (req.file) {
-      const fileName = `hero-${Date.now()}.${req.file.originalname.split('.').pop()}`;
-      const { error: uploadErr } = await supabase.storage.from('property-photos').upload(fileName, req.file.buffer, {
-        contentType: req.file.mimetype,
-      });
+    const files = req.files || {};
+    if (files.hero_image && files.hero_image[0]) {
+      const file = files.hero_image[0];
+      const fileName = `hero-${Date.now()}.${file.originalname.split('.').pop()}`;
+      const { error: uploadErr } = await supabase.storage.from('property-photos').upload(fileName, file.buffer, { contentType: file.mimetype });
       if (uploadErr) throw uploadErr;
       const { data: pub } = supabase.storage.from('property-photos').getPublicUrl(fileName);
       updates.hero_image = pub.publicUrl;
+    }
+    if (files.logo_image && files.logo_image[0]) {
+      const file = files.logo_image[0];
+      const fileName = `logo-${Date.now()}.${file.originalname.split('.').pop()}`;
+      const { error: uploadErr } = await supabase.storage.from('property-photos').upload(fileName, file.buffer, { contentType: file.mimetype });
+      if (uploadErr) throw uploadErr;
+      const { data: pub } = supabase.storage.from('property-photos').getPublicUrl(fileName);
+      updates.logo_image = pub.publicUrl;
     }
 
     updates.updated_at = new Date().toISOString();
