@@ -50,6 +50,9 @@ app.use('/api', (req, res, next) => {
     if (payload.role === 'vendedor' && req.method === 'DELETE') {
       return res.status(403).json({ error: 'Tu perfil (Vendedor) no tiene permiso para borrar registros.' });
     }
+    if (payload.role === 'vendedor' && (req.path.startsWith('/collections') || req.path.startsWith('/settlements'))) {
+      return res.status(403).json({ error: 'Tu perfil (Vendedor) no tiene acceso a Cobranzas ni Liquidaciones.' });
+    }
     if (payload.role === 'contador' && req.method !== 'GET') {
       return res.status(403).json({ error: 'Tu perfil (Contador) solo tiene permiso para consultar información, no para modificarla.' });
     }
