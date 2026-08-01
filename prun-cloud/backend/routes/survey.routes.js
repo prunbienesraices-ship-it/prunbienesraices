@@ -41,8 +41,9 @@ router.post('/', async (req, res) => {
         userId = existing.id;
       } else {
         const password_hash = bcrypt.hashSync(password, 10);
+        const roleByCategory = category === 'propietario' ? 'owner' : category === 'inquilino' ? 'tenant' : 'client';
         const { data: newUser, error: userErr } = await supabase.from('site_users')
-          .insert([{ name, email, password_hash, phone: phone || '', role: category === 'propietario' ? 'owner' : 'client' }])
+          .insert([{ name, email, password_hash, phone: phone || '', role: roleByCategory }])
           .select().single();
         if (userErr) throw userErr;
         userId = newUser.id;
