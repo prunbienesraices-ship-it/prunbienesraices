@@ -13,6 +13,7 @@ router.post('/', requireAuth, async (req, res) => {
   const b = req.body;
   const { data, error } = await supabase.from('collections_charges').insert([{
     tenant_id: b.tenant_id, concept: b.concept, label: b.label || '', amount: Number(b.amount) || 0, payments: b.payments || [],
+    due_date: b.due_date || null,
   }]).select().single();
   if (error) return res.status(500).json({ error: 'Error al crear el cargo.' });
   res.status(201).json(data);
@@ -20,7 +21,7 @@ router.post('/', requireAuth, async (req, res) => {
 router.put('/:id', requireAuth, async (req, res) => {
   const b = req.body;
   const updates = {};
-  ['concept','label','payments'].forEach(f=>{ if(b[f]!==undefined) updates[f]=b[f]; });
+  ['concept','label','payments','due_date'].forEach(f=>{ if(b[f]!==undefined) updates[f]=b[f]; });
   if(b.amount!==undefined) updates.amount = Number(b.amount);
   const { data, error } = await supabase.from('collections_charges').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: 'Error al editar el cargo.' });
