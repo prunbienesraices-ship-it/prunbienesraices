@@ -79,7 +79,6 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   <div class="page-head">
     <h2 style="font-size:20px">Propiedades</h2>
     <div style="display:flex;gap:8px">
-      <button class="btn" style="background:#fff;color:var(--black)" onclick="exportPropertiesCSV()">⬇ Exportar a Excel</button>
       <button class="btn" onclick="openPropModal()">+ Nueva propiedad</button>
     </div>
   </div>
@@ -552,25 +551,56 @@ function filterTable(query, tbodyId){
     tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
-// Exporta una lista de objetos a un archivo .csv que se abre directo en Excel.
-function downloadCSV(rows, headers, filename){
+// Exporta a un .csv (se abre directo en Excel) la tabla visible que corresponde
+// a cada seccion, respetando el buscador si hay filas ocultas por un filtro.
+function exportTableToCSV(table, title){
+  const headerCells = Array.from(table.querySelectorAll('thead th')).map(th=>th.textContent.trim());
+  const skipIdx = headerCells.indexOf('Acciones');
+  const headers = headerCells.filter((h,i)=>i!==skipIdx);
+  const rows = Array.from(table.querySelectorAll('tbody tr')).filter(tr =>
+    tr.style.display !== 'none' && tr.querySelectorAll('td').length === headerCells.length
+  );
+  if(!rows.length){ toast('No hay datos cargados para exportar.'); return; }
   const escape = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const csv = [headers.map(h=>escape(h.label)).join(',')]
-    .concat(rows.map(r => headers.map(h=>escape(h.get(r))).join(',')))
-    .join('\n');
+  const csv = [headers.map(escape).join(',')].concat(
+    rows.map(tr => Array.from(tr.querySelectorAll('td')).filter((td,i)=>i!==skipIdx).map(td=>escape(td.textContent.trim())).join(','))
+  ).join('\n');
   const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = filename;
+  link.download = `${title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
 }
-function exportPropertiesCSV(){
-  if(!PROP_TABLE_CACHE.length){ toast('No hay propiedades cargadas para exportar.'); return; }
-  downloadCSV(PROP_TABLE_CACHE, [
-    { label:'Título', get:p=>p.title }, { label:'Operación', get:p=>p.operation }, { label:'Categoría', get:p=>p.category },
-    { label:'Precio', get:p=>p.price }, { label:'Moneda', get:p=>p.currency }, { label:'Ciudad', get:p=>p.city },
-    { label:'Dormitorios', get:p=>p.bedrooms }, { label:'Baños', get:p=>p.bathrooms }, { label:'Estado', get:p=>p.status },
-  ], `propiedades-${new Date().toISOString().slice(0,10)}.csv`);
+// Le agrega el boton "Exportar a Excel" a cada seccion del panel que tenga
+// una tabla, automaticamente (no hace falta tocarlo a mano seccion por seccion).
+function addExportButtonsToAllTables(){
+  document.querySelectorAll('.page-head').forEach(head=>{
+    if(head.querySelector('.export-btn')) return;
+    let el = head.nextElementSibling;
+    while(el && !el.classList.contains('table-wrap')) el = el.nextElementSibling;
+    if(!el) return;
+    const table = el.querySelector('table');
+    const h2 = head.querySelector('h2');
+    if(!table || !h2) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn export-btn';
+    btn.style.cssText = 'background:#fff;color:var(--black)';
+    btn.textContent = '⬇ Exportar a Excel';
+    btn.onclick = () => exportTableToCSV(table, h2.textContent.trim());
+    const existingBtn = Array.from(head.children).find(c => c.tagName==='BUTTON' || (c.tagName==='DIV' && c.querySelector('button')));
+    if(existingBtn && existingBtn.tagName === 'DIV'){
+      existingBtn.insertBefore(btn, existingBtn.firstChild);
+    } else if(existingBtn){
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;gap:8px';
+      head.insertBefore(wrap, existingBtn);
+      wrap.appendChild(btn);
+      wrap.appendChild(existingBtn);
+    } else {
+      head.appendChild(btn);
+    }
+  });
 }
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
 
@@ -623,6 +653,7 @@ function startApp(){
     loadSiteConfig(); loadStaff();
   }
   applyRolePermissions();
+  addExportButtonsToAllTables();
   const appObserver = new MutationObserver(()=>{
     clearTimeout(window._rolePermTimer);
     window._rolePermTimer = setTimeout(applyRolePermissions, 150);
