@@ -78,8 +78,12 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 
   <div class="page-head">
     <h2 style="font-size:20px">Propiedades</h2>
-    <button class="btn" onclick="openPropModal()">+ Nueva propiedad</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="background:#fff;color:var(--black)" onclick="exportPropertiesCSV()">⬇ Exportar a Excel</button>
+      <button class="btn" onclick="openPropModal()">+ Nueva propiedad</button>
+    </div>
   </div>
+  <input type="text" placeholder="🔎 Buscar por título, ciudad, estado..." oninput="filterTable(this.value,'prop-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
     <thead><tr><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody id="prop-tbody"></tbody>
@@ -97,6 +101,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:20px">Inquilinos</h2>
     <button class="btn" onclick="openTenantModal()">+ Nuevo contrato</button>
   </div>
+  <input type="text" placeholder="🔎 Buscar por nombre, propiedad, estado..." oninput="filterTable(this.value,'tenant-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
     <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
     <tbody id="tenant-tbody"></tbody>
@@ -115,6 +120,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:20px">Propietarios</h2>
     <button class="btn" onclick="openOwnerModal()">+ Nuevo propietario</button>
   </div>
+  <input type="text" placeholder="🔎 Buscar por nombre, DNI, email..." oninput="filterTable(this.value,'owner-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
     <thead><tr><th>Nombre</th><th>DNI</th><th>CUIT</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
     <tbody id="owner-tbody"></tbody>
@@ -142,6 +148,20 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:20px">Pipeline de Ventas</h2>
     <button class="btn" onclick="openDealModal()">+ Nuevo lead</button>
   </div>
+  <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+    <input type="text" placeholder="🔎 Buscar por nombre, propiedad..." oninput="filterTable(this.value,'deal-tbody')" style="max-width:300px">
+    <select id="deal-filter-stage" onchange="loadDeals()" style="max-width:200px">
+      <option value="">Todas las etapas</option>
+      <option value="lead">Lead</option>
+      <option value="contactado">Contactado</option>
+      <option value="visita">Visita</option>
+      <option value="negociacion">Negociación</option>
+      <option value="reserva">Reserva</option>
+      <option value="cerrado">Cerrado</option>
+      <option value="perdido">Perdido</option>
+    </select>
+    <input type="text" id="deal-filter-agent" placeholder="Filtrar por vendedor" oninput="loadDeals()" style="max-width:200px">
+  </div>
   <div class="table-wrap"><table>
     <thead><tr><th>Contacto</th><th>Categoría</th><th>Propiedad</th><th>Monto</th><th>Etapa</th><th>Acciones</th></tr></thead>
     <tbody id="deal-tbody"></tbody>
@@ -153,7 +173,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <button class="btn" onclick="openChargeModal()">+ Nuevo cargo</button>
     </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Inquilino</th><th>Concepto</th><th>Período</th><th>Adeudado</th><th>Pagado</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Inquilino</th><th>Concepto</th><th>Período</th><th>Adeudado</th><th>Pagado</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
       <tbody id="charge-tbody"></tbody>
     </table></div>
 
@@ -187,6 +207,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   <div class="page-head" style="margin-top:36px">
     <h2 style="font-size:20px">Clientes registrados en el sitio</h2>
   </div>
+  <input type="text" placeholder="🔎 Buscar por nombre, email, rol..." oninput="filterTable(this.value,'siteusers-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
     <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Rol</th><th>Fecha de registro</th></tr></thead>
     <tbody id="siteusers-tbody"></tbody>
@@ -475,6 +496,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <div class="form-row"><label>Concepto</label><select id="ch-concept"><option value="abl">ABL</option><option value="arba">ARBA</option><option value="luz">Luz</option><option value="gas">Gas</option><option value="agua">Agua</option><option value="seguro">Seguro</option><option value="honorarios">Honorarios</option><option value="comisiones">Comisiones</option><option value="intereses">Intereses</option><option value="multas">Multas</option></select></div>
       <div class="form-row"><label>Período / descripción</label><input type="text" id="ch-label"></div>
       <div class="form-row"><label>Monto adeudado</label><input type="number" id="ch-amount" required></div>
+      <div class="form-row"><label>Fecha de vencimiento (opcional)</label><input type="date" id="ch-due-date"></div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('charge-modal')">Cancelar</button></div>
     </form>
   </div>
@@ -523,6 +545,33 @@ let TOKEN = localStorage.getItem('prun_token');
 let USER = JSON.parse(localStorage.getItem('prun_user') || 'null');
 
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+// Buscador simple: oculta las filas de una tabla que no contengan el texto buscado.
+function filterTable(query, tbodyId){
+  const q = query.trim().toLowerCase();
+  document.getElementById(tbodyId).querySelectorAll('tr').forEach(tr=>{
+    tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+// Exporta una lista de objetos a un archivo .csv que se abre directo en Excel.
+function downloadCSV(rows, headers, filename){
+  const escape = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const csv = [headers.map(h=>escape(h.label)).join(',')]
+    .concat(rows.map(r => headers.map(h=>escape(h.get(r))).join(',')))
+    .join('\n');
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+function exportPropertiesCSV(){
+  if(!PROP_TABLE_CACHE.length){ toast('No hay propiedades cargadas para exportar.'); return; }
+  downloadCSV(PROP_TABLE_CACHE, [
+    { label:'Título', get:p=>p.title }, { label:'Operación', get:p=>p.operation }, { label:'Categoría', get:p=>p.category },
+    { label:'Precio', get:p=>p.price }, { label:'Moneda', get:p=>p.currency }, { label:'Ciudad', get:p=>p.city },
+    { label:'Dormitorios', get:p=>p.bedrooms }, { label:'Baños', get:p=>p.bathrooms }, { label:'Estado', get:p=>p.status },
+  ], `propiedades-${new Date().toISOString().slice(0,10)}.csv`);
+}
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
 
 async function api(path, options={}){
@@ -607,7 +656,7 @@ async function loadStaff(){
     const list = await api('/auth/staff');
     tbody.innerHTML = list.length ? list.map(s => `
       <tr><td>${s.name}</td><td>${s.email}</td><td>${STAFF_ROLE_LABELS[s.role]||s.role}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td>
-      <td class="action-links">${s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`}</td></tr>`).join('')
+      <td class="action-links">${s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button onclick="resetStaffPassword(${s.id})">Restablecer contraseña</button><button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`}</td></tr>`).join('')
       : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no creaste ninguna cuenta de personal.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
 }
@@ -631,6 +680,15 @@ async function deleteStaff(id){
   try{ await api(`/auth/staff/${id}`, {method:'DELETE'}); toast('Cuenta borrada'); loadStaff(); }
   catch(err){ toast(err.message); }
 }
+async function resetStaffPassword(id){
+  const newPass = prompt('Escribí la nueva contraseña para esta cuenta (mínimo 6 caracteres):');
+  if(!newPass) return;
+  if(newPass.length < 6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
+  try{
+    await api(`/auth/staff/${id}/password`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:newPass}) });
+    toast('Contraseña restablecida. Avisale la nueva contraseña a esa persona.');
+  }catch(err){ toast(err.message); }
+}
 
 async function loadStats(){
   try{
@@ -641,6 +699,7 @@ async function loadStats(){
     document.getElementById('k-inquiries').textContent = d.unreadInquiries;
   }catch(err){}
 }
+let PROP_TABLE_CACHE = [];
 async function loadProperties(){
   const tbody = document.getElementById('prop-tbody');
   try{
@@ -649,6 +708,7 @@ async function loadProperties(){
     const vendido = await (await fetch(`${API}/properties?status=vendido`)).json();
     const alquilado = await (await fetch(`${API}/properties?status=alquilado`)).json();
     const all = [...list, ...reservado, ...vendido, ...alquilado];
+    PROP_TABLE_CACHE = all;
     tbody.innerHTML = all.length ? all.map(p => `
       <tr>
         <td>${p.title}</td><td>${p.operation}</td><td>${p.currency} ${Number(p.price).toLocaleString('es-AR')}</td>
@@ -1172,20 +1232,28 @@ async function deleteProvider(id){ if(!confirm('¿Borrar?')) return; try{ await 
 // =====================================================================
 // PIPELINE DE VENTAS
 // =====================================================================
+let ALL_DEALS_CACHE = [];
 async function loadDeals(){
   const tbody = document.getElementById('deal-tbody');
   const CAT_BADGE = { comprador:'ok', inquilino:'warn', propietario:'bad', inversor:'ok' };
   const CAT_LABEL = { comprador:'Comprador', inquilino:'Inquilino', propietario:'Propietario', inversor:'Inversor' };
   try{
     if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
-    const list = await api('/deals');
+    if(!ALL_DEALS_CACHE.length) ALL_DEALS_CACHE = await api('/deals');
+    const stageFilter = document.getElementById('deal-filter-stage')?.value || '';
+    const agentFilter = (document.getElementById('deal-filter-agent')?.value || '').toLowerCase();
+    const list = ALL_DEALS_CACHE.filter(d =>
+      (!stageFilter || d.stage === stageFilter) &&
+      (!agentFilter || (d.agent||'').toLowerCase().includes(agentFilter))
+    );
     tbody.innerHTML = list.length ? list.map(d => {
       const prop = ALL_PROPERTIES.find(p=>p.id===d.property_id);
       return `<tr><td>${d.name}</td><td>${d.category?`<span class="badge ${CAT_BADGE[d.category]||'warn'}">${CAT_LABEL[d.category]||d.category}</span>`:'-'}</td><td>${prop?prop.title:'-'}</td><td>$${Number(d.amount).toLocaleString('es-AR')}</td><td>${d.stage}</td>
       <td class="action-links"><button onclick='openDealModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDeal(${d.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin leads cargados.</td></tr>';
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin leads que coincidan con el filtro.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
 }
+function refreshDealsCache(){ ALL_DEALS_CACHE = []; loadDeals(); }
 function openDealModal(d){
   document.getElementById('deal-modal-title').textContent = d ? 'Editar lead' : 'Nuevo lead';
   document.getElementById('dl-id').value = d ? d.id : '';
@@ -1206,10 +1274,10 @@ document.getElementById('deal-form').addEventListener('submit', async e=>{
   try{
     if(id) await api(`/deals/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     else await api('/deals', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-    toast('Guardado'); closeModal('deal-modal'); loadDeals();
+    toast('Guardado'); closeModal('deal-modal'); refreshDealsCache();
   }catch(err){ toast(err.message); }
 });
-async function deleteDeal(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/deals/${id}`,{method:'DELETE'}); loadDeals(); }catch(err){ toast(err.message); } }
+async function deleteDeal(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/deals/${id}`,{method:'DELETE'}); refreshDealsCache(); }catch(err){ toast(err.message); } }
 
 // =====================================================================
 // COBRANZAS (otros conceptos)
@@ -1220,13 +1288,17 @@ async function loadCharges(){
   try{
     ALL_TENANTS_CACHE = await api('/tenants');
     const list = await api('/collections');
+    const today = new Date().toISOString().slice(0,10);
     tbody.innerHTML = list.length ? list.map(c => {
       const t = ALL_TENANTS_CACHE.find(x=>x.id===c.tenant_id);
       const paid = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
-      return `<tr><td>${t?t.name:'-'}</td><td>${c.concept}</td><td>${c.label||'-'}</td><td>$${Number(c.amount).toLocaleString('es-AR')}</td><td>$${paid.toLocaleString('es-AR')}</td>
+      const isOverdue = c.due_date && c.due_date < today && paid < c.amount;
+      const dueLabel = c.due_date ? new Date(c.due_date+'T00:00:00').toLocaleDateString('es-AR') : '-';
+      return `<tr style="${isOverdue?'background:#fdeaea':''}"><td>${t?t.name:'-'}</td><td>${c.concept}</td><td>${c.label||'-'}</td><td>$${Number(c.amount).toLocaleString('es-AR')}</td><td>$${paid.toLocaleString('es-AR')}</td>
+      <td>${isOverdue?`<span class="badge bad">Vencido ${dueLabel}</span>`:dueLabel}</td>
       <td class="action-links"><button onclick="chargeQuickPay(${c.id})">Pagar</button><button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
 }
 function openChargeModal(){
   const sel = document.getElementById('ch-tenant');
@@ -1236,7 +1308,8 @@ function openChargeModal(){
 document.getElementById('charge-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const body = { tenant_id: Number(document.getElementById('ch-tenant').value), concept: document.getElementById('ch-concept').value,
-    label: document.getElementById('ch-label').value, amount: document.getElementById('ch-amount').value };
+    label: document.getElementById('ch-label').value, amount: document.getElementById('ch-amount').value,
+    due_date: document.getElementById('ch-due-date').value || null };
   try{
     await api('/collections', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     toast('Cargo creado'); closeModal('charge-modal'); loadCharges();
@@ -1262,12 +1335,43 @@ async function loadSettlements(){
   const tbody = document.getElementById('settlement-tbody');
   try{
     const list = await api('/settlements');
+    SETTLEMENTS_CACHE = list;
     tbody.innerHTML = list.length ? list.map(s => {
       const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
       return `<tr><td>${t?t.name:'-'}</td><td>${s.period}</td><td>$${Number(s.net).toLocaleString('es-AR')}</td><td>${s.transferred?'Transferido':'Pendiente'}</td>
-      <td class="action-links">${!s.transferred?`<button onclick="markTransferred(${s.id})">Transferir</button>`:''}<button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button></td></tr>`;
+      <td class="action-links">${!s.transferred?`<button onclick="markTransferred(${s.id})">Transferir</button>`:''}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button></td></tr>`;
     }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+let SETTLEMENTS_CACHE = [];
+function printSettlement(id){
+  const s = SETTLEMENTS_CACHE.find(x=>x.id===id);
+  if(!s) return;
+  const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
+  const prop = ALL_PROPERTIES.find(p=>p.id===t?.property_id);
+  const fmt = n => '$'+Number(n||0).toLocaleString('es-AR');
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html><head><title>Liquidación ${s.period}</title>
+    <style>body{font-family:Arial,sans-serif;padding:40px;color:#111}h1{font-size:20px;border-bottom:3px solid #F4C300;padding-bottom:10px}
+    table{width:100%;border-collapse:collapse;margin-top:20px}td{padding:8px 0;border-bottom:1px solid #eee}
+    .total{font-weight:800;font-size:16px;border-top:2px solid #111}</style></head><body>
+    <h1>PRUN · Liquidación al propietario</h1>
+    <p><strong>Período:</strong> ${s.period}<br><strong>Inquilino:</strong> ${t?t.name:'-'}<br><strong>Propiedad:</strong> ${prop?prop.title:'-'}</p>
+    <table>
+      <tr><td>Alquiler cobrado</td><td style="text-align:right">${fmt(s.rent)}</td></tr>
+      <tr><td>Comisión de la inmobiliaria</td><td style="text-align:right">-${fmt(s.commission)}</td></tr>
+      <tr><td>Expensas</td><td style="text-align:right">-${fmt(s.expensas)}</td></tr>
+      <tr><td>Reparaciones${s.repairs_desc?' ('+s.repairs_desc+')':''}</td><td style="text-align:right">-${fmt(s.repairs)}</td></tr>
+      <tr><td>Honorarios${s.fees_desc?' ('+s.fees_desc+')':''}</td><td style="text-align:right">-${fmt(s.fees)}</td></tr>
+      <tr class="total"><td>Neto a transferir</td><td style="text-align:right">${fmt(s.net)}</td></tr>
+    </table>
+    ${s.notes?`<p style="margin-top:20px;color:#666"><strong>Notas:</strong> ${s.notes}</p>`:''}
+    <p style="margin-top:40px;color:#999;font-size:12px">Generado el ${new Date().toLocaleDateString('es-AR')}</p>
+    </body></html>
+  `);
+  w.document.close();
+  setTimeout(()=>w.print(), 400);
 }
 function openSettlementModal(){
   const sel = document.getElementById('st-tenant');

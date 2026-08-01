@@ -19,6 +19,7 @@ button{cursor:pointer;font-family:inherit;}
 .btn-outline:hover{background:var(--yellow);color:var(--black);}
 nav{position:fixed;top:0;left:0;right:0;background:var(--black);border-bottom:3px solid var(--yellow);z-index:100;}
 .nav-inner{display:flex;justify-content:space-between;align-items:center;height:72px;}
+.hamburger-btn{display:none;background:none;border:none;color:#fff;font-size:26px;cursor:pointer;padding:4px 8px;}
 .logo{color:#fff;font-family:'Archivo Black';font-size:20px;}
 .logo span{color:var(--yellow);}
 .nav-links{display:flex;gap:26px;align-items:center;}
@@ -45,13 +46,19 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 .modal-box{background:#fff;max-width:520px;width:100%;padding:26px;max-height:88vh;overflow-y:auto;position:relative;}
 .modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;}
 .property-detail-photo{width:100%;height:280px;object-fit:cover;background:#222;}
-@media(max-width:800px){.grid{grid-template-columns:1fr;}.hero-title{font-size:32px;}.filters{grid-template-columns:1fr 1fr;}.nav-links{display:none;}}
+@media(max-width:800px){.grid{grid-template-columns:1fr;}.hero-title{font-size:32px;}.filters{grid-template-columns:1fr 1fr;}
+  .hamburger-btn{display:block;}
+  .nav-links{display:none;position:absolute;top:72px;left:0;right:0;background:var(--black);flex-direction:column;align-items:stretch;gap:0;padding:10px 20px 20px;border-bottom:3px solid var(--yellow);}
+  .nav-links.open{display:flex;}
+  .nav-links a, .nav-links button, .nav-links span{margin:6px 0!important;width:100%;}
+}
 </style>
 </head>
 <body>
 <nav><div class="container nav-inner">
   <a href="#" class="logo" style="display:flex;align-items:center;gap:8px"><img id="logo-image-el" src="" alt="" style="display:none;height:34px;width:auto"><span id="logo-text-el">PRUN</span><span>.</span></a>
-  <div class="nav-links">
+  <button class="hamburger-btn" onclick="document.getElementById('nav-links-el').classList.toggle('open')" aria-label="Abrir menú">☰</button>
+  <div class="nav-links" id="nav-links-el">
     <a href="#propiedades">Propiedades</a>
     <a href="#contacto">Contacto</a>
     <button class="btn" style="padding:9px 16px;background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Registrarme</button>
@@ -95,10 +102,10 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <h2 style="margin-bottom:20px">Contacto</h2>
     <div class="msg" id="contact-msg"></div>
     <form id="contact-form" onsubmit="return submitContact(event)" style="display:flex;flex-direction:column;gap:12px">
-      <input type="text" name="name" placeholder="Nombre" required>
+      <input type="text" name="name" placeholder="Nombre" required maxlength="100">
       <input type="email" name="email" placeholder="Email" required>
       <input type="tel" name="phone" placeholder="Teléfono (opcional)">
-      <textarea name="message" placeholder="Mensaje" rows="4" required></textarea>
+      <textarea name="message" placeholder="Mensaje" rows="4" required maxlength="2000"></textarea>
       <button class="btn" type="submit">Enviar</button>
     </form>
   </div>
@@ -120,7 +127,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Contanos qué estás buscando y te contactamos para coordinar una visita, una llamada o lo que necesites.</p>
     <div class="msg" id="survey-msg"></div>
     <form id="survey-form" style="display:flex;flex-direction:column;gap:12px">
-      <input type="text" id="sv-name" placeholder="Nombre completo" required>
+      <input type="text" id="sv-name" placeholder="Nombre completo" required maxlength="100">
       <input type="email" id="sv-email" placeholder="Email" required>
       <input type="tel" id="sv-phone" placeholder="Teléfono" required>
       <select id="sv-interest" required onchange="toggleRentalFields()">
@@ -248,8 +255,8 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Contanos qué hay que arreglar en la propiedad que alquilás. El equipo lo va a ver en el sistema y se va a poner en contacto.</p>
     <div class="msg" id="tenant-report-msg"></div>
     <form id="tenant-report-form" style="display:flex;flex-direction:column;gap:12px">
-      <input type="text" id="tr-title" placeholder="¿Qué hay que reparar? (ej: pierde la canilla de la cocina)" required>
-      <textarea id="tr-notes" placeholder="Detalles adicionales (opcional)" rows="3"></textarea>
+      <input type="text" id="tr-title" placeholder="¿Qué hay que reparar? (ej: pierde la canilla de la cocina)" required maxlength="150">
+      <textarea id="tr-notes" placeholder="Detalles adicionales (opcional)" rows="3" maxlength="2000"></textarea>
       <button class="btn" type="submit">Enviar reporte</button>
     </form>
   </div>
@@ -375,14 +382,29 @@ async function loadProperties(){
 function showDetail(id){
   const p = ALL_PROPS.find(x=>x.id===id);
   if(!p) return;
+  const photos = (p.photos && p.photos.length) ? p.photos : [];
+  const gallery = photos.length > 1 ? `
+    <div style="display:flex;gap:6px;margin-top:8px;overflow-x:auto">
+      ${photos.map((url,i)=>`<img src="${url}" onclick="document.getElementById('detail-main-photo').src='${url}'" style="width:64px;height:64px;object-fit:cover;cursor:pointer;border:2px solid ${i===0?'var(--yellow)':'transparent'};flex-shrink:0" onmouseover="this.style.borderColor='var(--yellow)'">`).join('')}
+    </div>` : '';
   document.getElementById('detail-content').innerHTML = `
-    ${p.photos && p.photos[0] ? `<img class="property-detail-photo" src="${p.photos[0]}">` : ''}
+    ${photos[0] ? `<img id="detail-main-photo" class="property-detail-photo" src="${photos[0]}">` : ''}
+    ${gallery}
     <h2 style="margin:16px 0 6px;font-size:20px">${p.title}</h2>
     <div class="price" style="margin-bottom:10px">${p.currency} ${Number(p.price).toLocaleString('es-AR')}</div>
     <p style="color:var(--gray);font-size:13px;margin-bottom:12px">${p.city||''} · ${p.operation} · ${p.category} · ${p.bedrooms||0} dorm. · ${p.bathrooms||0} baños</p>
     <p style="font-size:14px;line-height:1.5">${p.description||'Sin descripción.'}</p>
-    <button class="btn" style="width:100%;margin-top:16px" onclick="closeModal('detail-modal');document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Consultar por esta propiedad</button>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn" style="flex:1;min-width:160px" onclick="closeModal('detail-modal');document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Consultar por esta propiedad</button>
+      <a id="detail-whatsapp-btn" href="#" target="_blank" style="display:none;flex:1;min-width:160px;text-align:center;background:#25D366;color:#fff;padding:11px 20px;font-weight:800;font-size:13px;text-transform:uppercase;text-decoration:none">💬 WhatsApp</a>
+    </div>
   `;
+  if(SITE_CONFIG.whatsapp_number){
+    const msg = encodeURIComponent(`Hola! Te escribo por la propiedad "${p.title}" que vi en el sitio.`);
+    const btn = document.getElementById('detail-whatsapp-btn');
+    btn.href = `https://wa.me/${SITE_CONFIG.whatsapp_number}?text=${msg}`;
+    btn.style.display = 'block';
+  }
   openModal('detail-modal');
 }
 async function submitContact(e){
@@ -462,10 +484,12 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
     setTimeout(()=>{ closeModal('survey-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
   }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
 });
+let SITE_CONFIG = {};
 async function applySiteConfig(){
   try{
     const c = await fetch(`${API}/site-config`).then(r=>r.json());
     if(!c || !Object.keys(c).length) return;
+    SITE_CONFIG = c;
     if(c.logo_text) document.getElementById('logo-text-el').textContent = c.logo_text;
     if(c.logo_image){
       const img = document.getElementById('logo-image-el');
@@ -498,6 +522,9 @@ document.getElementById('tenant-report-form').addEventListener('submit', async e
     document.getElementById('tenant-report-form').reset();
     setTimeout(()=>{ closeModal('tenant-report-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
   }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
+document.getElementById('nav-links-el').addEventListener('click', e=>{
+  if(e.target.tagName==='A' || e.target.tagName==='BUTTON') document.getElementById('nav-links-el').classList.remove('open');
 });
 applySiteConfig();
 refreshUserNav();
