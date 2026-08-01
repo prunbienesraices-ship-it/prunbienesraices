@@ -67,7 +67,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 <div id="app">
   <div class="page-head">
     <h2 style="font-size:22px">Dashboard</h2>
-    <div><span id="session-label" style="font-size:12px;color:var(--gray);margin-right:14px"></span><button class="btn" onclick="logout()" style="background:none;color:var(--black)">Salir</button></div>
+    <div><span id="session-label" style="font-size:12px;color:var(--gray);margin-right:14px"></span><a href="index.html" target="_blank" class="btn" style="background:none;color:var(--black);margin-right:8px;text-decoration:none;display:inline-block">Ver sitio ↗</a><button class="btn" onclick="logout()" style="background:none;color:var(--black)">Salir</button></div>
   </div>
   <div class="stats-row">
     <div class="stat-card"><div class="n" id="k-total">0</div><div class="l">Propiedades</div></div>
@@ -197,6 +197,28 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <thead><tr><th>Nombre</th><th>Contacto</th><th>Categoría</th><th>Busca</th><th>Presupuesto</th><th>Plazo</th><th>Fecha recibido</th></tr></thead>
     <tbody id="surveys-tbody"></tbody>
   </table></div>
+
+  <div id="apariencia-section" style="display:none">
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Apariencia del sitio</h2>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px">
+      <form id="site-config-form">
+        <div class="form-row"><label>Nombre / logo (texto)</label><input type="text" id="sc-logo-text"></div>
+        <div class="form-row"><label>Título principal (hero)</label><input type="text" id="sc-hero-title"></div>
+        <div class="form-row"><label>Subtítulo (hero)</label><textarea id="sc-hero-subtitle" rows="2"></textarea></div>
+        <div class="form-row"><label>Imagen de fondo del hero (opcional)</label><input type="file" id="sc-hero-image" accept="image/*"><div id="sc-hero-image-status" style="font-size:11px;color:var(--green);margin-top:4px"></div></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Teléfono de contacto</label><input type="text" id="sc-contact-phone"></div>
+          <div class="form-row"><label>Email de contacto</label><input type="email" id="sc-contact-email"></div>
+          <div class="form-row"><label>WhatsApp (solo números, con código de país)</label><input type="text" id="sc-whatsapp" placeholder="Ej: 5491122334455"></div>
+          <div class="form-row"><label>Color principal del sitio</label><input type="color" id="sc-primary-color" style="height:44px;padding:4px"></div>
+        </div>
+        <div class="form-row"><label>Texto del pie de página</label><input type="text" id="sc-footer-text"></div>
+        <button class="btn" type="submit" style="width:100%;margin-top:6px">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="prop-modal">
@@ -508,6 +530,10 @@ function startApp(){
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
   loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadCharges(); loadSettlements(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys();
+  if(USER.role === 'superadmin'){
+    document.getElementById('apariencia-section').style.display = 'block';
+    loadSiteConfig();
+  }
 }
 if(TOKEN && USER){ startApp(); }
 
@@ -1233,6 +1259,37 @@ async function loadSurveys(){
       : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Todavía no llegó ningún cuestionario.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
 }
+
+async function loadSiteConfig(){
+  try{
+    const c = await api('/site-config');
+    document.getElementById('sc-logo-text').value = c.logo_text || 'PRUN';
+    document.getElementById('sc-hero-title').value = c.hero_title || '';
+    document.getElementById('sc-hero-subtitle').value = c.hero_subtitle || '';
+    document.getElementById('sc-contact-phone').value = c.contact_phone || '';
+    document.getElementById('sc-contact-email').value = c.contact_email || '';
+    document.getElementById('sc-whatsapp').value = c.whatsapp_number || '';
+    document.getElementById('sc-primary-color').value = c.primary_color || '#F4C300';
+    document.getElementById('sc-footer-text').value = c.footer_text || '';
+    document.getElementById('sc-hero-image-status').textContent = c.hero_image ? '✔ Ya hay una imagen de fondo cargada. Subí una nueva para reemplazarla.' : '';
+  }catch(err){ toast('No pudimos cargar la apariencia del sitio.'); }
+}
+document.getElementById('site-config-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const fd = new FormData();
+  ['logo-text','hero-title','hero-subtitle','contact-phone','contact-email','whatsapp','primary-color','footer-text'].forEach(f=>{
+    fd.append(f.replace(/-/g,'_'), document.getElementById('sc-'+f).value);
+  });
+  const file = document.getElementById('sc-hero-image').files[0];
+  if(file) fd.append('hero_image', file);
+  try{
+    const res = await fetch(`${API}/site-config`, { method:'PUT', headers:{Authorization:`Bearer ${TOKEN}`}, body: fd });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Error al guardar');
+    toast('Apariencia del sitio actualizada. Los cambios ya se ven en el sitio público.');
+    document.getElementById('sc-hero-image').value = '';
+  }catch(err){ toast(err.message); }
+});
 </script>
 
 </body>

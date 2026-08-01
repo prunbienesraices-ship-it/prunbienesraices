@@ -50,7 +50,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 </head>
 <body>
 <nav><div class="container nav-inner">
-  <a href="#" class="logo">PRUN<span>.</span></a>
+  <a href="#" class="logo"><span id="logo-text-el">PRUN</span><span>.</span></a>
   <div class="nav-links">
     <a href="#propiedades">Propiedades</a>
     <a href="#contacto">Contacto</a>
@@ -69,8 +69,8 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 
 <section id="hero">
   <div class="container">
-    <h1 class="hero-title">Encontrá tu próximo <em>lugar</em></h1>
-    <p style="color:#c8c6bd;max-width:480px;margin-bottom:20px">Comprá, alquilá o vendé con acompañamiento real en cada paso.</p>
+    <h1 class="hero-title" id="hero-title-el">Encontrá tu próximo <em>lugar</em></h1>
+    <p id="hero-subtitle-el" style="color:#c8c6bd;max-width:480px;margin-bottom:20px">Comprá, alquilá o vendé con acompañamiento real en cada paso.</p>
     <button class="btn" style="background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Quiero que me contacten</button>
   </div>
 </section>
@@ -103,7 +103,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   </div>
 </section>
 
-<footer>© 2026 Prun Bienes Raíces — versión en la nube</footer>
+<footer id="footer-text-el">© 2026 Prun Bienes Raíces — versión en la nube</footer>
 
 <div class="modal-overlay" id="detail-modal">
   <div class="modal-box" style="max-width:640px">
@@ -446,6 +446,24 @@ document.getElementById('survey-form').addEventListener('submit', async e=>{
     setTimeout(()=>{ closeModal('survey-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
   }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
 });
+async function applySiteConfig(){
+  try{
+    const c = await fetch(`${API}/site-config`).then(r=>r.json());
+    if(!c || !Object.keys(c).length) return;
+    if(c.logo_text) document.getElementById('logo-text-el').textContent = c.logo_text;
+    if(c.hero_title) document.getElementById('hero-title-el').textContent = c.hero_title;
+    if(c.hero_subtitle) document.getElementById('hero-subtitle-el').textContent = c.hero_subtitle;
+    if(c.footer_text) document.getElementById('footer-text-el').textContent = c.footer_text;
+    if(c.primary_color) document.documentElement.style.setProperty('--yellow', c.primary_color);
+    if(c.hero_image){
+      const hero = document.getElementById('hero');
+      hero.style.backgroundImage = `linear-gradient(rgba(17,17,17,.55),rgba(17,17,17,.55)), url('${c.hero_image}')`;
+      hero.style.backgroundSize = 'cover';
+      hero.style.backgroundPosition = 'center';
+    }
+  }catch(err){ /* si falla, se queda con los valores por defecto */ }
+}
+applySiteConfig();
 refreshUserNav();
 loadProperties();
 </script>
