@@ -136,6 +136,36 @@ router.get('/site-users', requireAuth, async (req, res) => {
   res.json(data);
 });
 
+// Editar un cliente registrado en el sitio - solo el administrador
+router.put('/site-users/:id', requireSuperadmin, async (req, res) => {
+  try {
+    const { name, email, phone, role } = req.body;
+    const allowedRoles = ['client', 'owner', 'tenant', 'agent'];
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email;
+    if (phone !== undefined) updates.phone = phone;
+    if (role !== undefined) {
+      if (!allowedRoles.includes(role)) return res.status(400).json({ error: 'Rol inválido.' });
+      updates.role = role;
+    }
+    const { data, error } = await supabase.from('site_users').update(updates).eq('id', req.params.id)
+      .select('id, name, email, phone, role, created_at').single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar el cliente.' });
+  }
+});
+
+// Borrar un cliente registrado en el sitio - solo el administrador
+router.delete('/site-users/:id', requireSuperadmin, async (req, res) => {
+  const { error } = await supabase.from('site_users').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: 'Error al borrar el cliente.' });
+  res.json({ ok: true });
+});
+
 // Listar respuestas del cuestionario "Agendarme" - solo para el panel
 router.get('/survey-responses', requireAuth, async (req, res) => {
   const { data, error } = await supabase
@@ -149,7 +179,7 @@ router.get('/survey-responses', requireAuth, async (req, res) => {
 // Listar el personal del panel (usuarios internos) - solo superadmin
 router.get('/staff', requireSuperadmin, async (req, res) => {
   const { data, error } = await supabase
-    .from('admin_accounts').select('id, name, email, role, created_at').order('created_at', { ascending: false });
+    .from('admin_accounts').select('id, name, email, role, branch_id, created_at').order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: 'Error al buscar el personal.' });
   res.json(data);
 });
@@ -157,7 +187,7 @@ router.get('/staff', requireSuperadmin, async (req, res) => {
 // Crear una cuenta de personal del panel - solo superadmin
 router.post('/staff', requireSuperadmin, async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, branch_id } = req.body;
     const allowedStaffRoles = ['superadmin', 'secretaria', 'vendedor', 'contador'];
     if (!name || !email || !password) return res.status(400).json({ error: 'Nombre, email y contraseña son obligatorios.' });
     if (!allowedStaffRoles.includes(role)) return res.status(400).json({ error: 'Rol inválido.' });
@@ -167,8 +197,8 @@ router.post('/staff', requireSuperadmin, async (req, res) => {
 
     const password_hash = bcrypt.hashSync(password, 10);
     const { data, error } = await supabase.from('admin_accounts')
-      .insert([{ name, email, password_hash, role }])
-      .select('id, name, email, role, created_at').single();
+      .insert([{ name, email, password_hash, role, branch_id: branch_id ? Number(branch_id) : null }])
+      .select('id, name, email, role, branch_id, created_at').single();
     if (error) throw error;
     res.status(201).json(data);
   } catch (err) {
