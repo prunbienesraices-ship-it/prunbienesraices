@@ -78,9 +78,18 @@ router.get('/tenants/:id/contract', requireAuth, async (req, res) => {
     const inventory = (property && property.inventory) || [];
     const today = new Date();
 
-    const detalleAlquiler = rentHistory.length
-      ? rentHistory.map(r => `A partir del ${fmtDateWords(r.date)}: cuota mensual de ${fmtMoney(r.amount, tenant.currency)}.`).join('\n')
-      : '(No se cargó el historial de montos del alquiler).';
+    const FREQ_LABELS = { bimestral: 'dos (2) meses', trimestral: 'tres (3) meses', cuatrimestral: 'cuatro (4) meses', semestral: 'seis (6) meses', anual: 'doce (12) meses' };
+    const INDEX_LABELS = { ICL: 'Índice para Contratos de Locación (ICL) publicado por el Banco Central de la República Argentina', IPC: 'Índice de Precios al Consumidor (IPC) publicado por el INDEC', libre: 'índice acordado libremente entre las partes' };
+
+    let detalleAlquiler;
+    if (tenant.rent_type === 'indice') {
+      const initialAmount = rentHistory.length ? rentHistory[0].amount : tenant.contract_total_amount;
+      detalleAlquiler = `El valor locativo mensual inicial es de ${fmtMoney(initialAmount, tenant.currency)}, el cual se actualizará cada ${FREQ_LABELS[tenant.update_freq] || tenant.update_freq}, conforme a la variación del ${INDEX_LABELS[tenant.update_index] || tenant.update_index}, en los términos del artículo 14 de la Ley 27.551 de Alquileres.`;
+    } else {
+      detalleAlquiler = rentHistory.length
+        ? rentHistory.map(r => `A partir del ${fmtDateWords(r.date)}: cuota mensual de ${fmtMoney(r.amount, tenant.currency)}.`).join('\n')
+        : '(No se cargó el historial de montos del alquiler).';
+    }
     const fiadoresDetalle = guarantors.length
       ? guarantors.map(g => `${g.name}${g.dni ? ', DNI Nº ' + g.dni : ''}${g.address ? ', con domicilio en ' + g.address : ''}${g.email ? ', mail ' + g.email : ''}`).join('; ') + '.'
       : '(No se cargaron garantes para este contrato).';
