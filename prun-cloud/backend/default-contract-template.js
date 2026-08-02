@@ -44,7 +44,7 @@ const DEFAULT_CONTRACT_TEMPLATE = {
     { title: 'DÉCIMO SÉPTIMA - FIRMA DE EJEMPLARES - LUGAR Y FECHA', body: `Se firman de conformidad dos ejemplares de un mismo tenor y a un solo efecto en la localidad de {{PROPIEDAD_CIUDAD}} a los {{FECHA_FIRMA}}.` },
   ],
 
-  signature_block: `{{INQUILINO_NOMBRE}} — DNI {{INQUILINO_DNI}} (EL LOCATARIO)\n\n{{FIADORES_FIRMAS}}`,
+  signature_block: `{{INQUILINO_NOMBRE}}\nDNI {{INQUILINO_DNI}}\n(EL LOCATARIO)\n\n\n{{FIADORES_FIRMAS}}`,
 };
 
 module.exports = { DEFAULT_CONTRACT_TEMPLATE };
