@@ -483,10 +483,11 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Edificio</label><select id="ex-development" required></select></div>
         <div class="form-row"><label>Período (mes)</label><input type="month" id="ex-period" required></div>
       </div>
-      <div class="form-row"><label>Detalle de gastos — un renglón por línea, formato "Concepto: Monto"</label>
-        <textarea id="ex-detail" rows="5" placeholder="Limpieza: 80000&#10;Seguridad: 150000&#10;Luz de espacios comunes: 40000&#10;Ascensor (mantenimiento): 30000"></textarea>
+      <div class="form-row"><label>Detalle de gastos</label>
+        <div id="ex-detail-rows" style="display:flex;flex-direction:column;gap:8px;background:var(--cream);padding:12px;border:1px solid var(--line)"></div>
+        <button class="btn" type="button" style="margin-top:8px;background:#fff;color:var(--black)" onclick="addExpensaDetailRow('', '')">+ Agregar otro gasto</button>
       </div>
-      <div class="form-row"><label>Total (se calcula solo si dejás el detalle de arriba completo, o cargalo a mano)</label><input type="number" id="ex-total" min="0"></div>
+      <div class="form-row"><label>Total (se calcula solo a partir del detalle de arriba, o cargalo a mano)</label><input type="number" id="ex-total" min="0"></div>
       <div class="form-row"><label>Facturas (podés subir varias, PDF o foto)</label><input type="file" id="ex-invoices" multiple accept="image/*,application/pdf">
         <div id="ex-invoices-status" style="font-size:11px;color:var(--gray);margin-top:4px"></div>
       </div>
@@ -1305,12 +1306,32 @@ async function deleteDev(id){ if(!confirm('¿Borrar?')) return; try{ await api(`
 // EXPENSAS POR EDIFICIO
 // =====================================================================
 let ALL_EXPENSAS = [];
-function parseDetailText(text){
-  return text.split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{
-    const idx = line.lastIndexOf(':');
-    if(idx === -1) return { concept: line, amount: 0 };
-    return { concept: line.slice(0,idx).trim(), amount: Number(line.slice(idx+1).replace(/[^\d.-]/g,'')) || 0 };
+const EXPENSA_DEFAULT_CONCEPTS = ['Luz', 'Agua', 'Impuestos', 'Limpieza', 'Otros gastos'];
+function addExpensaDetailRow(concept, amount){
+  const rows = document.getElementById('ex-detail-rows');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center';
+  row.innerHTML = `
+    <input type="text" class="ex-row-concept" placeholder="Concepto" value="${(concept||'').replace(/"/g,'&quot;')}" style="flex:2">
+    <input type="number" class="ex-row-amount" placeholder="Monto" min="0" value="${amount||''}" style="flex:1" oninput="recalcExpensaTotal()">
+    <button type="button" class="btn" style="background:#fff;color:var(--red);padding:9px 12px" onclick="this.parentElement.remove();recalcExpensaTotal()">✕</button>
+  `;
+  rows.appendChild(row);
+}
+function recalcExpensaTotal(){
+  const amounts = Array.from(document.querySelectorAll('.ex-row-amount')).map(i=>Number(i.value)||0);
+  if(amounts.some(a=>a>0)) document.getElementById('ex-total').value = amounts.reduce((s,a)=>s+a,0);
+}
+function collectExpensaDetail(){
+  const concepts = Array.from(document.querySelectorAll('.ex-row-concept'));
+  const amounts = Array.from(document.querySelectorAll('.ex-row-amount'));
+  const detail = [];
+  concepts.forEach((c,i)=>{
+    const concept = c.value.trim();
+    const amount = Number(amounts[i].value) || 0;
+    if(concept && amount) detail.push({ concept, amount });
   });
+  return detail;
 }
 async function loadExpensas(){
   const tbody = document.getElementById('expensa-tbody');
@@ -1331,18 +1352,22 @@ function openExpensaModal(ex){
   sel.innerHTML = ALL_DEVELOPMENTS.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
   if(ex) sel.value = ex.development_id;
   document.getElementById('ex-period').value = ex ? ex.period : new Date().toISOString().slice(0,7);
-  document.getElementById('ex-detail').value = ex && ex.detail ? ex.detail.map(d=>`${d.concept}: ${d.amount}`).join('\n') : '';
   document.getElementById('ex-total').value = ex ? ex.total_amount : '';
   document.getElementById('ex-notes').value = ex ? (ex.notes||'') : '';
   document.getElementById('ex-invoices').value = '';
   document.getElementById('ex-invoices-status').innerHTML = ex && ex.invoices && ex.invoices.length
     ? `Ya tiene ${ex.invoices.length} factura(s): ${ex.invoices.map(f=>`<a href="${f.url}" target="_blank">${f.name}</a>`).join(', ')}. Las que subas ahora se agregan, no las reemplazan.` : '';
+
+  document.getElementById('ex-detail-rows').innerHTML = '';
+  if(ex && ex.detail && ex.detail.length){
+    // Al editar, mostramos exactamente los renglones que ya tenía cargados.
+    ex.detail.forEach(d => addExpensaDetailRow(d.concept, d.amount));
+  } else {
+    // Al crear una nueva, arrancamos con los gastos habituales listos para completar.
+    EXPENSA_DEFAULT_CONCEPTS.forEach(c => addExpensaDetailRow(c, ''));
+  }
   document.getElementById('expensa-modal').classList.add('active');
 }
-document.getElementById('ex-detail').addEventListener('input', e=>{
-  const items = parseDetailText(e.target.value);
-  if(items.length) document.getElementById('ex-total').value = items.reduce((s,i)=>s+i.amount,0);
-});
 document.getElementById('expensa-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('ex-id').value;
@@ -1350,7 +1375,7 @@ document.getElementById('expensa-form').addEventListener('submit', async e=>{
   fd.append('development_id', document.getElementById('ex-development').value);
   fd.append('period', document.getElementById('ex-period').value);
   fd.append('total_amount', document.getElementById('ex-total').value);
-  fd.append('detail', JSON.stringify(parseDetailText(document.getElementById('ex-detail').value)));
+  fd.append('detail', JSON.stringify(collectExpensaDetail()));
   fd.append('notes', document.getElementById('ex-notes').value);
   const files = document.getElementById('ex-invoices').files;
   for(let i=0;i<files.length;i++) fd.append('invoices', files[i]);
