@@ -68,7 +68,9 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <span id="nav-user" style="display:none;color:#fff;font-size:13px">
       Hola, <strong id="nav-user-name"></strong>
       <button class="btn btn-outline" id="nav-owner-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
-      <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openModal('tenant-report-modal')">🔧 Reportar reparación</button>
+      <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openTenantReclamos()">🔧 Mis reclamos</button>
+      <button class="btn btn-outline" id="nav-expensas-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openMyExpensas()">🧾 Expensas de mi edificio</button>
+      <button class="btn btn-outline" id="nav-payments-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openMyPayments()">💳 Mis pagos</button>
       <button class="btn btn-outline" style="margin-left:10px;padding:9px 16px" onclick="userLogout()">Salir</button>
     </span>
     <a href="admin.html" style="opacity:.6;font-size:11px">Panel admin →</a>
@@ -249,16 +251,53 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
 </div>
 
 <div class="modal-overlay" id="tenant-report-modal">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:560px">
     <button class="modal-close" onclick="closeModal('tenant-report-modal')">✕</button>
-    <h3 style="font-size:18px;margin-bottom:6px">Reportar una reparación</h3>
+    <h3 style="font-size:18px;margin-bottom:6px">Mis reclamos</h3>
     <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Contanos qué hay que arreglar en la propiedad que alquilás. El equipo lo va a ver en el sistema y se va a poner en contacto.</p>
     <div class="msg" id="tenant-report-msg"></div>
-    <form id="tenant-report-form" style="display:flex;flex-direction:column;gap:12px">
+    <form id="tenant-report-form" style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
       <input type="text" id="tr-title" placeholder="¿Qué hay que reparar? (ej: pierde la canilla de la cocina)" required maxlength="150">
       <textarea id="tr-notes" placeholder="Detalles adicionales (opcional)" rows="3" maxlength="2000"></textarea>
       <button class="btn" type="submit">Enviar reporte</button>
     </form>
+    <div id="tenant-repairs-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="expensas-modal">
+  <div class="modal-box" style="max-width:640px">
+    <button class="modal-close" onclick="closeModal('expensas-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Expensas de mi edificio</h3>
+    <div id="expensas-content"><p style="color:var(--gray)">Cargando...</p></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="payments-modal">
+  <div class="modal-box" style="max-width:600px">
+    <button class="modal-close" onclick="closeModal('payments-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:6px">Mis pagos</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Subí acá los comprobantes de los pagos que hacés por tu cuenta (servicios u otros gastos), para tener un registro ordenado vinculado a tu propiedad.</p>
+    <div class="msg" id="payment-msg"></div>
+    <form id="payment-form" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <select id="pay-concept" required>
+        <option value="">¿De qué es el pago?</option>
+        <option value="Luz">Luz</option>
+        <option value="Gas">Gas</option>
+        <option value="Agua">Agua</option>
+        <option value="ABL">ABL (impuesto municipal)</option>
+        <option value="Internet">Internet</option>
+        <option value="Otro">Otro</option>
+      </select>
+      <div style="display:flex;gap:10px">
+        <input type="number" id="pay-amount" placeholder="Monto (opcional)">
+        <input type="month" id="pay-period" placeholder="Período">
+      </div>
+      <input type="file" id="pay-file" accept="image/*,application/pdf" required>
+      <textarea id="pay-notes" placeholder="Notas (opcional)" rows="2" maxlength="500"></textarea>
+      <button class="btn" type="submit">Subir comprobante</button>
+    </form>
+    <div id="payments-list"></div>
   </div>
 </div>
 
@@ -293,10 +332,50 @@ function refreshUserNav(){
     document.getElementById('nav-user-name').textContent = SITE_USER.name.split(' ')[0];
     document.getElementById('nav-owner-btn').style.display = SITE_USER.role === 'owner' ? 'inline-block' : 'none';
     document.getElementById('nav-tenant-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
+    document.getElementById('nav-expensas-btn').style.display = (SITE_USER.role === 'owner' || SITE_USER.role === 'tenant') ? 'inline-block' : 'none';
+    document.getElementById('nav-payments-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
   } else {
     document.getElementById('nav-guest').style.display = 'inline';
     document.getElementById('nav-user').style.display = 'none';
   }
+}
+// Mismas funciones que usa el panel interno, para que el estado de pago que
+// ve el propietario sea siempre consistente con lo que ve el equipo.
+function ownerPeriodToDate(period){ const [y,m] = period.split('-').map(Number); return new Date(y, m-1, 1); }
+function ownerDateToPeriod(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function ownerGetRentHistory(t){
+  const hist = (t.rent_history && t.rent_history.length) ? t.rent_history : [{date:t.start_date, amount:0}];
+  return hist.slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+}
+function ownerGetCurrentRentAmount(t){
+  const hist = ownerGetRentHistory(t);
+  const today = new Date();
+  const applicable = hist.filter(h => new Date(h.date) <= today);
+  return applicable.length ? applicable[applicable.length-1].amount : hist[0].amount;
+}
+function ownerComputeTenantStatus(t){
+  if(t.status_override === 'rescindido') return 'rescindido';
+  const today = new Date();
+  const end = new Date(t.end_date);
+  if(end < today) return 'vencido';
+  return 'vigente';
+}
+function ownerGetMissingPayments(t){
+  const status = ownerComputeTenantStatus(t);
+  if(status === 'rescindido') return [];
+  const paidPeriods = new Set((t.payments||[]).map(p=>p.period));
+  const start = ownerPeriodToDate(t.start_date.slice(0,7)+'-01');
+  const today = new Date();
+  const end = new Date(t.end_date);
+  const lastRelevant = end < today ? end : today;
+  const missing = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  while(cursor <= lastRelevant){
+    const period = ownerDateToPeriod(cursor);
+    if(!paidPeriods.has(period)) missing.push(period);
+    cursor.setMonth(cursor.getMonth()+1);
+  }
+  return missing;
 }
 async function openOwnerPortal(){
   openModal('owner-portal-modal');
@@ -312,19 +391,136 @@ async function openOwnerPortal(){
     }
     const REPAIR_STATUS_LABELS = { reportado:'Reportado', presupuestando:'Presupuestando', aprobado:'Aprobado', en_proceso:'En proceso', finalizado:'Finalizado', cancelado:'Cancelado' };
     box.innerHTML = `
+      <div style="background:var(--cream);padding:14px;border:1px solid var(--line);margin-bottom:18px">
+        <p style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Cargar un reclamo nuevo</p>
+        <div class="msg" id="owner-report-msg"></div>
+        <form id="owner-report-form" style="display:flex;flex-direction:column;gap:10px">
+          <select id="or-property" required>${data.properties.map(p=>`<option value="${p.id}">${p.title}</option>`).join('')}</select>
+          <input type="text" id="or-title" placeholder="¿Qué hay que reparar?" required maxlength="150">
+          <textarea id="or-notes" placeholder="Detalles adicionales (opcional)" rows="2" maxlength="2000"></textarea>
+          <button class="btn" type="submit">Enviar reclamo</button>
+        </form>
+      </div>
       <h4 style="font-size:14px;margin-bottom:10px">Tus propiedades (${data.properties.length})</h4>
-      ${data.properties.length ? data.properties.map(p => `<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">${p.title} — ${p.city||''}</div>`).join('') : '<p style="color:var(--gray);font-size:13px">No tenés propiedades vinculadas todavía.</p>'}
+      ${data.properties.length ? data.properties.map(p => {
+        const tenant = data.tenants.find(t=>t.property_id===p.id);
+        const propPayments = data.payments.filter(pay=>pay.property_id===p.id);
+        let paymentStatusHtml = '<span style="color:var(--gray)">Sin inquilino cargado</span>';
+        if(tenant){
+          const missing = ownerGetMissingPayments(tenant);
+          const rent = ownerGetCurrentRentAmount(tenant);
+          paymentStatusHtml = missing.length
+            ? `<span style="color:var(--red);font-weight:800">⚠ Debe ${missing.length} mes(es): ${missing.join(', ')}</span>`
+            : `<span style="color:var(--green);font-weight:800">✔ Al día con el alquiler</span>`;
+          paymentStatusHtml += `<br><span style="color:var(--gray)">Inquilino: ${tenant.name} — Alquiler actual: ${tenant.currency} ${Number(rent).toLocaleString('es-AR')}</span>`;
+        }
+        return `<div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
+          <strong>${p.title}</strong> — ${p.city||''}<br>
+          ${paymentStatusHtml}
+          ${propPayments.length ? `<div style="margin-top:6px;color:var(--gray)">Comprobantes de servicios subidos: ${propPayments.map(pay=>`<a href="${pay.file_url}" target="_blank" style="text-decoration:underline;margin-right:8px">${pay.concept}${pay.period?' ('+pay.period+')':''}</a>`).join('')}</div>` : ''}
+        </div>`;
+      }).join('') : '<p style="color:var(--gray);font-size:13px">No tenés propiedades vinculadas todavía.</p>'}
       <h4 style="font-size:14px;margin:18px 0 10px">Reclamos / reparaciones (${data.repairs.length})</h4>
       ${data.repairs.length ? data.repairs.map(r => {
         const prop = data.properties.find(p=>p.id===r.property_id);
         return `<div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
           <strong>${r.title}</strong> — ${prop?prop.title:''}<br>
           <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''}</span>
+          ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}`).join(' · ')}</div>` : ''}
         </div>`;
       }).join('') : '<p style="color:var(--gray);font-size:13px">No hay reclamos registrados en tus propiedades.</p>'}
     `;
+    document.getElementById('owner-report-form').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const msg = document.getElementById('owner-report-msg');
+      try{
+        const r = await fetch(`${API}/owner-portal/report`, {
+          method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
+          body: JSON.stringify({ property_id: Number(document.getElementById('or-property').value), title: document.getElementById('or-title').value, notes: document.getElementById('or-notes').value }),
+        });
+        const d = await r.json();
+        if(!r.ok) throw new Error(d.error || 'No pudimos enviar tu reclamo.');
+        msg.textContent = '¡Listo! Reclamo enviado.'; msg.className = 'msg success';
+        setTimeout(()=>openOwnerPortal(), 1000);
+      }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+    });
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
+async function openMyExpensas(){
+  openModal('expensas-modal');
+  const box = document.getElementById('expensas-content');
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    const res = await fetch(`${API}/my-expensas`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos cargar las expensas.');
+    if(!data.hasBuilding){
+      box.innerHTML = '<p style="color:var(--gray)">Todavía no encontramos un edificio vinculado a tu propiedad. Si esto no es correcto, escribinos por Contacto.</p>';
+      return;
+    }
+    if(!data.expensas.length){
+      box.innerHTML = '<p style="color:var(--gray)">Todavía no hay expensas cargadas para tu edificio.</p>';
+      return;
+    }
+    box.innerHTML = data.expensas.map(ex => `
+      <div style="padding:14px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:14px">${ex.developments?.name || 'Edificio'} — ${ex.period}</strong>
+          <span style="font-weight:800">$${Number(ex.total_amount).toLocaleString('es-AR')}</span>
+        </div>
+        ${ex.detail && ex.detail.length ? `<ul style="margin:8px 0 0 18px;font-size:12px;color:var(--gray)">
+          ${ex.detail.map(d=>`<li>${d.concept}: $${Number(d.amount).toLocaleString('es-AR')}</li>`).join('')}
+        </ul>` : ''}
+        ${ex.invoices && ex.invoices.length ? `<div style="margin-top:8px;font-size:12px">
+          Facturas: ${ex.invoices.map(f=>`<a href="${f.url}" target="_blank" style="text-decoration:underline;margin-right:10px">${f.name}</a>`).join('')}
+        </div>` : ''}
+      </div>
+    `).join('');
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+async function loadPaymentsList(){
+  const box = document.getElementById('payments-list');
+  box.innerHTML = '<p style="color:var(--gray);font-size:13px">Cargando tus comprobantes...</p>';
+  try{
+    const res = await fetch(`${API}/tenant-portal/payments`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos cargar tus comprobantes.');
+    if(!data.hasContract){
+      box.innerHTML = '<p style="color:var(--gray);font-size:13px">Todavía no encontramos un contrato de alquiler asociado a tu cuenta.</p>';
+      return;
+    }
+    box.innerHTML = data.payments.length ? `<h4 style="font-size:13px;margin-bottom:8px">Tus comprobantes cargados</h4>` + data.payments.map(p => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between;align-items:center">
+        <div><strong>${p.concept}</strong>${p.period?' — '+p.period:''}${p.amount?' — $'+Number(p.amount).toLocaleString('es-AR'):''}<br>
+        <span style="color:var(--gray)">${new Date(p.created_at).toLocaleDateString('es-AR')}${p.notes?' · '+p.notes:''}</span></div>
+        <a href="${p.file_url}" target="_blank" style="text-decoration:underline;white-space:nowrap;margin-left:10px">Ver comprobante</a>
+      </div>
+    `).join('') : '<p style="color:var(--gray);font-size:13px">Todavía no subiste ningún comprobante.</p>';
+  }catch(err){ box.innerHTML = `<p style="color:var(--red);font-size:13px">${err.message}</p>`; }
+}
+function openMyPayments(){
+  openModal('payments-modal');
+  loadPaymentsList();
+}
+document.getElementById('payment-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const msg = document.getElementById('payment-msg');
+  const fd = new FormData();
+  fd.append('concept', document.getElementById('pay-concept').value);
+  fd.append('amount', document.getElementById('pay-amount').value);
+  fd.append('period', document.getElementById('pay-period').value);
+  fd.append('notes', document.getElementById('pay-notes').value);
+  fd.append('file', document.getElementById('pay-file').files[0]);
+  try{
+    const res = await fetch(`${API}/tenant-portal/payments`, { method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` }, body: fd });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos subir el comprobante.');
+    msg.textContent = '¡Listo! Comprobante subido.'; msg.className = 'msg success';
+    document.getElementById('payment-form').reset();
+    loadPaymentsList();
+    setTimeout(()=>{ msg.textContent=''; msg.className='msg'; }, 2200);
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
 function userLogout(){
   localStorage.removeItem('prun_site_user'); localStorage.removeItem('prun_site_token');
   SITE_USER = null; SITE_TOKEN = null;
@@ -507,6 +703,31 @@ async function applySiteConfig(){
     }
   }catch(err){ /* si falla, se queda con los valores por defecto */ }
 }
+const REPAIR_STATUS_LABELS_TENANT = { reportado:'Reportado', presupuestando:'Presupuestando', aprobado:'Aprobado', en_proceso:'En proceso', finalizado:'Finalizado', cancelado:'Cancelado' };
+async function loadTenantRepairsList(){
+  const box = document.getElementById('tenant-repairs-list');
+  box.innerHTML = '<p style="color:var(--gray);font-size:13px">Cargando tus reclamos...</p>';
+  try{
+    const res = await fetch(`${API}/tenant-portal/my-repairs`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos cargar tus reclamos.');
+    if(!data.hasContract){
+      box.innerHTML = '<p style="color:var(--gray);font-size:13px">Todavía no encontramos un contrato de alquiler asociado a tu cuenta.</p>';
+      return;
+    }
+    box.innerHTML = data.repairs.length ? `<h4 style="font-size:13px;margin-bottom:8px">Tus reclamos anteriores</h4>` + data.repairs.map(r => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
+        <strong>${r.title}</strong><br>
+        <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS_TENANT[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''}</span>
+        ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}`).join(' · ')}</div>` : ''}
+      </div>
+    `).join('') : '<p style="color:var(--gray);font-size:13px">Todavía no cargaste ningún reclamo.</p>';
+  }catch(err){ box.innerHTML = `<p style="color:var(--red);font-size:13px">${err.message}</p>`; }
+}
+function openTenantReclamos(){
+  openModal('tenant-report-modal');
+  loadTenantRepairsList();
+}
 document.getElementById('tenant-report-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const msg = document.getElementById('tenant-report-msg');
@@ -520,7 +741,8 @@ document.getElementById('tenant-report-form').addEventListener('submit', async e
     msg.textContent = '¡Listo! Recibimos tu reporte, el equipo se va a poner en contacto.';
     msg.className = 'msg success';
     document.getElementById('tenant-report-form').reset();
-    setTimeout(()=>{ closeModal('tenant-report-modal'); msg.textContent=''; msg.className='msg'; }, 2200);
+    loadTenantRepairsList();
+    setTimeout(()=>{ msg.textContent=''; msg.className='msg'; }, 2200);
   }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
 });
 document.getElementById('nav-links-el').addEventListener('click', e=>{

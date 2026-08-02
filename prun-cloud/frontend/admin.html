@@ -69,6 +69,12 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:22px">Dashboard</h2>
     <div><span id="session-label" style="font-size:12px;color:var(--gray);margin-right:14px"></span><a href="index.html" target="_blank" class="btn" style="background:none;color:var(--black);margin-right:8px;text-decoration:none;display:inline-block">Ver sitio ↗</a><button class="btn" onclick="logout()" style="background:none;color:var(--black)">Salir</button></div>
   </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <label style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--gray)">Informe:</label>
+    <select id="stats-branch-filter" onchange="loadStats()" style="max-width:260px">
+      <option value="">General (todas las sucursales)</option>
+    </select>
+  </div>
   <div class="stats-row">
     <div class="stat-card"><div class="n" id="k-total">0</div><div class="l">Propiedades</div></div>
     <div class="stat-card"><div class="n" id="k-sale">0</div><div class="l">En venta</div></div>
@@ -84,7 +90,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <input type="text" placeholder="🔎 Buscar por título, ciudad, estado..." oninput="filterTable(this.value,'prop-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
-    <thead><tr><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody id="prop-tbody"></tbody>
   </table></div>
 
@@ -113,6 +119,15 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   <div class="table-wrap"><table>
     <thead><tr><th>Nombre</th><th>Tipo</th><th>Ciudad</th><th>Unidades</th><th>Expensas</th><th>Acciones</th></tr></thead>
     <tbody id="dev-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Expensas por edificio</h2>
+    <button class="btn" onclick="openExpensaModal()">+ Nueva liquidación de expensas</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Edificio</th><th>Período</th><th>Total</th><th>Facturas</th><th>Acciones</th></tr></thead>
+    <tbody id="expensa-tbody"></tbody>
   </table></div>
 
   <div class="page-head" style="margin-top:36px">
@@ -208,8 +223,17 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <input type="text" placeholder="🔎 Buscar por nombre, email, rol..." oninput="filterTable(this.value,'siteusers-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
-    <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Rol</th><th>Fecha de registro</th></tr></thead>
+    <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Rol</th><th>Fecha de registro</th><th>Acciones</th></tr></thead>
     <tbody id="siteusers-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Comprobantes de pago cargados por inquilinos</h2>
+  </div>
+  <input type="text" placeholder="🔎 Buscar por propiedad, concepto, inquilino..." oninput="filterTable(this.value,'payments-tbody')" style="max-width:340px;margin-bottom:10px">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Concepto</th><th>Monto</th><th>Período</th><th>Fecha</th><th>Acciones</th></tr></thead>
+    <tbody id="payments-tbody"></tbody>
   </table></div>
 
   <div class="page-head" style="margin-top:36px">
@@ -240,12 +264,37 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
           <option value="contador">Contador</option>
           <option value="superadmin">Administrador</option>
         </select>
+        <select id="st-branch"><option value="">Sin sucursal asignada</option></select>
         <button class="btn" type="submit">Crear cuenta</button>
       </form>
     </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Sucursal</th><th>Fecha</th><th>Acciones</th></tr></thead>
       <tbody id="staff-tbody"></tbody>
+    </table></div>
+
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Sucursales</h2>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px;margin-bottom:20px">
+      <form id="branch-form" style="display:flex;flex-direction:column;gap:12px">
+        <input type="hidden" id="br-id">
+        <input type="text" id="br-name" placeholder="Nombre de la sucursal" required>
+        <input type="text" id="br-address" placeholder="Dirección">
+        <div class="form-grid">
+          <input type="text" id="br-city" placeholder="Ciudad">
+          <input type="text" id="br-phone" placeholder="Teléfono">
+        </div>
+        <input type="email" id="br-email" placeholder="Email de la sucursal">
+        <div style="display:flex;gap:10px">
+          <button class="btn" type="submit" style="flex:1">Guardar sucursal</button>
+          <button class="btn" type="button" id="branch-cancel-btn" style="display:none;background:#fff;color:var(--black)" onclick="resetBranchForm()">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nombre</th><th>Ciudad</th><th>Dirección</th><th>Teléfono</th><th>Acciones</th></tr></thead>
+      <tbody id="branch-tbody"></tbody>
     </table></div>
   </div>
 
@@ -273,6 +322,25 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
 </div>
 
+<div class="modal-overlay" id="site-user-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px">Editar cliente registrado</h3>
+    <form id="site-user-form">
+      <input type="hidden" id="su-id">
+      <div class="form-row"><label>Nombre</label><input type="text" id="su-name" required></div>
+      <div class="form-row"><label>Email</label><input type="email" id="su-email" required></div>
+      <div class="form-row"><label>Teléfono</label><input type="text" id="su-phone"></div>
+      <div class="form-row"><label>Rol</label><select id="su-role">
+        <option value="client">Cliente</option>
+        <option value="owner">Propietario</option>
+        <option value="tenant">Inquilino</option>
+        <option value="agent">Agente</option>
+      </select></div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('site-user-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="prop-modal">
   <div class="modal-box">
     <h3 style="font-size:17px;margin-bottom:16px" id="prop-modal-title">Nueva propiedad</h3>
@@ -290,6 +358,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Dormitorios</label><input type="number" id="p-bedrooms" value="0"></div>
         <div class="form-row"><label>Baños</label><input type="number" id="p-bathrooms" value="0"></div>
         <div class="form-row"><label>Propietario</label><select id="p-owner"><option value="">Sin asignar</option></select></div>
+        <div class="form-row"><label>Sucursal</label><select id="p-branch"><option value="">Sin asignar</option></select></div>
       </div>
 
       <div class="section-label"><span>Números de cuenta de servicios e impuestos (uso interno, no se publican en el sitio)</span></div>
@@ -401,6 +470,28 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       </div>
       <div class="form-row"><label>Descripción</label><textarea id="d-description" rows="2"></textarea></div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('dev-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="expensa-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="expensa-modal-title">Nueva liquidación de expensas</h3>
+    <form id="expensa-form">
+      <input type="hidden" id="ex-id">
+      <div class="form-grid">
+        <div class="form-row"><label>Edificio</label><select id="ex-development" required></select></div>
+        <div class="form-row"><label>Período (mes)</label><input type="month" id="ex-period" required></div>
+      </div>
+      <div class="form-row"><label>Detalle de gastos — un renglón por línea, formato "Concepto: Monto"</label>
+        <textarea id="ex-detail" rows="5" placeholder="Limpieza: 80000&#10;Seguridad: 150000&#10;Luz de espacios comunes: 40000&#10;Ascensor (mantenimiento): 30000"></textarea>
+      </div>
+      <div class="form-row"><label>Total (se calcula solo si dejás el detalle de arriba completo, o cargalo a mano)</label><input type="number" id="ex-total" min="0"></div>
+      <div class="form-row"><label>Facturas (podés subir varias, PDF o foto)</label><input type="file" id="ex-invoices" multiple accept="image/*,application/pdf">
+        <div id="ex-invoices-status" style="font-size:11px;color:var(--gray);margin-top:4px"></div>
+      </div>
+      <div class="form-row"><label>Notas (opcional)</label><textarea id="ex-notes" rows="2"></textarea></div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('expensa-modal')">Cancelar</button></div>
     </form>
   </div>
 </div>
@@ -640,7 +731,7 @@ function startApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
-  loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys();
+  loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
     loadCharges(); loadSettlements();
@@ -650,7 +741,7 @@ function startApp(){
   if(USER.role === 'superadmin'){
     document.getElementById('apariencia-section').style.display = 'block';
     document.getElementById('staff-section').style.display = 'block';
-    loadSiteConfig(); loadStaff();
+    loadSiteConfig(); loadStaff(); loadBranches();
   }
   applyRolePermissions();
   addExportButtonsToAllTables();
@@ -681,15 +772,21 @@ function applyRolePermissions(){
 }
 
 const STAFF_ROLE_LABELS = { superadmin:'Administrador', secretaria:'Secretaria', vendedor:'Vendedor', contador:'Contador' };
+let ALL_BRANCHES = [];
 async function loadStaff(){
   const tbody = document.getElementById('staff-tbody');
   try{
+    if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
+    const branchSelect = document.getElementById('st-branch');
+    if(branchSelect) branchSelect.innerHTML = '<option value="">Sin sucursal asignada</option>' + ALL_BRANCHES.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
     const list = await api('/auth/staff');
-    tbody.innerHTML = list.length ? list.map(s => `
-      <tr><td>${s.name}</td><td>${s.email}</td><td>${STAFF_ROLE_LABELS[s.role]||s.role}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td>
-      <td class="action-links">${s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button onclick="resetStaffPassword(${s.id})">Restablecer contraseña</button><button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`}</td></tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no creaste ninguna cuenta de personal.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = list.length ? list.map(s => {
+      const branch = ALL_BRANCHES.find(b=>b.id===s.branch_id);
+      return `<tr><td>${s.name}</td><td>${s.email}</td><td>${STAFF_ROLE_LABELS[s.role]||s.role}</td><td>${branch?branch.name:'-'}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td>
+      <td class="action-links">${s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button onclick="resetStaffPassword(${s.id})">Restablecer contraseña</button><button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Todavía no creaste ninguna cuenta de personal.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
 }
 document.getElementById('staff-form').addEventListener('submit', async e=>{
   e.preventDefault();
@@ -698,6 +795,7 @@ document.getElementById('staff-form').addEventListener('submit', async e=>{
     email: document.getElementById('st-email').value,
     password: document.getElementById('st-password').value,
     role: document.getElementById('st-role').value,
+    branch_id: document.getElementById('st-branch').value || null,
   };
   try{
     await api('/auth/staff', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -721,9 +819,65 @@ async function resetStaffPassword(id){
   }catch(err){ toast(err.message); }
 }
 
+// =====================================================================
+// SUCURSALES (solo Administrador puede crear/editar/borrar)
+// =====================================================================
+async function loadBranches(){
+  const tbody = document.getElementById('branch-tbody');
+  try{
+    ALL_BRANCHES = await api('/branches');
+    tbody.innerHTML = ALL_BRANCHES.length ? ALL_BRANCHES.map(b => `
+      <tr><td>${b.name}</td><td>${b.city||'-'}</td><td>${b.address||'-'}</td><td>${b.phone||'-'}</td>
+      <td class="action-links"><button onclick='editBranch(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteBranch(${b.id})">Borrar</button></td></tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no cargaste ninguna sucursal.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+function editBranch(b){
+  document.getElementById('br-id').value = b.id;
+  document.getElementById('br-name').value = b.name;
+  document.getElementById('br-address').value = b.address || '';
+  document.getElementById('br-city').value = b.city || '';
+  document.getElementById('br-phone').value = b.phone || '';
+  document.getElementById('br-email').value = b.email || '';
+  document.getElementById('branch-cancel-btn').style.display = 'inline-block';
+  document.getElementById('branch-form').scrollIntoView({behavior:'smooth'});
+}
+function resetBranchForm(){
+  document.getElementById('branch-form').reset();
+  document.getElementById('br-id').value = '';
+  document.getElementById('branch-cancel-btn').style.display = 'none';
+}
+document.getElementById('branch-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('br-id').value;
+  const body = {
+    name: document.getElementById('br-name').value,
+    address: document.getElementById('br-address').value,
+    city: document.getElementById('br-city').value,
+    phone: document.getElementById('br-phone').value,
+    email: document.getElementById('br-email').value,
+  };
+  try{
+    if(id) await api(`/branches/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/branches', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Sucursal guardada'); resetBranchForm(); loadBranches();
+  }catch(err){ toast(err.message); }
+});
+async function deleteBranch(id){
+  if(!confirm('¿Borrar esta sucursal? Las propiedades y cuentas de personal que la tengan asignada quedarán sin sucursal.')) return;
+  try{ await api(`/branches/${id}`, {method:'DELETE'}); toast('Sucursal borrada'); loadBranches(); }
+  catch(err){ toast(err.message); }
+}
+
 async function loadStats(){
   try{
-    const d = await api('/dashboard/stats');
+    if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
+    const filterSelect = document.getElementById('stats-branch-filter');
+    if(filterSelect && filterSelect.options.length <= 1){
+      filterSelect.innerHTML = '<option value="">General (todas las sucursales)</option>' + ALL_BRANCHES.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+    }
+    const branchId = filterSelect ? filterSelect.value : '';
+    const d = await api(`/dashboard/stats${branchId?'?branch_id='+branchId:''}`);
     document.getElementById('k-total').textContent = d.totalProperties;
     document.getElementById('k-sale').textContent = d.forSale;
     document.getElementById('k-rent').textContent = d.forRent;
@@ -734,22 +888,26 @@ let PROP_TABLE_CACHE = [];
 async function loadProperties(){
   const tbody = document.getElementById('prop-tbody');
   try{
+    if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
     const list = await api('/properties?status=disponible').catch(()=>[]);
     const reservado = await (await fetch(`${API}/properties?status=reservado`)).json();
     const vendido = await (await fetch(`${API}/properties?status=vendido`)).json();
     const alquilado = await (await fetch(`${API}/properties?status=alquilado`)).json();
     const all = [...list, ...reservado, ...vendido, ...alquilado];
     PROP_TABLE_CACHE = all;
-    tbody.innerHTML = all.length ? all.map(p => `
+    tbody.innerHTML = all.length ? all.map(p => {
+      const branch = ALL_BRANCHES.find(b=>b.id===p.branch_id);
+      return `
       <tr>
         <td>${p.title}</td><td>${p.operation}</td><td>${p.currency} ${Number(p.price).toLocaleString('es-AR')}</td>
-        <td>${p.city||'-'}</td><td>${p.status}</td>
+        <td>${p.city||'-'}</td><td>${branch?branch.name:'-'}</td><td>${p.status}</td>
         <td class="action-links">
           <button onclick='openPropModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button>
           <button style="color:var(--red)" onclick="deleteProp(${p.id})">Borrar</button>
         </td>
-      </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
-  }catch(err){ tbody.innerHTML = '<tr><td colspan="6">Error al cargar.</td></tr>'; }
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = '<tr><td colspan="7">Error al cargar.</td></tr>'; }
 }
 async function openPropModal(p){
   document.getElementById('prop-modal-title').textContent = p ? 'Editar propiedad' : 'Nueva propiedad';
@@ -778,14 +936,20 @@ async function openPropModal(p){
     ownerSelect.innerHTML = '<option value="">Sin asignar</option>' + ALL_OWNERS.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
     ownerSelect.value = p && p.owner_id ? p.owner_id : '';
   }catch(e){}
+  try{
+    if(!ALL_BRANCHES.length) ALL_BRANCHES = await api('/branches');
+    const branchSelect = document.getElementById('p-branch');
+    branchSelect.innerHTML = '<option value="">Sin asignar</option>' + ALL_BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+    branchSelect.value = p && p.branch_id ? p.branch_id : '';
+  }catch(e){}
   document.getElementById('prop-modal').classList.add('active');
 }
 document.getElementById('prop-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('p-id').value;
   const fd = new FormData();
-  ['title','description','operation','category','price','currency','city','status','bedrooms','bathrooms','owner'].forEach(f=>{
-    fd.append(f==='owner'?'owner_id':f, document.getElementById('p-'+f).value);
+  ['title','description','operation','category','price','currency','city','status','bedrooms','bathrooms','owner','branch'].forEach(f=>{
+    fd.append(f==='owner'?'owner_id':f==='branch'?'branch_id':f, document.getElementById('p-'+f).value);
   });
   fd.append('featured', document.getElementById('p-featured').checked);
   fd.append('services', JSON.stringify({
@@ -1138,6 +1302,68 @@ document.getElementById('dev-form').addEventListener('submit', async e=>{
 async function deleteDev(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/developments/${id}`,{method:'DELETE'}); loadDevelopments(); }catch(err){ toast(err.message); } }
 
 // =====================================================================
+// EXPENSAS POR EDIFICIO
+// =====================================================================
+let ALL_EXPENSAS = [];
+function parseDetailText(text){
+  return text.split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{
+    const idx = line.lastIndexOf(':');
+    if(idx === -1) return { concept: line, amount: 0 };
+    return { concept: line.slice(0,idx).trim(), amount: Number(line.slice(idx+1).replace(/[^\d.-]/g,'')) || 0 };
+  });
+}
+async function loadExpensas(){
+  const tbody = document.getElementById('expensa-tbody');
+  try{
+    if(!ALL_DEVELOPMENTS.length){ try{ ALL_DEVELOPMENTS = await api('/developments'); }catch(e){} }
+    ALL_EXPENSAS = await api('/expensas');
+    tbody.innerHTML = ALL_EXPENSAS.length ? ALL_EXPENSAS.map(ex => {
+      const dev = ALL_DEVELOPMENTS.find(d=>d.id===ex.development_id);
+      return `<tr><td>${dev?dev.name:'-'}</td><td>${ex.period}</td><td>$${Number(ex.total_amount).toLocaleString('es-AR')}</td><td>${(ex.invoices||[]).length} factura(s)</td>
+      <td class="action-links"><button onclick='openExpensaModal(${JSON.stringify(ex).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteExpensa(${ex.id})">Borrar</button></td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin expensas cargadas todavía.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+}
+function openExpensaModal(ex){
+  document.getElementById('expensa-modal-title').textContent = ex ? 'Editar liquidación de expensas' : 'Nueva liquidación de expensas';
+  document.getElementById('ex-id').value = ex ? ex.id : '';
+  const sel = document.getElementById('ex-development');
+  sel.innerHTML = ALL_DEVELOPMENTS.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  if(ex) sel.value = ex.development_id;
+  document.getElementById('ex-period').value = ex ? ex.period : new Date().toISOString().slice(0,7);
+  document.getElementById('ex-detail').value = ex && ex.detail ? ex.detail.map(d=>`${d.concept}: ${d.amount}`).join('\n') : '';
+  document.getElementById('ex-total').value = ex ? ex.total_amount : '';
+  document.getElementById('ex-notes').value = ex ? (ex.notes||'') : '';
+  document.getElementById('ex-invoices').value = '';
+  document.getElementById('ex-invoices-status').innerHTML = ex && ex.invoices && ex.invoices.length
+    ? `Ya tiene ${ex.invoices.length} factura(s): ${ex.invoices.map(f=>`<a href="${f.url}" target="_blank">${f.name}</a>`).join(', ')}. Las que subas ahora se agregan, no las reemplazan.` : '';
+  document.getElementById('expensa-modal').classList.add('active');
+}
+document.getElementById('ex-detail').addEventListener('input', e=>{
+  const items = parseDetailText(e.target.value);
+  if(items.length) document.getElementById('ex-total').value = items.reduce((s,i)=>s+i.amount,0);
+});
+document.getElementById('expensa-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('ex-id').value;
+  const fd = new FormData();
+  fd.append('development_id', document.getElementById('ex-development').value);
+  fd.append('period', document.getElementById('ex-period').value);
+  fd.append('total_amount', document.getElementById('ex-total').value);
+  fd.append('detail', JSON.stringify(parseDetailText(document.getElementById('ex-detail').value)));
+  fd.append('notes', document.getElementById('ex-notes').value);
+  const files = document.getElementById('ex-invoices').files;
+  for(let i=0;i<files.length;i++) fd.append('invoices', files[i]);
+  try{
+    const res = await fetch(`${API}/expensas${id?'/'+id:''}`, { method: id?'PUT':'POST', headers:{Authorization:`Bearer ${TOKEN}`}, body: fd });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Error al guardar');
+    toast('Expensas guardadas'); closeModal('expensa-modal'); loadExpensas();
+  }catch(err){ toast(err.message); }
+});
+async function deleteExpensa(id){ if(!confirm('¿Borrar esta liquidación de expensas?')) return; try{ await api(`/expensas/${id}`,{method:'DELETE'}); loadExpensas(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
 // PROPIETARIOS
 // =====================================================================
 let ALL_OWNERS = [];
@@ -1466,16 +1692,55 @@ async function loadAudit(){
   }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
 }
 
-const ROLE_LABELS_SITE = { client:'Cliente', owner:'Propietario', agent:'Agente' };
+const ROLE_LABELS_SITE = { client:'Cliente', owner:'Propietario', tenant:'Inquilino', agent:'Agente' };
 async function loadSiteUsers(){
   const tbody = document.getElementById('siteusers-tbody');
   try{
-    const list = await api('/auth/site-users');
-    tbody.innerHTML = list.length ? list.map(u => `
-      <tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone||'-'}</td><td>${ROLE_LABELS_SITE[u.role]||u.role}</td><td>${new Date(u.created_at).toLocaleDateString('es-AR')}</td></tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no se registró ningún cliente.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    ALL_SITE_USERS = await api('/auth/site-users');
+    const canManage = USER.role === 'superadmin';
+    tbody.innerHTML = ALL_SITE_USERS.length ? ALL_SITE_USERS.map(u => `
+      <tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone||'-'}</td><td>${ROLE_LABELS_SITE[u.role]||u.role}</td><td>${new Date(u.created_at).toLocaleDateString('es-AR')}</td>
+      <td class="action-links">${canManage ? `<button onclick='openSiteUserModal(${JSON.stringify(u).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteSiteUser(${u.id})">Borrar</button>` : '-'}</td></tr>`).join('')
+      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Todavía no se registró ningún cliente.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
 }
+let ALL_SITE_USERS = [];
+function openSiteUserModal(u){
+  document.getElementById('su-id').value = u.id;
+  document.getElementById('su-name').value = u.name;
+  document.getElementById('su-email').value = u.email;
+  document.getElementById('su-phone').value = u.phone || '';
+  document.getElementById('su-role').value = u.role;
+  document.getElementById('site-user-modal').classList.add('active');
+}
+document.getElementById('site-user-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('su-id').value;
+  const body = { name: document.getElementById('su-name').value, email: document.getElementById('su-email').value,
+    phone: document.getElementById('su-phone').value, role: document.getElementById('su-role').value };
+  try{
+    await api(`/auth/site-users/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    toast('Cliente actualizado'); closeModal('site-user-modal'); loadSiteUsers();
+  }catch(err){ toast(err.message); }
+});
+async function deleteSiteUser(id){
+  if(!confirm('¿Borrar esta cuenta de cliente? Esta acción no se puede deshacer.')) return;
+  try{ await api(`/auth/site-users/${id}`, {method:'DELETE'}); toast('Cliente borrado'); loadSiteUsers(); }
+  catch(err){ toast(err.message); }
+}
+async function loadPayments(){
+  const tbody = document.getElementById('payments-tbody');
+  try{
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    const list = await api('/payments');
+    tbody.innerHTML = list.length ? list.map(p => {
+      const prop = ALL_PROPERTIES.find(x=>x.id===p.property_id);
+      return `<tr><td>${p.tenant_name||p.tenant_email}</td><td>${prop?prop.title:'-'}</td><td>${p.concept}</td><td>${p.amount?'$'+Number(p.amount).toLocaleString('es-AR'):'-'}</td><td>${p.period||'-'}</td><td>${new Date(p.created_at).toLocaleDateString('es-AR')}</td>
+      <td class="action-links"><a href="${p.file_url}" target="_blank">Ver comprobante</a> <button style="color:var(--red)" onclick="deletePayment(${p.id})">Borrar</button></td></tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Todavía no hay comprobantes cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+}
+async function deletePayment(id){ if(!confirm('¿Borrar este comprobante?')) return; try{ await api(`/payments/${id}`,{method:'DELETE'}); loadPayments(); }catch(err){ toast(err.message); } }
 
 const INTEREST_LABELS = { comprar:'Comprar', alquilar:'Alquilar', vender:'Vender', invertir:'Invertir' };
 async function loadSurveys(){
