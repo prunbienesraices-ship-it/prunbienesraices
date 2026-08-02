@@ -29,6 +29,9 @@ const expensasRoutes = require('./routes/expensas.routes');
 const myExpensasRoutes = require('./routes/my-expensas.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const branchesRoutes = require('./routes/branches.routes');
+const contractRoutes = require('./routes/contract.routes');
+const contractTemplateRoutes = require('./routes/contract-template.routes');
+const { DEFAULT_CONTRACT_TEMPLATE } = require('./default-contract-template');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -86,6 +89,8 @@ app.use('/api/expensas', expensasRoutes);
 app.use('/api/my-expensas', myExpensasRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/branches', branchesRoutes);
+app.use('/api/contract', contractRoutes);
+app.use('/api/contract-template', contractTemplateRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor de Prun Bienes Raíces (nube) funcionando correctamente.' });
@@ -113,7 +118,29 @@ async function ensureAdminAccount() {
   else console.log(`Cuenta de administrador creada: ${email} / ${password}`);
 }
 
-ensureAdminAccount().then(() => {
+// Carga el modelo de contrato completo la primera vez que arranca el
+// servidor (si todavia esta vacio). Despues de eso, el Administrador lo
+// edita desde el panel y esos cambios prevalecen siempre.
+async function ensureContractTemplate() {
+  const { data: existing, error: selectError } = await supabase
+    .from('contract_template').select('clauses').eq('id', 1).maybeSingle();
+
+  if (selectError) {
+    console.error('No se pudo verificar el modelo de contrato. ¿Corriste el schema de contract_template? ->', selectError.message);
+    return;
+  }
+  if (existing && existing.clauses && existing.clauses.length) return;
+
+  const { error: updateError } = await supabase.from('contract_template').update({
+    intro: DEFAULT_CONTRACT_TEMPLATE.intro,
+    clauses: DEFAULT_CONTRACT_TEMPLATE.clauses,
+    signature_block: DEFAULT_CONTRACT_TEMPLATE.signature_block,
+  }).eq('id', 1);
+  if (updateError) console.error('No se pudo cargar el modelo de contrato por defecto ->', updateError.message);
+  else console.log('Modelo de contrato por defecto cargado.');
+}
+
+ensureAdminAccount().then(() => ensureContractTemplate()).then(() => {
   app.listen(PORT, () => {
     console.log('==================================================');
     console.log(' PRUN BIENES RAICES - Servidor (nube) iniciado');
