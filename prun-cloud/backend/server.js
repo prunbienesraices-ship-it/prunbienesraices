@@ -25,6 +25,10 @@ const surveyRoutes = require('./routes/survey.routes');
 const ownerPortalRoutes = require('./routes/owner-portal.routes');
 const siteConfigRoutes = require('./routes/site-config.routes');
 const tenantPortalRoutes = require('./routes/tenant-portal.routes');
+const expensasRoutes = require('./routes/expensas.routes');
+const myExpensasRoutes = require('./routes/my-expensas.routes');
+const paymentsRoutes = require('./routes/payments.routes');
+const branchesRoutes = require('./routes/branches.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +82,10 @@ app.use('/api/survey', surveyRoutes);
 app.use('/api/owner-portal', ownerPortalRoutes);
 app.use('/api/site-config', siteConfigRoutes);
 app.use('/api/tenant-portal', tenantPortalRoutes);
+app.use('/api/expensas', expensasRoutes);
+app.use('/api/my-expensas', myExpensasRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/branches', branchesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor de Prun Bienes Raíces (nube) funcionando correctamente.' });
