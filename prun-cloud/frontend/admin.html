@@ -303,6 +303,23 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     </table></div>
   </div>
 
+  <div id="contract-template-section" style="display:none">
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Modelo de contrato de alquiler</h2>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:820px">
+      <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Este es el texto que se usa para generar automáticamente el contrato de cada inquilino (botón "Generar contrato"). Podés agregar, borrar o editar cualquier cláusula. Usá estos códigos donde necesites que se complete un dato solo: <code>{{PROPIETARIO_NOMBRE}}</code> <code>{{PROPIETARIO_DNI}}</code> <code>{{PROPIETARIO_DOMICILIO}}</code> <code>{{INQUILINO_NOMBRE}}</code> <code>{{INQUILINO_DNI}}</code> <code>{{INQUILINO_EMAIL}}</code> <code>{{PROPIEDAD_DIRECCION}}</code> <code>{{PROPIEDAD_CIUDAD}}</code> <code>{{PROPIEDAD_COMPOSICION}}</code> <code>{{FECHA_INICIO}}</code> <code>{{FECHA_FIN}}</code> <code>{{DURACION_MESES}}</code> <code>{{MONTO_TOTAL}}</code> <code>{{DETALLE_ALQUILER}}</code> <code>{{FIADORES_DETALLE}}</code> <code>{{INVENTARIO_DETALLE}}</code> <code>{{FECHA_FIRMA}}</code> <code>{{FIADORES_FIRMAS}}</code></p>
+
+      <div class="form-row"><label>Párrafo inicial (antes de la Primera cláusula)</label><textarea id="ct-intro" rows="4"></textarea></div>
+
+      <div id="ct-clauses-list" style="display:flex;flex-direction:column;gap:14px;margin:16px 0"></div>
+      <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="addClauseRow('','')">+ Agregar cláusula</button>
+
+      <div class="form-row" style="margin-top:16px"><label>Firmas (al final del contrato)</label><textarea id="ct-signature" rows="3"></textarea></div>
+      <button class="btn" type="button" style="width:100%;margin-top:10px" onclick="saveContractTemplate()">Guardar modelo de contrato</button>
+    </div>
+  </div>
+
   <div id="apariencia-section" style="display:none">
     <div class="page-head" style="margin-top:36px">
       <h2 style="font-size:20px">Apariencia del sitio</h2>
@@ -373,6 +390,13 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>N° de cuenta de luz</label><input type="text" id="p-svc-luz"></div>
         <div class="form-row"><label>N° de cuenta de gas</label><input type="text" id="p-svc-gas"></div>
         <div class="form-row"><label>N° de cuenta de agua</label><input type="text" id="p-svc-agua"></div>
+      </div>
+
+      <div class="section-label"><span>Datos para el contrato de alquiler (se completan solos al generar el contrato)</span></div>
+      <div class="form-row"><label>Composición del inmueble (ej: dos dormitorios, cocina comedor, baño, patio)</label><input type="text" id="p-composition"></div>
+      <div class="form-row"><label>Inventario por ambiente</label>
+        <div id="p-inventory-rows" style="display:flex;flex-direction:column;gap:8px;background:var(--cream);padding:12px;border:1px solid var(--line)"></div>
+        <button class="btn" type="button" style="margin-top:8px;background:#fff;color:var(--black)" onclick="addInventoryRow('', '')">+ Agregar ambiente</button>
       </div>
 
       <div class="form-row"><label>Fotos</label><input type="file" id="p-photos" multiple accept="image/*"></div>
@@ -787,7 +811,8 @@ async function startApp(){
   if(USER.role === 'superadmin'){
     document.getElementById('apariencia-section').style.display = 'block';
     document.getElementById('staff-section').style.display = 'block';
-    loadSiteConfig(); loadStaff(); loadBranches();
+    document.getElementById('contract-template-section').style.display = 'block';
+    loadSiteConfig(); loadStaff(); loadBranches(); loadContractTemplate();
   }
   applyRolePermissions();
   addExportButtonsToAllTables();
@@ -977,6 +1002,13 @@ async function openPropModal(p){
   document.getElementById('p-svc-luz').value = svc.luz || '';
   document.getElementById('p-svc-gas').value = svc.gas || '';
   document.getElementById('p-svc-agua').value = svc.agua || '';
+  document.getElementById('p-composition').value = p ? (p.composition||'') : '';
+  document.getElementById('p-inventory-rows').innerHTML = '';
+  if(p && p.inventory && p.inventory.length){
+    p.inventory.forEach(row => addInventoryRow(row.room, row.detail));
+  } else {
+    addInventoryRow('', '');
+  }
   try{
     if(!ALL_OWNERS.length) ALL_OWNERS = await api('/owners');
     const ownerSelect = document.getElementById('p-owner');
@@ -1006,6 +1038,8 @@ document.getElementById('prop-form').addEventListener('submit', async e=>{
     gas: document.getElementById('p-svc-gas').value,
     agua: document.getElementById('p-svc-agua').value,
   }));
+  fd.append('composition', document.getElementById('p-composition').value);
+  fd.append('inventory', JSON.stringify(collectInventory()));
   const files = document.getElementById('p-photos').files;
   for(let i=0;i<files.length;i++) fd.append('photos', files[i]);
   try{
@@ -1149,6 +1183,7 @@ async function loadTenants(){
         <td>${missing.length ? `<span class="badge bad">${missing.length} sin pagar</span>` : '<span class="badge ok">Al día</span>'}</td>
         <td class="action-links">
           <button onclick="openPaymentsModal(${t.id})">Pagos</button>
+          <button onclick="downloadContract(${t.id})">Generar contrato</button>
           <button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button>
           <button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>
         </td>
@@ -1201,6 +1236,8 @@ function addGuarantorRow(data){
   div.className = 'dyn-row';
   div.innerHTML = `
     <input type="text" class="g-name" placeholder="Nombre" value="${data&&data.name?data.name:''}">
+    <input type="text" class="g-dni" placeholder="DNI" value="${data&&data.dni?data.dni:''}">
+    <input type="text" class="g-address" placeholder="Domicilio" value="${data&&data.address?data.address:''}">
     <input type="tel" class="g-phone" placeholder="Teléfono" value="${data&&data.phone?data.phone:''}">
     <input type="email" class="g-email" placeholder="Email" value="${data&&data.email?data.email:''}">
     <button type="button" onclick="this.closest('.dyn-row').remove()">✕</button>`;
@@ -1208,8 +1245,9 @@ function addGuarantorRow(data){
 }
 function collectGuarantors(){
   return Array.from(document.querySelectorAll('#guarantors-list .dyn-row')).map(r => ({
-    name: r.querySelector('.g-name').value, phone: r.querySelector('.g-phone').value, email: r.querySelector('.g-email').value,
-  })).filter(g=>g.name||g.phone||g.email);
+    name: r.querySelector('.g-name').value, dni: r.querySelector('.g-dni').value, address: r.querySelector('.g-address').value,
+    phone: r.querySelector('.g-phone').value, email: r.querySelector('.g-email').value,
+  })).filter(g=>g.name||g.dni||g.address||g.phone||g.email);
 }
 function addScheduleRow(data){
   const c = document.getElementById('schedule-list');
@@ -1266,6 +1304,20 @@ async function deleteTenant(id){
   if(!confirm('¿Borrar este contrato?')) return;
   try{ await api(`/tenants/${id}`, {method:'DELETE'}); toast('Borrado'); loadTenants(); }
   catch(err){ toast(err.message); }
+}
+async function downloadContract(id){
+  toast('Generando el contrato...');
+  try{
+    const res = await fetch(`${API}/contract/tenants/${id}/contract`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    if(!res.ok){ const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Error al generar el contrato'); }
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="(.+)"/);
+    link.download = match ? match[1] : 'contrato.docx';
+    link.click();
+  }catch(err){ toast(err.message); }
 }
 
 async function openPaymentsModal(tenantId){
@@ -1357,6 +1409,28 @@ async function deleteDev(id){ if(!confirm('¿Borrar?')) return; try{ await api(`
 // =====================================================================
 let ALL_EXPENSAS = [];
 const EXPENSA_DEFAULT_CONCEPTS = ['Luz', 'Agua', 'Impuestos', 'Limpieza', 'Otros gastos'];
+function addInventoryRow(room, detail){
+  const rows = document.getElementById('p-inventory-rows');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:flex-start';
+  row.innerHTML = `
+    <input type="text" class="inv-row-room" placeholder="Ambiente (ej: Dormitorio 1)" value="${(room||'').replace(/"/g,'&quot;')}" style="flex:1">
+    <input type="text" class="inv-row-detail" placeholder="Qué hay ahí (ej: una puerta placa, una ventana)" value="${(detail||'').replace(/"/g,'&quot;')}" style="flex:2">
+    <button type="button" class="btn" style="background:#fff;color:var(--red);padding:9px 12px" onclick="this.parentElement.remove()">✕</button>
+  `;
+  rows.appendChild(row);
+}
+function collectInventory(){
+  const rooms = Array.from(document.querySelectorAll('.inv-row-room'));
+  const details = Array.from(document.querySelectorAll('.inv-row-detail'));
+  const inventory = [];
+  rooms.forEach((r,i)=>{
+    const room = r.value.trim();
+    const detail = details[i].value.trim();
+    if(room && detail) inventory.push({ room, detail });
+  });
+  return inventory;
+}
 function addExpensaDetailRow(concept, amount){
   const rows = document.getElementById('ex-detail-rows');
   const row = document.createElement('div');
@@ -1832,6 +1906,54 @@ async function loadSurveys(){
   }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
 }
 
+// =====================================================================
+// MODELO DE CONTRATO (solo Administrador puede editarlo)
+// =====================================================================
+function addClauseRow(title, body){
+  const list = document.getElementById('ct-clauses-list');
+  const row = document.createElement('div');
+  row.style.cssText = 'border:1px solid var(--line);padding:12px;background:var(--cream)';
+  row.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="text" class="ct-clause-title" placeholder="Título de la cláusula (ej: PRIMERA)" value="${(title||'').replace(/"/g,'&quot;')}" style="flex:1;font-weight:800">
+      <button type="button" class="btn" style="background:#fff;color:var(--red);padding:9px 12px" onclick="this.closest('div').parentElement.remove()">✕ Borrar cláusula</button>
+    </div>
+    <textarea class="ct-clause-body" rows="4" placeholder="Texto de la cláusula">${(body||'')}</textarea>
+  `;
+  list.appendChild(row);
+}
+async function loadContractTemplate(){
+  try{
+    const t = await api('/contract-template');
+    document.getElementById('ct-intro').value = t.intro || '';
+    document.getElementById('ct-signature').value = t.signature_block || '';
+    document.getElementById('ct-clauses-list').innerHTML = '';
+    (t.clauses || []).forEach(c => addClauseRow(c.title, c.body));
+    if(!t.clauses || !t.clauses.length) addClauseRow('', '');
+  }catch(err){ toast('No pudimos cargar el modelo de contrato.'); }
+}
+function collectClauses(){
+  const titles = Array.from(document.querySelectorAll('.ct-clause-title'));
+  const bodies = Array.from(document.querySelectorAll('.ct-clause-body'));
+  const clauses = [];
+  titles.forEach((t,i)=>{
+    const title = t.value.trim();
+    const body = bodies[i].value.trim();
+    if(title && body) clauses.push({ title, body });
+  });
+  return clauses;
+}
+async function saveContractTemplate(){
+  const body = {
+    intro: document.getElementById('ct-intro').value,
+    clauses: collectClauses(),
+    signature_block: document.getElementById('ct-signature').value,
+  };
+  try{
+    await api('/contract-template', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    toast('Modelo de contrato guardado.');
+  }catch(err){ toast(err.message); }
+}
 async function loadSiteConfig(){
   try{
     const c = await api('/site-config');
