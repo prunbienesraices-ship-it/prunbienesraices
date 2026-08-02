@@ -38,6 +38,7 @@ router.post('/', requireAuth, async (req, res) => {
       owner_name: b.owner_name || '', owner_phone: b.owner_phone || '', owner_email: b.owner_email || '',
       start_date: b.start_date, end_date: b.end_date, currency: b.currency || 'ARS',
       payday: b.payday || null, deposit: Number(b.deposit) || 0,
+      contract_total_amount: Number(b.contract_total_amount) || 0,
       late_coefficient: Number(b.late_coefficient) || 0,
       update_freq: b.update_freq || 'trimestral', update_index: b.update_index || 'ICL',
       guarantee: b.guarantee || '', status_override: b.status_override || '',
@@ -60,7 +61,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     const fields = [
       'property_id','name','dni','cuil','phone','email','company','employment_status','occupants','pets',
       'family','references','insurance','owner_name','owner_phone','owner_email','start_date','end_date',
-      'currency','payday','deposit','late_coefficient','update_freq','update_index','guarantee',
+      'currency','payday','deposit','contract_total_amount','late_coefficient','update_freq','update_index','guarantee',
       'status_override','guarantors','rent_history','payments','notes',
     ];
     fields.forEach(f => { if (b[f] !== undefined) updates[f] = b[f]; });
