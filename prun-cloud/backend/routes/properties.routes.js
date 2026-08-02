@@ -68,6 +68,8 @@ router.post('/', requireAuth, upload.array('photos', 20), async (req, res) => {
       owner_id: b.owner_id ? Number(b.owner_id) : null,
       branch_id: b.branch_id ? Number(b.branch_id) : null,
       services: b.services ? JSON.parse(b.services) : {},
+      composition: b.composition || '',
+      inventory: b.inventory ? JSON.parse(b.inventory) : [],
     }]).select().single();
 
     if (error) throw error;
@@ -100,6 +102,8 @@ router.put('/:id', requireAuth, upload.array('photos', 20), async (req, res) => 
     if (b.featured !== undefined) updates.featured = b.featured === 'true' || b.featured === true;
     if (b.amenities !== undefined) updates.amenities = JSON.parse(b.amenities);
     if (b.services !== undefined) updates.services = JSON.parse(b.services);
+    if (b.composition !== undefined) updates.composition = b.composition;
+    if (b.inventory !== undefined) updates.inventory = JSON.parse(b.inventory);
     if (newPhotoUrls.length) updates.photos = finalPhotos;
     updates.updated_at = new Date().toISOString();
 
