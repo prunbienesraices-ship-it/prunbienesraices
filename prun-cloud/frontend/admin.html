@@ -441,6 +441,12 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Depósito</label><input type="number" id="t-deposit" min="0"></div>
         <div class="form-row"><label>Monto total del contrato</label><input type="number" id="t-contract-total" min="0" placeholder="Ej: suma de todos los meses del contrato"></div>
         <div class="form-row"><label>Coeficiente de mora diario (%)</label><input type="number" id="t-late-coef" min="0" step="0.01"></div>
+        <div class="form-row"><label>Tipo de alquiler (para el contrato)</label>
+          <select id="t-rent-type">
+            <option value="fijo">Cuotas fijas predefinidas (detallo cada monto abajo)</option>
+            <option value="indice">Un solo monto, que se actualiza por índice cada tanto</option>
+          </select>
+        </div>
         <div class="form-row"><label>Frecuencia de actualización</label>
           <select id="t-update-freq">
             <option value="bimestral">Bimestral</option><option value="trimestral">Trimestral</option>
@@ -1216,6 +1222,7 @@ async function openTenantModal(t){
   document.getElementById('t-late-coef').value = t ? (t.late_coefficient||'') : '';
   document.getElementById('t-update-freq').value = t ? t.update_freq : 'trimestral';
   document.getElementById('t-update-index').value = t ? t.update_index : 'ICL';
+  document.getElementById('t-rent-type').value = t ? (t.rent_type || 'fijo') : 'fijo';
   document.getElementById('t-notes').value = t ? (t.notes||'') : '';
 
   const gList = document.getElementById('guarantors-list');
@@ -1288,6 +1295,7 @@ document.getElementById('tenant-form').addEventListener('submit', async e=>{
     late_coefficient: Number(document.getElementById('t-late-coef').value) || 0,
     update_freq: document.getElementById('t-update-freq').value,
     update_index: document.getElementById('t-update-index').value,
+    rent_type: document.getElementById('t-rent-type').value,
     guarantors: collectGuarantors(),
     rent_history: rentHistory,
     notes: document.getElementById('t-notes').value,
