@@ -109,7 +109,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="tenant-tbody-search" placeholder="🔎 Buscar por nombre, propiedad, estado..." oninput="filterTable(this.value,'tenant-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="tenant-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Monto total contrato</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
     <tbody id="tenant-tbody"></tbody>
   </table></div>
 
@@ -415,6 +415,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Moneda</label><select id="t-currency"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
         <div class="form-row"><label>Día de pago</label><input type="number" id="t-payday" min="1" max="31"></div>
         <div class="form-row"><label>Depósito</label><input type="number" id="t-deposit" min="0"></div>
+        <div class="form-row"><label>Monto total del contrato</label><input type="number" id="t-contract-total" min="0" placeholder="Ej: suma de todos los meses del contrato"></div>
         <div class="form-row"><label>Coeficiente de mora diario (%)</label><input type="number" id="t-late-coef" min="0" step="0.01"></div>
         <div class="form-row"><label>Frecuencia de actualización</label>
           <select id="t-update-freq">
@@ -1142,6 +1143,7 @@ async function loadTenants(){
         <td>${t.name}</td>
         <td>${prop?prop.title:'-'}</td>
         <td>${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}</td>
+        <td>${t.contract_total_amount ? t.currency+' '+Number(t.contract_total_amount).toLocaleString('es-AR') : '-'}</td>
         <td>${new Date(t.end_date).toLocaleDateString('es-AR')}</td>
         <td><span class="badge ${statusLabels[status]}">${statusText[status]}</span></td>
         <td>${missing.length ? `<span class="badge bad">${missing.length} sin pagar</span>` : '<span class="badge ok">Al día</span>'}</td>
@@ -1151,8 +1153,8 @@ async function loadTenants(){
           <button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+    }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="8">Error: ${err.message}</td></tr>`; }
 }
 
 async function openTenantModal(t){
@@ -1175,6 +1177,7 @@ async function openTenantModal(t){
   document.getElementById('t-currency').value = t ? t.currency : 'ARS';
   document.getElementById('t-payday').value = t ? (t.payday||'') : '';
   document.getElementById('t-deposit').value = t ? (t.deposit||'') : '';
+  document.getElementById('t-contract-total').value = t ? (t.contract_total_amount||'') : '';
   document.getElementById('t-late-coef').value = t ? (t.late_coefficient||'') : '';
   document.getElementById('t-update-freq').value = t ? t.update_freq : 'trimestral';
   document.getElementById('t-update-index').value = t ? t.update_index : 'ICL';
@@ -1243,6 +1246,7 @@ document.getElementById('tenant-form').addEventListener('submit', async e=>{
     currency: document.getElementById('t-currency').value,
     payday: Number(document.getElementById('t-payday').value) || null,
     deposit: Number(document.getElementById('t-deposit').value) || 0,
+    contract_total_amount: Number(document.getElementById('t-contract-total').value) || 0,
     late_coefficient: Number(document.getElementById('t-late-coef').value) || 0,
     update_freq: document.getElementById('t-update-freq').value,
     update_index: document.getElementById('t-update-index').value,
