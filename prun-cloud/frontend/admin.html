@@ -398,6 +398,10 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
           <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-patio" style="width:auto"> Patio</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-balcon" style="width:auto"> Balcón</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-cocina" style="width:auto"> Cocina comedor</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-agua" style="width:auto"> Agua corriente</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-gas" style="width:auto"> Gas natural</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-luz" style="width:auto"> Luz eléctrica</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-pavimento" style="width:auto"> Calle pavimentada</label>
         </div>
         <input type="text" id="p-composition" placeholder="Cualquier otro detalle (opcional)"></div>
       <div class="form-row"><label>Inventario por ambiente</label>
@@ -1019,12 +1023,24 @@ async function openPropModal(p){
     const hasPatio = /\bpatio\b/i.test(compText);
     const hasBalcon = /\bbalc[oó]n\b/i.test(compText);
     const hasCocina = /\bcocina( comedor)?\b/i.test(compText);
+    const hasAgua = /\bagua corriente\b/i.test(compText);
+    const hasGas = /\bgas natural\b/i.test(compText);
+    const hasLuz = /\bluz el[eé]ctrica\b/i.test(compText);
+    const hasPavimento = /\bcalle pavimentada\b/i.test(compText);
     document.getElementById('p-comp-patio').checked = hasPatio;
     document.getElementById('p-comp-balcon').checked = hasBalcon;
     document.getElementById('p-comp-cocina').checked = hasCocina;
+    document.getElementById('p-comp-agua').checked = hasAgua;
+    document.getElementById('p-comp-gas').checked = hasGas;
+    document.getElementById('p-comp-luz').checked = hasLuz;
+    document.getElementById('p-comp-pavimento').checked = hasPavimento;
     if(hasPatio) compText = compText.replace(/\bpatio\b/i, '');
     if(hasBalcon) compText = compText.replace(/\bbalc[oó]n\b/i, '');
     if(hasCocina) compText = compText.replace(/\bcocina( comedor)?\b/i, '');
+    if(hasAgua) compText = compText.replace(/\bagua corriente\b/i, '');
+    if(hasGas) compText = compText.replace(/\bgas natural\b/i, '');
+    if(hasLuz) compText = compText.replace(/\bluz el[eé]ctrica\b/i, '');
+    if(hasPavimento) compText = compText.replace(/\bcalle pavimentada\b/i, '');
     compText = compText.replace(/,\s*,/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
     document.getElementById('p-composition').value = compText;
   }
@@ -1068,6 +1084,10 @@ document.getElementById('prop-form').addEventListener('submit', async e=>{
     if(document.getElementById('p-comp-patio').checked) extras.push('patio');
     if(document.getElementById('p-comp-balcon').checked) extras.push('balcón');
     if(document.getElementById('p-comp-cocina').checked) extras.push('cocina comedor');
+    if(document.getElementById('p-comp-agua').checked) extras.push('agua corriente');
+    if(document.getElementById('p-comp-gas').checked) extras.push('gas natural');
+    if(document.getElementById('p-comp-luz').checked) extras.push('luz eléctrica');
+    if(document.getElementById('p-comp-pavimento').checked) extras.push('calle pavimentada');
     const freeText = document.getElementById('p-composition').value.trim();
     if(freeText) extras.push(freeText);
     fd.append('composition', extras.join(', '));
