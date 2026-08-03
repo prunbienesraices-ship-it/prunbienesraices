@@ -393,7 +393,13 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       </div>
 
       <div class="section-label"><span>Datos para el contrato de alquiler (se completan solos al generar el contrato)</span></div>
-      <div class="form-row"><label>Composición del inmueble (ej: dos dormitorios, cocina comedor, baño, patio)</label><input type="text" id="p-composition"></div>
+      <div class="form-row"><label>Detalle adicional de ambientes (opcional) — los dormitorios, baños y cocheras ya se toman de arriba</label>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-patio" style="width:auto"> Patio</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-balcon" style="width:auto"> Balcón</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none"><input type="checkbox" id="p-comp-cocina" style="width:auto"> Cocina comedor</label>
+        </div>
+        <input type="text" id="p-composition" placeholder="Cualquier otro detalle (opcional)"></div>
       <div class="form-row"><label>Inventario por ambiente</label>
         <div id="p-inventory-rows" style="display:flex;flex-direction:column;gap:8px;background:var(--cream);padding:12px;border:1px solid var(--line)"></div>
         <button class="btn" type="button" style="margin-top:8px;background:#fff;color:var(--black)" onclick="addInventoryRow('', '')">+ Agregar ambiente</button>
@@ -1008,7 +1014,20 @@ async function openPropModal(p){
   document.getElementById('p-svc-luz').value = svc.luz || '';
   document.getElementById('p-svc-gas').value = svc.gas || '';
   document.getElementById('p-svc-agua').value = svc.agua || '';
-  document.getElementById('p-composition').value = p ? (p.composition||'') : '';
+  {
+    let compText = p ? (p.composition||'') : '';
+    const hasPatio = /\bpatio\b/i.test(compText);
+    const hasBalcon = /\bbalc[oó]n\b/i.test(compText);
+    const hasCocina = /\bcocina( comedor)?\b/i.test(compText);
+    document.getElementById('p-comp-patio').checked = hasPatio;
+    document.getElementById('p-comp-balcon').checked = hasBalcon;
+    document.getElementById('p-comp-cocina').checked = hasCocina;
+    if(hasPatio) compText = compText.replace(/\bpatio\b/i, '');
+    if(hasBalcon) compText = compText.replace(/\bbalc[oó]n\b/i, '');
+    if(hasCocina) compText = compText.replace(/\bcocina( comedor)?\b/i, '');
+    compText = compText.replace(/,\s*,/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+    document.getElementById('p-composition').value = compText;
+  }
   document.getElementById('p-inventory-rows').innerHTML = '';
   if(p && p.inventory && p.inventory.length){
     p.inventory.forEach(row => addInventoryRow(row.room, row.detail));
@@ -1044,7 +1063,15 @@ document.getElementById('prop-form').addEventListener('submit', async e=>{
     gas: document.getElementById('p-svc-gas').value,
     agua: document.getElementById('p-svc-agua').value,
   }));
-  fd.append('composition', document.getElementById('p-composition').value);
+  {
+    const extras = [];
+    if(document.getElementById('p-comp-patio').checked) extras.push('patio');
+    if(document.getElementById('p-comp-balcon').checked) extras.push('balcón');
+    if(document.getElementById('p-comp-cocina').checked) extras.push('cocina comedor');
+    const freeText = document.getElementById('p-composition').value.trim();
+    if(freeText) extras.push(freeText);
+    fd.append('composition', extras.join(', '));
+  }
   fd.append('inventory', JSON.stringify(collectInventory()));
   const files = document.getElementById('p-photos').files;
   for(let i=0;i<files.length;i++) fd.append('photos', files[i]);
