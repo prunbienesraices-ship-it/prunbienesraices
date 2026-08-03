@@ -20,6 +20,21 @@ function monthsBetween(startStr, endStr) {
   const end = new Date(endStr + 'T00:00:00');
   return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24 * 30.44)));
 }
+const NUM_WORDS = ['cero','un','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez'];
+function numWord(n) { return NUM_WORDS[n] || String(n); }
+// Arma la composicion del inmueble a partir de los datos que ya se cargan en
+// el formulario de la propiedad (dormitorios, baños, cochera), y le suma el
+// detalle adicional que se haya escrito a mano (patio, balcón, etc.).
+function buildComposition(property) {
+  if (!property) return '(sin composición cargada)';
+  const parts = [];
+  if (property.bedrooms) parts.push(`${numWord(property.bedrooms)} dormitorio${property.bedrooms > 1 ? 's' : ''}`);
+  if (property.bathrooms) parts.push(`${numWord(property.bathrooms)} baño${property.bathrooms > 1 ? 's' : ''}`);
+  if (property.garage) parts.push(`${property.garage > 1 ? numWord(property.garage) : 'una'} cochera${property.garage > 1 ? 's' : ''}`);
+  let base = parts.join(', ');
+  if (property.composition) base = base ? `${base}, ${property.composition}` : property.composition;
+  return base || '(sin composición cargada)';
+}
 // Convierte un texto (que puede tener varios renglones separados por \n)
 // en parrafos de Word. El primer parrafo puede llevar un titulo en negrita.
 function textToParagraphs(text, title) {
@@ -109,7 +124,7 @@ router.get('/tenants/:id/contract', requireAuth, async (req, res) => {
       INQUILINO_EMAIL: tenant.email || '(sin email cargado)',
       PROPIEDAD_DIRECCION: propAddress,
       PROPIEDAD_CIUDAD: (property && property.city) || '(sin ciudad cargada)',
-      PROPIEDAD_COMPOSICION: (property && property.composition) || '(sin composición cargada)',
+      PROPIEDAD_COMPOSICION: buildComposition(property),
       FECHA_INICIO: fmtDateWords(tenant.start_date),
       FECHA_FIN: fmtDateWords(tenant.end_date),
       DURACION_MESES: String(durationMonths),
