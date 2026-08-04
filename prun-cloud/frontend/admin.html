@@ -440,6 +440,8 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <div class="form-grid">
         <div class="form-row"><label>Nombre</label><input type="text" id="t-owner-name"></div>
         <div class="form-row"><label>Teléfono</label><input type="tel" id="t-owner-phone"></div>
+        <div class="form-row"><label>DNI</label><input type="text" id="t-owner-dni"></div>
+        <div class="form-row"><label>Domicilio</label><input type="text" id="t-owner-address"></div>
       </div>
 
       <div class="section-label">Datos del contrato</div>
@@ -1252,6 +1254,8 @@ async function showOwnerForProperty(){
   if(!owner) return;
   document.getElementById('t-owner-name').value = owner.name || '';
   document.getElementById('t-owner-phone').value = owner.phone || '';
+  document.getElementById('t-owner-dni').value = owner.dni || '';
+  document.getElementById('t-owner-address').value = owner.address || '';
 }
 async function openTenantModal(t){
   document.getElementById('tenant-modal-title').textContent = t ? 'Editar contrato' : 'Nuevo contrato';
@@ -1268,6 +1272,8 @@ async function openTenantModal(t){
   document.getElementById('t-email').value = t ? (t.email||'') : '';
   document.getElementById('t-owner-name').value = t ? (t.owner_name||'') : '';
   document.getElementById('t-owner-phone').value = t ? (t.owner_phone||'') : '';
+  document.getElementById('t-owner-dni').value = t ? (t.owner_dni||'') : '';
+  document.getElementById('t-owner-address').value = t ? (t.owner_address||'') : '';
   if(!t) showOwnerForProperty(); // en un contrato nuevo, completa el propietario de la primera propiedad de la lista
   document.getElementById('t-start').value = t ? t.start_date : '';
   document.getElementById('t-end').value = t ? t.end_date : '';
@@ -1342,6 +1348,8 @@ document.getElementById('tenant-form').addEventListener('submit', async e=>{
     email: document.getElementById('t-email').value,
     owner_name: document.getElementById('t-owner-name').value,
     owner_phone: document.getElementById('t-owner-phone').value,
+    owner_dni: document.getElementById('t-owner-dni').value,
+    owner_address: document.getElementById('t-owner-address').value,
     start_date: document.getElementById('t-start').value,
     end_date: document.getElementById('t-end').value,
     currency: document.getElementById('t-currency').value,
