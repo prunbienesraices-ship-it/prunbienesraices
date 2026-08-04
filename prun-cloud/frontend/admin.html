@@ -977,11 +977,7 @@ async function loadProperties(){
   const tbody = document.getElementById('prop-tbody');
   try{
     if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
-    const list = await api('/properties?status=disponible').catch(()=>[]);
-    const reservado = await (await fetch(`${API}/properties?status=reservado`)).json();
-    const vendido = await (await fetch(`${API}/properties?status=vendido`)).json();
-    const alquilado = await (await fetch(`${API}/properties?status=alquilado`)).json();
-    const all = [...list, ...reservado, ...vendido, ...alquilado];
+    const all = await api('/properties/admin/all');
     PROP_TABLE_CACHE = all;
     tbody.innerHTML = all.length ? all.map(p => {
       const branch = ALL_BRANCHES.find(b=>b.id===p.branch_id);
