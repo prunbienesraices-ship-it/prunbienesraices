@@ -552,6 +552,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <form id="owner-form">
       <input type="hidden" id="o-id">
       <div class="form-row"><label>Nombre completo</label><input type="text" id="o-name" required></div>
+      <div class="form-row"><label>Dirección</label><input type="text" id="o-address"></div>
       <div class="form-grid">
         <div class="form-row"><label>DNI</label><input type="text" id="o-dni"></div>
         <div class="form-row"><label>CUIT</label><input type="text" id="o-cuit"></div>
@@ -562,6 +563,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Banco</label><input type="text" id="o-bank"></div>
         <div class="form-row"><label>Forma de pago</label><select id="o-payment-method"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div>
       </div>
+      <div class="form-row"><label>Detalle (notas adicionales)</label><textarea id="o-notes" rows="3"></textarea></div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('owner-modal')">Cancelar</button></div>
     </form>
   </div>
@@ -1602,6 +1604,8 @@ function openOwnerModal(o){
   document.getElementById('owner-modal-title').textContent = o ? 'Editar propietario' : 'Nuevo propietario';
   document.getElementById('o-id').value = o ? o.id : '';
   document.getElementById('o-name').value = o ? o.name : '';
+  document.getElementById('o-address').value = o ? (o.address||'') : '';
+  document.getElementById('o-notes').value = o ? (o.notes||'') : '';
   document.getElementById('o-dni').value = o ? (o.dni||'') : '';
   document.getElementById('o-cuit').value = o ? (o.cuit||'') : '';
   document.getElementById('o-phone').value = o ? (o.phone||'') : '';
@@ -1616,6 +1620,7 @@ document.getElementById('owner-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('o-id').value;
   const body = { name: document.getElementById('o-name').value, dni: document.getElementById('o-dni').value,
+    address: document.getElementById('o-address').value, notes: document.getElementById('o-notes').value,
     cuit: document.getElementById('o-cuit').value, phone: document.getElementById('o-phone').value, email: document.getElementById('o-email').value,
     cbu: document.getElementById('o-cbu').value, alias: document.getElementById('o-alias').value, bank: document.getElementById('o-bank').value,
     payment_method: document.getElementById('o-payment-method').value };
