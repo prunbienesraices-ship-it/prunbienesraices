@@ -36,6 +36,7 @@ router.post('/', requireAuth, async (req, res) => {
       occupants: b.occupants || null, pets: b.pets || '', family: b.family || '',
       references: b.references || '', insurance: b.insurance || '',
       owner_name: b.owner_name || '', owner_phone: b.owner_phone || '', owner_email: b.owner_email || '',
+      owner_dni: b.owner_dni || '', owner_address: b.owner_address || '',
       start_date: b.start_date, end_date: b.end_date, currency: b.currency || 'ARS',
       payday: b.payday || null, deposit: Number(b.deposit) || 0,
       contract_total_amount: Number(b.contract_total_amount) || 0,
@@ -61,7 +62,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     const updates = {};
     const fields = [
       'property_id','name','dni','cuil','phone','email','company','employment_status','occupants','pets',
-      'family','references','insurance','owner_name','owner_phone','owner_email','start_date','end_date',
+      'family','references','insurance','owner_name','owner_phone','owner_email','owner_dni','owner_address','start_date','end_date',
       'currency','payday','deposit','contract_total_amount','late_coefficient','update_freq','update_index','rent_type','guarantee',
       'status_override','guarantors','rent_history','payments','notes',
     ];
