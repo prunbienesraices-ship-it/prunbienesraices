@@ -426,7 +426,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h3 style="font-size:17px;margin-bottom:16px" id="tenant-modal-title">Nuevo contrato</h3>
     <form id="tenant-form">
       <input type="hidden" id="t-id">
-      <div class="form-row"><label>Propiedad</label><select id="t-property" required></select></div>
+      <div class="form-row"><label>Propiedad</label><select id="t-property" required onchange="showOwnerForProperty()"></select></div>
 
       <div class="section-label">Datos del inquilino</div>
       <div class="form-grid">
@@ -1241,6 +1241,18 @@ async function loadTenants(){
   }catch(err){ tbody.innerHTML = `<tr><td colspan="8">Error: ${err.message}</td></tr>`; }
 }
 
+// Al elegir una propiedad en el contrato del inquilino, completa solo el
+// nombre y telefono del propietario correspondiente (se puede corregir a mano).
+async function showOwnerForProperty(){
+  const propId = Number(document.getElementById('t-property').value);
+  const prop = ALL_PROPERTIES.find(p => p.id === propId);
+  if(!prop || !prop.owner_id) return;
+  if(!ALL_OWNERS.length){ try{ ALL_OWNERS = await api('/owners'); }catch(e){} }
+  const owner = ALL_OWNERS.find(o => o.id === prop.owner_id);
+  if(!owner) return;
+  document.getElementById('t-owner-name').value = owner.name || '';
+  document.getElementById('t-owner-phone').value = owner.phone || '';
+}
 async function openTenantModal(t){
   document.getElementById('tenant-modal-title').textContent = t ? 'Editar contrato' : 'Nuevo contrato';
   document.getElementById('t-id').value = t ? t.id : '';
@@ -1256,6 +1268,7 @@ async function openTenantModal(t){
   document.getElementById('t-email').value = t ? (t.email||'') : '';
   document.getElementById('t-owner-name').value = t ? (t.owner_name||'') : '';
   document.getElementById('t-owner-phone').value = t ? (t.owner_phone||'') : '';
+  if(!t) showOwnerForProperty(); // en un contrato nuevo, completa el propietario de la primera propiedad de la lista
   document.getElementById('t-start').value = t ? t.start_date : '';
   document.getElementById('t-end').value = t ? t.end_date : '';
   document.getElementById('t-currency').value = t ? t.currency : 'ARS';
