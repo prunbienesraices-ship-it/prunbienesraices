@@ -13,7 +13,8 @@ function fmtDateWords(dateStr) {
   return `${d.getDate()} de ${MONTHS_ES[d.getMonth()]} de ${d.getFullYear()}`;
 }
 function fmtMoney(n, currency) {
-  return `${currency || 'ARS'} ${Number(n || 0).toLocaleString('es-AR')}`;
+  const symbol = (!currency || currency === 'ARS') ? '$' : currency;
+  return `${symbol} ${Number(n || 0).toLocaleString('es-AR')}`;
 }
 function monthsBetween(startStr, endStr) {
   const start = new Date(startStr + 'T00:00:00');
