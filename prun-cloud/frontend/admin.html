@@ -90,7 +90,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="prop-tbody-search" placeholder="🔎 Buscar por título, ciudad, estado..." oninput="filterTable(this.value,'prop-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="prop-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Título</th><th>Acciones</th></tr></thead>
     <tbody id="prop-tbody"></tbody>
   </table></div>
 
@@ -99,7 +99,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="inq-tbody-search" placeholder="🔎 Buscar por nombre, email..." oninput="filterTable(this.value,'inq-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="inq-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Nombre</th><th>Email</th><th>Mensaje</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th><th>Acciones</th></tr></thead>
     <tbody id="inq-tbody"></tbody>
   </table></div>
 
@@ -109,7 +109,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="tenant-tbody-search" placeholder="🔎 Buscar por nombre, propiedad, estado..." oninput="filterTable(this.value,'tenant-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="tenant-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Monto total contrato</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Inquilino</th><th>Acciones</th></tr></thead>
     <tbody id="tenant-tbody"></tbody>
   </table></div>
 
@@ -137,7 +137,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <input type="text" placeholder="🔎 Buscar por nombre, DNI, email..." oninput="filterTable(this.value,'owner-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Nombre</th><th>DNI</th><th>CUIT</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th><th>Acciones</th></tr></thead>
     <tbody id="owner-tbody"></tbody>
   </table></div>
 
@@ -1013,18 +1013,18 @@ async function loadProperties(){
     PROP_TABLE_CACHE = all;
     tbody.innerHTML = all.length ? all.map(p => {
       const branch = ALL_BRANCHES.find(b=>b.id===p.branch_id);
+      const detailObj = { ...p, price_display: `${p.currency} ${Number(p.price).toLocaleString('es-AR')}`, branch_name: branch?branch.name:'Sin asignar' };
       return `
       <tr data-branch-id="${p.branch_id||''}">
-        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 8, ${JSON.stringify(p).replace(/'/g,"&#39;")}, {description:"Descripción",category:"Categoría",bedrooms:"Dormitorios",bathrooms:"Baños",garage:"Cochera",address:"Dirección",composition:"Detalle ambientes",owner_id:"ID propietario",featured:"Destacada"})'>▸</button></td>
-        <td>${p.title}</td><td>${p.operation}</td><td>${p.currency} ${Number(p.price).toLocaleString('es-AR')}</td>
-        <td>${p.city||'-'}</td><td>${branch?branch.name:'-'}</td><td>${p.status}</td>
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {operation:"Operación",category:"Categoría",price_display:"Precio",status:"Estado",city:"Ciudad",branch_name:"Sucursal",description:"Descripción",bedrooms:"Dormitorios",bathrooms:"Baños",garage:"Cochera",address:"Dirección",composition:"Detalle ambientes",featured:"Destacada"})'>▸</button></td>
+        <td>${p.title}</td>
         <td class="action-links">
           <button onclick='openPropModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button>
           <button style="color:var(--red)" onclick="deleteProp(${p.id})">Borrar</button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
-  }catch(err){ tbody.innerHTML = '<tr><td colspan="8">Error al cargar.</td></tr>'; }
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = '<tr><td colspan="3">Error al cargar.</td></tr>'; }
 }
 async function openPropModal(p){
   document.getElementById('prop-modal-title').textContent = p ? 'Editar propiedad' : 'Nueva propiedad';
@@ -1144,15 +1144,18 @@ async function loadInquiries(){
   try{
     if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
     const list = await api('/inquiries');
-    tbody.innerHTML = list.length ? list.map(i => `
+    tbody.innerHTML = list.length ? list.map(i => {
+      const detailObj = { ...i, is_read_display: i.is_read?'Leída':'Nueva' };
+      return `
       <tr data-branch-id="${branchIdForProperty(i.property_id)}">
-        <td>${i.name}</td><td>${i.email}</td><td style="max-width:200px">${i.message||'-'}</td>
-        <td>${i.is_read?'Leída':'Nueva'}</td>
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {email:"Email",message:"Mensaje",is_read_display:"Estado"})'>▸</button></td>
+        <td>${i.name}</td>
         <td class="action-links">
           <button onclick="toggleRead(${i.id}, ${i.is_read})">${i.is_read?'Marcar no leída':'Marcar leída'}</button>
           <button style="color:var(--red)" onclick="deleteInq(${i.id})">Borrar</button>
         </td>
-      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:30px">Sin consultas todavía.</td></tr>';
+      </tr>`;
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:30px">Sin consultas todavía.</td></tr>';
   }catch(err){}
 }
 async function toggleRead(id, current){
@@ -1255,16 +1258,16 @@ async function loadTenants(){
       const prop = ALL_PROPERTIES.find(p=>p.id===t.property_id);
       const status = computeTenantStatus(t);
       const missing = getMissingPayments(t);
+      const detailObj = { ...t, property_name: prop?prop.title:'-',
+        rent_display: `${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}`,
+        contract_total_display: t.contract_total_amount ? t.currency+' '+Number(t.contract_total_amount).toLocaleString('es-AR') : '-',
+        end_date_display: new Date(t.end_date).toLocaleDateString('es-AR'),
+        status_display: statusText[status],
+        payment_status: missing.length ? `${missing.length} mes(es) sin pagar` : 'Al día' };
       return `
       <tr data-branch-id="${branchIdForProperty(t.property_id)}">
-        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 9, ${JSON.stringify(t).replace(/'/g,"&#39;")}, {dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"})'>▸</button></td>
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto actual",contract_total_display:"Monto total contrato",end_date_display:"Fin",status_display:"Estado",payment_status:"Pagos",dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"})'>▸</button></td>
         <td>${t.name}</td>
-        <td>${prop?prop.title:'-'}</td>
-        <td>${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}</td>
-        <td>${t.contract_total_amount ? t.currency+' '+Number(t.contract_total_amount).toLocaleString('es-AR') : '-'}</td>
-        <td>${new Date(t.end_date).toLocaleDateString('es-AR')}</td>
-        <td><span class="badge ${statusLabels[status]}">${statusText[status]}</span></td>
-        <td>${missing.length ? `<span class="badge bad">${missing.length} sin pagar</span>` : '<span class="badge ok">Al día</span>'}</td>
         <td class="action-links">
           <button onclick="openPaymentsModal(${t.id})">Pagos</button>
           <button onclick="downloadContract(${t.id})">Generar contrato</button>
@@ -1272,8 +1275,8 @@ async function loadTenants(){
           <button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="9">Error: ${err.message}</td></tr>`; }
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="3">Error: ${err.message}</td></tr>`; }
 }
 
 // Al elegir una propiedad en el contrato del inquilino, completa solo el
@@ -1626,11 +1629,11 @@ async function loadOwners(){
   try{
     ALL_OWNERS = await api('/owners');
     tbody.innerHTML = ALL_OWNERS.length ? ALL_OWNERS.map(o => `
-      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 7, ${JSON.stringify(o).replace(/'/g,"&#39;")}, {address:"Dirección",cbu:"CBU",alias:"Alias",bank:"Banco",payment_method:"Forma de pago",iva:"IVA",monotributo:"Monotributo",notes:"Detalle"})'>▸</button></td>
-      <td>${o.name}</td><td>${o.dni||'-'}</td><td>${o.cuit||'-'}</td><td>${o.phone||'-'}</td><td>${o.email||'-'}</td>
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(o).replace(/'/g,"&#39;")}, {dni:"DNI",cuit:"CUIT",phone:"Teléfono",email:"Email",address:"Dirección",cbu:"CBU",alias:"Alias",bank:"Banco",payment_method:"Forma de pago",iva:"IVA",monotributo:"Monotributo",notes:"Detalle"})'>▸</button></td>
+      <td>${o.name}</td>
       <td class="action-links"><button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+      : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="3">Error: ${err.message}</td></tr>`; }
 }
 function openOwnerModal(o){
   document.getElementById('owner-modal-title').textContent = o ? 'Editar propietario' : 'Nuevo propietario';
