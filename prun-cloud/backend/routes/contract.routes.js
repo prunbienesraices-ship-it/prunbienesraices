@@ -39,22 +39,10 @@ function buildComposition(property) {
 // Convierte un texto (que puede tener varios renglones separados por \n)
 // en parrafos de Word. El primer parrafo puede llevar un titulo en negrita.
 function textToParagraphs(text, title) {
-  const rawLines = String(text || '').split('\n');
-  const lines = [];
-  let lastWasBlank = true; // para no arrancar con una linea en blanco
-  rawLines.forEach(l => {
-    const trimmed = l.trim();
-    if (!trimmed) {
-      if (!lastWasBlank) { lines.push(''); lastWasBlank = true; }
-    } else {
-      lines.push(trimmed);
-      lastWasBlank = false;
-    }
-  });
-  while (lines.length && lines[lines.length - 1] === '') lines.pop();
+  const lines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
   if (!lines.length) return [];
   return lines.map((line, i) => new Paragraph({
-    spacing: { after: line === '' ? 400 : 200 },
+    spacing: { after: 200 },
     children: i === 0 && title
       ? [new TextRun({ text: title + ': ', bold: true }), new TextRun({ text: line })]
       : [new TextRun({ text: line })],
