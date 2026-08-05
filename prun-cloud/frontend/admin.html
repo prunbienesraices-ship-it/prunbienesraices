@@ -90,7 +90,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="prop-tbody-search" placeholder="🔎 Buscar por título, ciudad, estado..." oninput="filterTable(this.value,'prop-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="prop-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Título</th><th>Operación</th><th>Precio</th><th>Ciudad</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody id="prop-tbody"></tbody>
   </table></div>
 
@@ -109,7 +109,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="tenant-tbody-search" placeholder="🔎 Buscar por nombre, propiedad, estado..." oninput="filterTable(this.value,'tenant-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="tenant-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Monto total contrato</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Inquilino</th><th>Propiedad</th><th>Monto actual</th><th>Monto total contrato</th><th>Fin</th><th>Estado</th><th>Pagos</th><th>Acciones</th></tr></thead>
     <tbody id="tenant-tbody"></tbody>
   </table></div>
 
@@ -137,7 +137,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <input type="text" placeholder="🔎 Buscar por nombre, DNI, email..." oninput="filterTable(this.value,'owner-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
-    <thead><tr><th>Nombre</th><th>DNI</th><th>CUIT</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th><th>DNI</th><th>CUIT</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
     <tbody id="owner-tbody"></tbody>
   </table></div>
 
@@ -688,6 +688,33 @@ let USER = JSON.parse(localStorage.getItem('prun_user') || 'null');
 
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
 // Buscador simple: oculta las filas de una tabla que no contengan el texto buscado.
+// Despliega/oculta una fila extra con el detalle completo del registro,
+// para no tener que abrir "Editar" solo para ver un dato.
+function toggleRowDetail(btn, colspan, dataObj, labelMap){
+  const tr = btn.closest('tr');
+  const next = tr.nextElementSibling;
+  if(next && next.classList.contains('row-detail')){
+    next.remove();
+    btn.textContent = '▸';
+    return;
+  }
+  // Cierra cualquier otro detalle abierto en la misma tabla, para no acumular.
+  tr.parentElement.querySelectorAll('tr.row-detail').forEach(r=>r.remove());
+  tr.parentElement.querySelectorAll('.row-expand-btn').forEach(b=>b.textContent='▸');
+
+  const detailTr = document.createElement('tr');
+  detailTr.className = 'row-detail';
+  const td = document.createElement('td');
+  td.colSpan = colspan;
+  td.style.cssText = 'background:var(--cream);padding:14px 16px;font-size:12px;line-height:2';
+  const parts = Object.keys(labelMap)
+    .filter(k => dataObj[k] !== undefined && dataObj[k] !== null && dataObj[k] !== '' && typeof dataObj[k] !== 'object')
+    .map(k => `<span style="margin-right:18px"><strong>${labelMap[k]}:</strong> ${dataObj[k]}</span>`);
+  td.innerHTML = parts.length ? parts.join('') : '<span style="color:var(--gray)">Sin más datos cargados.</span>';
+  detailTr.appendChild(td);
+  tr.insertAdjacentElement('afterend', detailTr);
+  btn.textContent = '▾';
+}
 function filterTable(query, tbodyId){
   const q = query.trim().toLowerCase();
   const branchSelect = document.getElementById(tbodyId+'-branch-filter');
@@ -988,6 +1015,7 @@ async function loadProperties(){
       const branch = ALL_BRANCHES.find(b=>b.id===p.branch_id);
       return `
       <tr data-branch-id="${p.branch_id||''}">
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 8, ${JSON.stringify(p).replace(/'/g,"&#39;")}, {description:"Descripción",category:"Categoría",bedrooms:"Dormitorios",bathrooms:"Baños",garage:"Cochera",address:"Dirección",composition:"Detalle ambientes",owner_id:"ID propietario",featured:"Destacada"})'>▸</button></td>
         <td>${p.title}</td><td>${p.operation}</td><td>${p.currency} ${Number(p.price).toLocaleString('es-AR')}</td>
         <td>${p.city||'-'}</td><td>${branch?branch.name:'-'}</td><td>${p.status}</td>
         <td class="action-links">
@@ -995,8 +1023,8 @@ async function loadProperties(){
           <button style="color:var(--red)" onclick="deleteProp(${p.id})">Borrar</button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
-  }catch(err){ tbody.innerHTML = '<tr><td colspan="7">Error al cargar.</td></tr>'; }
+    }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = '<tr><td colspan="8">Error al cargar.</td></tr>'; }
 }
 async function openPropModal(p){
   document.getElementById('prop-modal-title').textContent = p ? 'Editar propiedad' : 'Nueva propiedad';
@@ -1229,6 +1257,7 @@ async function loadTenants(){
       const missing = getMissingPayments(t);
       return `
       <tr data-branch-id="${branchIdForProperty(t.property_id)}">
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 9, ${JSON.stringify(t).replace(/'/g,"&#39;")}, {dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"})'>▸</button></td>
         <td>${t.name}</td>
         <td>${prop?prop.title:'-'}</td>
         <td>${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}</td>
@@ -1243,8 +1272,8 @@ async function loadTenants(){
           <button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="8">Error: ${err.message}</td></tr>`; }
+    }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="9">Error: ${err.message}</td></tr>`; }
 }
 
 // Al elegir una propiedad en el contrato del inquilino, completa solo el
@@ -1597,10 +1626,11 @@ async function loadOwners(){
   try{
     ALL_OWNERS = await api('/owners');
     tbody.innerHTML = ALL_OWNERS.length ? ALL_OWNERS.map(o => `
-      <tr><td>${o.name}</td><td>${o.dni||'-'}</td><td>${o.cuit||'-'}</td><td>${o.phone||'-'}</td><td>${o.email||'-'}</td>
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 7, ${JSON.stringify(o).replace(/'/g,"&#39;")}, {address:"Dirección",cbu:"CBU",alias:"Alias",bank:"Banco",payment_method:"Forma de pago",iva:"IVA",monotributo:"Monotributo",notes:"Detalle"})'>▸</button></td>
+      <td>${o.name}</td><td>${o.dni||'-'}</td><td>${o.cuit||'-'}</td><td>${o.phone||'-'}</td><td>${o.email||'-'}</td>
       <td class="action-links"><button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+      : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
 }
 function openOwnerModal(o){
   document.getElementById('owner-modal-title').textContent = o ? 'Editar propietario' : 'Nuevo propietario';
