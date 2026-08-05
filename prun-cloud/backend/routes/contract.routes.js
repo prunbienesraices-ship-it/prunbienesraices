@@ -86,7 +86,9 @@ router.get('/tenants/:id/contract', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Todavía no hay un modelo de contrato cargado. Pedile al Administrador que lo cargue en "Modelo de contrato".' });
     }
 
-    const propAddress = property ? `${property.address || ''}${property.city ? ', ' + property.city : ''}` : '(dirección de la propiedad no cargada)';
+    const propAddress = property && property.address
+      ? `${property.address}${property.city ? ', ' + property.city : ''}`
+      : '(FALTA CARGAR LA DIRECCIÓN DE ESTA PROPIEDAD — completala en Propiedades → Editar)';
     const durationMonths = monthsBetween(tenant.start_date, tenant.end_date);
     const rentHistory = (tenant.rent_history && tenant.rent_history.length) ? tenant.rent_history : [];
     const guarantors = tenant.guarantors || [];
