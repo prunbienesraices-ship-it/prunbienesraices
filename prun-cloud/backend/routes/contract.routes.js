@@ -48,6 +48,29 @@ function textToParagraphs(text, title) {
       : [new TextRun({ text: line })],
   }));
 }
+// Version especial solo para el bloque de firmas del final: a diferencia de
+// textToParagraphs, esta si respeta los renglones en blanco como separacion
+// visual entre cada firma (inquilino y cada garante).
+function textToParagraphsSpaced(text) {
+  const rawLines = String(text || '').split('\n');
+  const lines = [];
+  let lastWasBlank = true;
+  rawLines.forEach(l => {
+    const trimmed = l.trim();
+    if (!trimmed) {
+      if (!lastWasBlank) { lines.push(''); lastWasBlank = true; }
+    } else {
+      lines.push(trimmed);
+      lastWasBlank = false;
+    }
+  });
+  while (lines.length && lines[lines.length - 1] === '') lines.pop();
+  if (!lines.length) return [];
+  return lines.map(line => new Paragraph({
+    spacing: { after: line === '' ? 400 : 200 },
+    children: [new TextRun({ text: line })],
+  }));
+}
 // Reemplaza los {{TOKENS}} de un texto por los valores correspondientes.
 function fillTokens(text, tokens) {
   let out = String(text || '');
@@ -133,7 +156,7 @@ router.get('/tenants/:id/contract', requireAuth, async (req, res) => {
       ...textToParagraphs(fillTokens(template.intro, tokens)),
       ...template.clauses.flatMap(c => textToParagraphs(fillTokens(c.body, tokens), c.title)),
       new Paragraph({ spacing: { before: 400 }, children: [new TextRun({ text: '' })] }),
-      ...textToParagraphs(fillTokens(template.signature_block, tokens)),
+      ...textToParagraphsSpaced(fillTokens(template.signature_block, tokens)),
     ];
 
     const doc = new Document({ sections: [{ children }] });
