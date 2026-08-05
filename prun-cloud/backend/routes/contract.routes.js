@@ -67,7 +67,7 @@ function textToParagraphsSpaced(text) {
   while (lines.length && lines[lines.length - 1] === '') lines.pop();
   if (!lines.length) return [];
   return lines.map(line => new Paragraph({
-    spacing: { after: line === '' ? 400 : 200 },
+    spacing: { after: line === '' ? 2400 : 200 },
     children: [new TextRun({ text: line })],
   }));
 }
