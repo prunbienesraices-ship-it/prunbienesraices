@@ -375,6 +375,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Categoría</label><select id="p-category"><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="ph">PH</option><option value="terreno">Terreno</option></select></div>
         <div class="form-row"><label>Precio</label><input type="number" id="p-price" required></div>
         <div class="form-row"><label>Moneda</label><select id="p-currency"><option value="USD">USD</option><option value="ARS">ARS</option></select></div>
+        <div class="form-row"><label>Dirección</label><input type="text" id="p-address"></div>
         <div class="form-row"><label>Ciudad</label><input type="text" id="p-city"></div>
         <div class="form-row"><label>Estado</label><select id="p-status"><option value="disponible">Disponible</option><option value="reservado">Reservado</option><option value="vendido">Vendido</option><option value="alquilado">Alquilado</option></select></div>
         <div class="form-row"><label>Dormitorios</label><input type="number" id="p-bedrooms" value="0"></div>
@@ -1006,6 +1007,7 @@ async function openPropModal(p){
   document.getElementById('p-category').value = p ? p.category : 'casa';
   document.getElementById('p-price').value = p ? p.price : '';
   document.getElementById('p-currency').value = p ? p.currency : 'USD';
+  document.getElementById('p-address').value = p ? (p.address||'') : '';
   document.getElementById('p-city').value = p ? (p.city||'') : '';
   document.getElementById('p-status').value = p ? p.status : 'disponible';
   document.getElementById('p-bedrooms').value = p ? p.bedrooms : 0;
@@ -1068,7 +1070,7 @@ document.getElementById('prop-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('p-id').value;
   const fd = new FormData();
-  ['title','description','operation','category','price','currency','city','status','bedrooms','bathrooms','owner','branch'].forEach(f=>{
+  ['title','description','operation','category','price','currency','address','city','status','bedrooms','bathrooms','owner','branch'].forEach(f=>{
     fd.append(f==='owner'?'owner_id':f==='branch'?'branch_id':f, document.getElementById('p-'+f).value);
   });
   fd.append('featured', document.getElementById('p-featured').checked);
