@@ -690,6 +690,38 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 // Buscador simple: oculta las filas de una tabla que no contengan el texto buscado.
 // Despliega/oculta una fila extra con el detalle completo del registro,
 // para no tener que abrir "Editar" solo para ver un dato.
+// Hace que cada sección del panel empiece "cerrada", mostrando solo el
+// título (ej: "PROPIEDADES"), y se despliegue con todo su contenido al
+// tocarlo. El Dashboard (arriba de todo) queda siempre visible.
+function initCollapsibleSections(){
+  document.querySelectorAll('.page-head').forEach(pageHead => {
+    const h2 = pageHead.querySelector('h2');
+    if(!h2 || h2.textContent.trim() === 'Dashboard') return;
+    if(h2.querySelector('.section-toggle-arrow')) return; // ya inicializado
+
+    const arrow = document.createElement('span');
+    arrow.className = 'section-toggle-arrow';
+    arrow.textContent = '▸';
+    arrow.style.cssText = 'margin-right:8px;display:inline-block;width:14px';
+    h2.prepend(arrow);
+    h2.style.cursor = 'pointer';
+
+    // Junta todos los elementos siguientes hasta la próxima sección.
+    const siblings = [];
+    let el = pageHead.nextElementSibling;
+    while(el && !el.classList.contains('page-head')){
+      siblings.push(el);
+      el = el.nextElementSibling;
+    }
+    siblings.forEach(s => s.style.display = 'none');
+
+    h2.onclick = () => {
+      const isHidden = siblings.length && siblings[0].style.display === 'none';
+      siblings.forEach(s => s.style.display = isHidden ? '' : 'none');
+      arrow.textContent = isHidden ? '▾' : '▸';
+    };
+  });
+}
 function toggleRowDetail(btn, colspan, dataObj, labelMap, actionsHtml){
   const tr = btn.closest('tr');
   const next = tr.nextElementSibling;
@@ -869,6 +901,7 @@ async function startApp(){
   applyRolePermissions();
   addExportButtonsToAllTables();
   addBranchFiltersToSearchInputs();
+  initCollapsibleSections();
   const appObserver = new MutationObserver(()=>{
     clearTimeout(window._rolePermTimer);
     window._rolePermTimer = setTimeout(applyRolePermissions, 150);
