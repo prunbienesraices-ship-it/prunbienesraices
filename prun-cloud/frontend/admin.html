@@ -468,7 +468,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Día de pago</label><input type="number" id="t-payday" min="1" max="31"></div>
         <div class="form-row"><label>Depósito</label><input type="number" id="t-deposit" min="0"></div>
         <div class="form-row"><label>Monto total del contrato</label><input type="number" id="t-contract-total" min="0" placeholder="Ej: suma de todos los meses del contrato"></div>
-        <div class="form-row"><label>Coeficiente de mora diario (%)</label><input type="number" id="t-late-coef" min="0" step="0.01"></div>
+        <div class="form-row"><label>Tasa de interés diario para mora (%) — se aplica en los 3 vencimientos (día 10 sin interés, día 20 con 20 días, fin de mes con los días del mes)</label><input type="number" id="t-late-coef" min="0" step="0.01"></div>
         <div class="form-row"><label>Tipo de alquiler (para el contrato)</label>
           <select id="t-rent-type">
             <option value="fijo">Cuotas fijas predefinidas (detallo cada monto abajo)</option>
@@ -552,6 +552,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <button class="btn" type="button" style="margin-top:8px;background:#fff;color:var(--black)" onclick="addExpensaDetailRow('', '')">+ Agregar otro gasto</button>
       </div>
       <div class="form-row"><label>Total (se calcula solo a partir del detalle de arriba, o cargalo a mano)</label><input type="number" id="ex-total" min="0"></div>
+      <div class="form-row"><label>Tasa de interés diario para mora (%) — se aplica en los 3 vencimientos (día 10 sin interés, día 20 con 20 días, fin de mes con los días del mes)</label><input type="number" id="ex-late-coef" min="0" step="0.01" value="0"></div>
       <div class="form-row"><label>Facturas (podés subir varias, PDF o foto)</label><input type="file" id="ex-invoices" multiple accept="image/*,application/pdf">
         <div id="ex-invoices-status" style="font-size:11px;color:var(--gray);margin-top:4px"></div>
       </div>
@@ -1286,16 +1287,30 @@ function getMissingPayments(t){
   }
   return missing;
 }
+// Calcula cuánto se debe pagar HOY por un período, según 3 vencimientos:
+// hasta el día 10 sin interés, hasta el día 20 con interés de 20 días,
+// y de ahí en más con interés equivalente a los días que tiene ese mes.
+// La tasa (t.late_coefficient, en % diario) se sigue cargando por contrato.
 function getLivePaymentInfo(t, period){
   const base = getRentAmountForPeriod(t, period);
   const [y,m] = period.split('-').map(Number);
-  const payday = t.payday || 1;
-  const dueDate = new Date(y, m-1, payday);
   const today = new Date();
-  const daysLate = Math.max(0, Math.floor((today - dueDate) / (1000*60*60*24)));
+  const periodDate = new Date(y, m-1, 1);
+  const daysInMonth = new Date(y, m, 0).getDate();
   const coef = t.late_coefficient || 0;
-  const amountToday = base * (1 + (coef/100) * daysLate);
-  return { base, daysLate, amountToday };
+
+  if(periodDate > today) return { base, tierDays: 0, tierLabel: 'Todavía no vence', daysLate: 0, amountToday: base };
+
+  const isCurrentMonth = today.getFullYear() === y && today.getMonth() === m-1;
+  const dayReference = isCurrentMonth ? today.getDate() : (daysInMonth + 1);
+
+  let tierDays, tierLabel;
+  if(dayReference <= 10){ tierDays = 0; tierLabel = '1er vencimiento (hasta el día 10, sin interés)'; }
+  else if(dayReference <= 20){ tierDays = 20; tierLabel = '2do vencimiento (hasta el día 20, interés de 20 días)'; }
+  else { tierDays = daysInMonth; tierLabel = `3er vencimiento (después del día 20, interés de ${daysInMonth} días)`; }
+
+  const amountToday = base * (1 + (coef/100) * tierDays);
+  return { base, tierDays, tierLabel, daysLate: tierDays, amountToday };
 }
 
 async function loadTenants(){
@@ -1615,6 +1630,21 @@ function collectExpensaDetail(){
   });
   return detail;
 }
+// Calcula los 3 montos de vencimiento de una expensa, igual que con los
+// alquileres: hasta el día 10 sin interés, hasta el día 20 con 20 días de
+// interés, y de ahí en más con interés igual a los días que tiene el mes.
+function getExpensaTiers(ex){
+  const [y,m] = ex.period.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const coef = ex.late_coefficient || 0;
+  const base = Number(ex.total_amount) || 0;
+  return {
+    tier1: base,
+    tier2: base * (1 + (coef/100) * 20),
+    tier3: base * (1 + (coef/100) * daysInMonth),
+    daysInMonth,
+  };
+}
 async function loadExpensas(){
   const tbody = document.getElementById('expensa-tbody');
   try{
@@ -1622,9 +1652,16 @@ async function loadExpensas(){
     ALL_EXPENSAS = await api('/expensas');
     tbody.innerHTML = ALL_EXPENSAS.length ? ALL_EXPENSAS.map(ex => {
       const dev = ALL_DEVELOPMENTS.find(d=>d.id===ex.development_id);
-      const detailObj = { total_display: `$${Number(ex.total_amount).toLocaleString('es-AR')}`, invoices_display: `${(ex.invoices||[]).length} factura(s)` };
+      const tiers = getExpensaTiers(ex);
+      const detailObj = {
+        total_display: `$${Number(ex.total_amount).toLocaleString('es-AR')}`,
+        vto1_display: `$${Math.round(tiers.tier1).toLocaleString('es-AR')} (hasta el día 10)`,
+        vto2_display: `$${Math.round(tiers.tier2).toLocaleString('es-AR')} (hasta el día 20)`,
+        vto3_display: `$${Math.round(tiers.tier3).toLocaleString('es-AR')} (después del día 20)`,
+        invoices_display: `${(ex.invoices||[]).length} factura(s)`,
+      };
       const actionsHtml = `<button onclick='openExpensaModal(${JSON.stringify(ex).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteExpensa(${ex.id})">Borrar</button>`;
-      return `<tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {total_display:"Total",invoices_display:"Facturas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      return `<tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {total_display:"Total base",vto1_display:"1er vencimiento",vto2_display:"2do vencimiento",vto3_display:"3er vencimiento",invoices_display:"Facturas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${dev?dev.name:'-'} — ${ex.period}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin expensas cargadas todavía.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
@@ -1637,6 +1674,7 @@ function openExpensaModal(ex){
   if(ex) sel.value = ex.development_id;
   document.getElementById('ex-period').value = ex ? ex.period : new Date().toISOString().slice(0,7);
   document.getElementById('ex-total').value = ex ? ex.total_amount : '';
+  document.getElementById('ex-late-coef').value = ex ? (ex.late_coefficient||0) : 0;
   document.getElementById('ex-notes').value = ex ? (ex.notes||'') : '';
   document.getElementById('ex-invoices').value = '';
   document.getElementById('ex-invoices-status').innerHTML = ex && ex.invoices && ex.invoices.length
@@ -1659,6 +1697,7 @@ document.getElementById('expensa-form').addEventListener('submit', async e=>{
   fd.append('development_id', document.getElementById('ex-development').value);
   fd.append('period', document.getElementById('ex-period').value);
   fd.append('total_amount', document.getElementById('ex-total').value);
+  fd.append('late_coefficient', document.getElementById('ex-late-coef').value);
   fd.append('detail', JSON.stringify(collectExpensaDetail()));
   fd.append('notes', document.getElementById('ex-notes').value);
   const files = document.getElementById('ex-invoices').files;
@@ -1876,14 +1915,14 @@ async function loadRentCollection(){
       const missing = getMissingPayments(t);
       const rentNow = getCurrentRentAmount(t);
       totalEsperado += rentNow;
-      let owedToday = 0, maxDaysLate = 0;
+      let owedToday = 0, maxDaysLate = 0, worstTierLabel = '';
       missing.forEach(period => {
         const info = getLivePaymentInfo(t, period);
         owedToday += info.amountToday;
-        if(info.daysLate > maxDaysLate) maxDaysLate = info.daysLate;
+        if(info.tierDays >= maxDaysLate){ maxDaysLate = info.tierDays; worstTierLabel = info.tierLabel; }
       });
       if(missing.length){ totalDebido += owedToday; countDebe++; }
-      return { t, prop, missing, rentNow, owedToday, maxDaysLate };
+      return { t, prop, missing, rentNow, owedToday, maxDaysLate, worstTierLabel };
     }).sort((a,b) => b.owedToday - a.owedToday); // los que mas deben, primero
 
     document.getElementById('rc-total-esperado').textContent = `$${Math.round(totalEsperado).toLocaleString('es-AR')}`;
@@ -1891,19 +1930,19 @@ async function loadRentCollection(){
     document.getElementById('rc-count-debe').textContent = countDebe;
 
     tbody.innerHTML = rows.length ? rows.map(r => {
-      const { t, prop, missing, rentNow, owedToday, maxDaysLate } = r;
+      const { t, prop, missing, rentNow, owedToday, maxDaysLate, worstTierLabel } = r;
       const alDia = missing.length === 0;
       const detailObj = {
         property_name: prop?prop.title:'-',
         rent_display: `${t.currency} ${Number(rentNow).toLocaleString('es-AR')}`,
         missing_periods: missing.length ? missing.join(', ') : 'Ninguno',
-        days_late: maxDaysLate ? `${maxDaysLate} días` : '-',
+        tier_display: worstTierLabel || '-',
         owed_display: missing.length ? `${t.currency} ${Math.round(owedToday).toLocaleString('es-AR')}` : '$0',
         status_display: alDia ? 'Al día' : `Debe ${missing.length} mes(es)`,
       };
       const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Ver pagos</button>`;
-      const rowStyle = alDia ? '' : (maxDaysLate > 15 ? 'background:#fdeaea' : 'background:#fff8e1');
-      return `<tr style="${rowStyle}" data-branch-id="${branchIdForProperty(t.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto del mes",missing_periods:"Meses pendientes",days_late:"Días de atraso",owed_display:"Total a cobrar hoy",status_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      const rowStyle = alDia ? '' : (maxDaysLate > 10 ? 'background:#fdeaea' : 'background:#fff8e1');
+      return `<tr style="${rowStyle}" data-branch-id="${branchIdForProperty(t.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto del mes",missing_periods:"Meses pendientes",tier_display:"Vencimiento",owed_display:"Total a cobrar hoy",status_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${t.name}${alDia?' ✅':' 🔴'}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">No hay inquilinos activos.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }

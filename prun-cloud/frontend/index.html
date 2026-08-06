@@ -462,12 +462,24 @@ async function openMyExpensas(){
       box.innerHTML = '<p style="color:var(--gray)">Todavía no hay expensas cargadas para tu edificio.</p>';
       return;
     }
-    box.innerHTML = data.expensas.map(ex => `
+    box.innerHTML = data.expensas.map(ex => {
+      const [y,m] = ex.period.split('-').map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const coef = ex.late_coefficient || 0;
+      const base = Number(ex.total_amount) || 0;
+      const tier2 = base * (1 + (coef/100) * 20);
+      const tier3 = base * (1 + (coef/100) * daysInMonth);
+      return `
       <div style="padding:14px 0;border-bottom:1px solid var(--line)">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <strong style="font-size:14px">${ex.developments?.name || 'Edificio'} — ${ex.period}</strong>
           <span style="font-weight:800">$${Number(ex.total_amount).toLocaleString('es-AR')}</span>
         </div>
+        ${coef ? `<div style="margin-top:8px;font-size:12px;color:var(--gray);background:var(--cream);padding:8px 10px">
+          <div>Hasta el día 10: <strong>$${Math.round(base).toLocaleString('es-AR')}</strong> (sin interés)</div>
+          <div>Hasta el día 20: <strong>$${Math.round(tier2).toLocaleString('es-AR')}</strong></div>
+          <div>Después del día 20: <strong>$${Math.round(tier3).toLocaleString('es-AR')}</strong></div>
+        </div>` : ''}
         ${ex.detail && ex.detail.length ? `<ul style="margin:8px 0 0 18px;font-size:12px;color:var(--gray)">
           ${ex.detail.map(d=>`<li>${d.concept}: $${Number(d.amount).toLocaleString('es-AR')}</li>`).join('')}
         </ul>` : ''}
@@ -475,7 +487,7 @@ async function openMyExpensas(){
           Facturas: ${ex.invoices.map(f=>`<a href="${f.url}" target="_blank" style="text-decoration:underline;margin-right:10px">${f.name}</a>`).join('')}
         </div>` : ''}
       </div>
-    `).join('');
+    `;}).join('');
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
 async function loadPaymentsList(){
