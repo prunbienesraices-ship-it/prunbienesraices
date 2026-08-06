@@ -185,6 +185,21 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 
   <div id="financiero-section" style="display:none">
     <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Cobros del mes actual</h2>
+    </div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Alquileres del mes en curso, actualizados al día de hoy (incluye mora si corresponde). Se recalcula solo cada vez que entrás a esta sección.</p>
+    <div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap">
+      <div><div style="font-size:22px;font-weight:900" id="rc-total-esperado">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Total a cobrar este mes</div></div>
+      <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-total-debido">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Todavía adeudado (con mora)</div></div>
+      <div><div style="font-size:22px;font-weight:900" id="rc-count-debe">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Inquilinos que deben</div></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="rentcol-tbody-search" placeholder="🔎 Buscar por inquilino, propiedad..." oninput="filterTable(this.value,'rentcol-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="rentcol-tbody"></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Inquilino</th></tr></thead>
+      <tbody id="rentcol-tbody"></tbody>
+    </table></div>
+
+    <div class="page-head" style="margin-top:36px">
       <h2 style="font-size:20px">Cobranzas (otros conceptos)</h2>
       <button class="btn" onclick="openChargeModal()">+ Nuevo cargo</button>
     </div>
@@ -888,7 +903,7 @@ async function startApp(){
   loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
-    loadCharges(); loadSettlements();
+    loadRentCollection(); loadCharges(); loadSettlements();
   } else {
     document.getElementById('financiero-section').style.display = 'none';
   }
@@ -1847,6 +1862,52 @@ async function deleteDeal(id){ if(!confirm('¿Borrar?')) return; try{ await api(
 // COBRANZAS (otros conceptos)
 // =====================================================================
 let ALL_TENANTS_CACHE = [];
+// Calcula, para cada inquilino activo, cuánto se le debe cobrar este mes y
+// si tiene meses atrasados, actualizando el monto al día de hoy (con mora
+// si corresponde). Reutiliza toda la lógica de vencimientos que ya existe.
+async function loadRentCollection(){
+  const tbody = document.getElementById('rentcol-tbody');
+  try{
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    const list = await api('/tenants');
+    let totalEsperado = 0, totalDebido = 0, countDebe = 0;
+    const rows = list.filter(t => computeTenantStatus(t) !== 'rescindido').map(t => {
+      const prop = ALL_PROPERTIES.find(p=>p.id===t.property_id);
+      const missing = getMissingPayments(t);
+      const rentNow = getCurrentRentAmount(t);
+      totalEsperado += rentNow;
+      let owedToday = 0, maxDaysLate = 0;
+      missing.forEach(period => {
+        const info = getLivePaymentInfo(t, period);
+        owedToday += info.amountToday;
+        if(info.daysLate > maxDaysLate) maxDaysLate = info.daysLate;
+      });
+      if(missing.length){ totalDebido += owedToday; countDebe++; }
+      return { t, prop, missing, rentNow, owedToday, maxDaysLate };
+    }).sort((a,b) => b.owedToday - a.owedToday); // los que mas deben, primero
+
+    document.getElementById('rc-total-esperado').textContent = `$${Math.round(totalEsperado).toLocaleString('es-AR')}`;
+    document.getElementById('rc-total-debido').textContent = `$${Math.round(totalDebido).toLocaleString('es-AR')}`;
+    document.getElementById('rc-count-debe').textContent = countDebe;
+
+    tbody.innerHTML = rows.length ? rows.map(r => {
+      const { t, prop, missing, rentNow, owedToday, maxDaysLate } = r;
+      const alDia = missing.length === 0;
+      const detailObj = {
+        property_name: prop?prop.title:'-',
+        rent_display: `${t.currency} ${Number(rentNow).toLocaleString('es-AR')}`,
+        missing_periods: missing.length ? missing.join(', ') : 'Ninguno',
+        days_late: maxDaysLate ? `${maxDaysLate} días` : '-',
+        owed_display: missing.length ? `${t.currency} ${Math.round(owedToday).toLocaleString('es-AR')}` : '$0',
+        status_display: alDia ? 'Al día' : `Debe ${missing.length} mes(es)`,
+      };
+      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Ver pagos</button>`;
+      const rowStyle = alDia ? '' : (maxDaysLate > 15 ? 'background:#fdeaea' : 'background:#fff8e1');
+      return `<tr style="${rowStyle}" data-branch-id="${branchIdForProperty(t.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto del mes",missing_periods:"Meses pendientes",days_late:"Días de atraso",owed_display:"Total a cobrar hoy",status_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${t.name}${alDia?' ✅':' 🔴'}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">No hay inquilinos activos.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
 async function loadCharges(){
   const tbody = document.getElementById('charge-tbody');
   try{
