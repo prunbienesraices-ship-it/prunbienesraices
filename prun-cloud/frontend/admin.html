@@ -90,7 +90,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="prop-tbody-search" placeholder="🔎 Buscar por título, ciudad, estado..." oninput="filterTable(this.value,'prop-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="prop-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Título</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Título</th></tr></thead>
     <tbody id="prop-tbody"></tbody>
   </table></div>
 
@@ -99,7 +99,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="inq-tbody-search" placeholder="🔎 Buscar por nombre, email..." oninput="filterTable(this.value,'inq-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="inq-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Nombre</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
     <tbody id="inq-tbody"></tbody>
   </table></div>
 
@@ -109,7 +109,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="tenant-tbody-search" placeholder="🔎 Buscar por nombre, propiedad, estado..." oninput="filterTable(this.value,'tenant-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="tenant-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Inquilino</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Inquilino</th></tr></thead>
     <tbody id="tenant-tbody"></tbody>
   </table></div>
 
@@ -118,7 +118,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <button class="btn" onclick="openDevModal()">+ Nuevo edificio</button>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Nombre</th><th>Tipo</th><th>Ciudad</th><th>Unidades</th><th>Expensas</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
     <tbody id="dev-tbody"></tbody>
   </table></div>
 
@@ -127,7 +127,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <button class="btn" onclick="openExpensaModal()">+ Nueva liquidación de expensas</button>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Edificio</th><th>Período</th><th>Total</th><th>Facturas</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Edificio / Período</th></tr></thead>
     <tbody id="expensa-tbody"></tbody>
   </table></div>
 
@@ -137,7 +137,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <input type="text" placeholder="🔎 Buscar por nombre, DNI, email..." oninput="filterTable(this.value,'owner-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
-    <thead><tr><th></th><th>Nombre</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
     <tbody id="owner-tbody"></tbody>
   </table></div>
 
@@ -147,7 +147,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="repair-tbody-search" placeholder="🔎 Buscar por propiedad, título..." oninput="filterTable(this.value,'repair-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="repair-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Propiedad</th><th>Título</th><th>Estado</th><th>Costo</th><th>Paga</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Título</th></tr></thead>
     <tbody id="repair-tbody"></tbody>
   </table></div>
 
@@ -156,7 +156,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <button class="btn" onclick="openProviderModal()">+ Nuevo proveedor</button>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Categoría</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
     <tbody id="provider-tbody"></tbody>
   </table></div>
 
@@ -179,7 +179,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <input type="text" id="deal-filter-agent" placeholder="Filtrar por vendedor" oninput="loadDeals()" style="max-width:200px">
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Contacto</th><th>Categoría</th><th>Propiedad</th><th>Monto</th><th>Etapa</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Contacto</th></tr></thead>
     <tbody id="deal-tbody"></tbody>
   </table></div>
 
@@ -190,7 +190,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="charge-tbody-search" placeholder="🔎 Buscar por inquilino, concepto..." oninput="filterTable(this.value,'charge-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="charge-tbody"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Inquilino</th><th>Concepto</th><th>Período</th><th>Adeudado</th><th>Pagado</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
+      <thead><tr><th></th><th>Inquilino / Concepto</th></tr></thead>
       <tbody id="charge-tbody"></tbody>
     </table></div>
 
@@ -200,7 +200,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="settlement-tbody-search" placeholder="🔎 Buscar por inquilino, período..." oninput="filterTable(this.value,'settlement-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="settlement-tbody"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Inquilino</th><th>Período</th><th>Neto</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <thead><tr><th></th><th>Inquilino / Período</th></tr></thead>
       <tbody id="settlement-tbody"></tbody>
     </table></div>
   </div>
@@ -210,7 +210,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <button class="btn" onclick="openEventModal()">+ Nuevo evento</button>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Tipo</th><th>Título</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Título</th></tr></thead>
     <tbody id="event-tbody"></tbody>
   </table></div>
 
@@ -218,7 +218,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:20px">Auditoría</h2>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Usuario</th><th>Fecha</th><th>Acción</th><th>Antes</th><th>Después</th></tr></thead>
+    <thead><tr><th></th><th>Usuario / Acción</th></tr></thead>
     <tbody id="audit-tbody"></tbody>
   </table></div>
 
@@ -227,7 +227,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <input type="text" placeholder="🔎 Buscar por nombre, email, rol..." oninput="filterTable(this.value,'siteusers-tbody')" style="max-width:340px;margin-bottom:10px">
   <div class="table-wrap"><table>
-    <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Rol</th><th>Fecha de registro</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
     <tbody id="siteusers-tbody"></tbody>
   </table></div>
 
@@ -236,7 +236,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="payments-tbody-search" placeholder="🔎 Buscar por propiedad, concepto, inquilino..." oninput="filterTable(this.value,'payments-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="payments-tbody"></div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Inquilino</th><th>Propiedad</th><th>Concepto</th><th>Monto</th><th>Período</th><th>Fecha</th><th>Acciones</th></tr></thead>
+    <thead><tr><th></th><th>Inquilino / Concepto</th></tr></thead>
     <tbody id="payments-tbody"></tbody>
   </table></div>
 
@@ -244,7 +244,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:20px">Cuestionarios "Agendarme" recibidos</h2>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Nombre</th><th>Contacto</th><th>Categoría</th><th>Busca</th><th>Presupuesto</th><th>Plazo</th><th>Fecha recibido</th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
     <tbody id="surveys-tbody"></tbody>
   </table></div>
 
@@ -274,7 +274,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="staff-tbody-search" placeholder="🔎 Buscar por nombre, email, rol..." oninput="filterTable(this.value,'staff-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="staff-tbody"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Sucursal</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <thead><tr><th></th><th>Nombre</th></tr></thead>
       <tbody id="staff-tbody"></tbody>
     </table></div>
 
@@ -298,7 +298,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       </form>
     </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Nombre</th><th>Ciudad</th><th>Dirección</th><th>Teléfono</th><th>Acciones</th></tr></thead>
+      <thead><tr><th></th><th>Nombre</th></tr></thead>
       <tbody id="branch-tbody"></tbody>
     </table></div>
   </div>
@@ -690,7 +690,7 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 // Buscador simple: oculta las filas de una tabla que no contengan el texto buscado.
 // Despliega/oculta una fila extra con el detalle completo del registro,
 // para no tener que abrir "Editar" solo para ver un dato.
-function toggleRowDetail(btn, colspan, dataObj, labelMap){
+function toggleRowDetail(btn, colspan, dataObj, labelMap, actionsHtml){
   const tr = btn.closest('tr');
   const next = tr.nextElementSibling;
   if(next && next.classList.contains('row-detail')){
@@ -710,7 +710,11 @@ function toggleRowDetail(btn, colspan, dataObj, labelMap){
   const parts = Object.keys(labelMap)
     .filter(k => dataObj[k] !== undefined && dataObj[k] !== null && dataObj[k] !== '' && typeof dataObj[k] !== 'object')
     .map(k => `<span style="margin-right:18px"><strong>${labelMap[k]}:</strong> ${dataObj[k]}</span>`);
-  td.innerHTML = parts.length ? parts.join('') : '<span style="color:var(--gray)">Sin más datos cargados.</span>';
+  let html = parts.length ? parts.join('') : '<span style="color:var(--gray)">Sin más datos cargados.</span>';
+  if(actionsHtml){
+    html += `<div class="action-links" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">${actionsHtml}</div>`;
+  }
+  td.innerHTML = html;
   detailTr.appendChild(td);
   tr.insertAdjacentElement('afterend', detailTr);
   btn.textContent = '▾';
@@ -902,11 +906,13 @@ async function loadStaff(){
     const list = await api('/auth/staff');
     tbody.innerHTML = list.length ? list.map(s => {
       const branch = ALL_BRANCHES.find(b=>b.id===s.branch_id);
-      return `<tr data-branch-id="${s.branch_id||''}"><td>${s.name}</td><td>${s.email}</td><td>${STAFF_ROLE_LABELS[s.role]||s.role}</td><td>${branch?branch.name:'-'}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td>
-      <td class="action-links">${s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button onclick="resetStaffPassword(${s.id})">Restablecer contraseña</button><button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`}</td></tr>`;
+      const detailObj = { email: s.email, role_display: STAFF_ROLE_LABELS[s.role]||s.role, branch_name: branch?branch.name:'-', date_display: new Date(s.created_at).toLocaleDateString('es-AR') };
+      const actionsHtml = s.email===USER.email?'<span style="color:var(--gray);font-size:12px">Tu cuenta</span>':`<button onclick="resetStaffPassword(${s.id})">Restablecer contraseña</button><button style="color:var(--red)" onclick="deleteStaff(${s.id})">Borrar</button>`;
+      return `<tr data-branch-id="${s.branch_id||''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {email:"Email",role_display:"Rol",branch_name:"Sucursal",date_display:"Fecha"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${s.name}</td></tr>`;
     }).join('')
-      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Todavía no creaste ninguna cuenta de personal.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no creaste ninguna cuenta de personal.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 document.getElementById('staff-form').addEventListener('submit', async e=>{
   e.preventDefault();
@@ -946,11 +952,14 @@ async function loadBranches(){
   const tbody = document.getElementById('branch-tbody');
   try{
     ALL_BRANCHES = await api('/branches');
-    tbody.innerHTML = ALL_BRANCHES.length ? ALL_BRANCHES.map(b => `
-      <tr><td>${b.name}</td><td>${b.city||'-'}</td><td>${b.address||'-'}</td><td>${b.phone||'-'}</td>
-      <td class="action-links"><button onclick='editBranch(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteBranch(${b.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Todavía no cargaste ninguna sucursal.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = ALL_BRANCHES.length ? ALL_BRANCHES.map(b => {
+      const actionsHtml = `<button onclick='editBranch(${JSON.stringify(b).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteBranch(${b.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(b).replace(/'/g,"&#39;")}, {city:"Ciudad",address:"Dirección",phone:"Teléfono",email:"Email"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${b.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no cargaste ninguna sucursal.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function editBranch(b){
   document.getElementById('br-id').value = b.id;
@@ -1014,17 +1023,14 @@ async function loadProperties(){
     tbody.innerHTML = all.length ? all.map(p => {
       const branch = ALL_BRANCHES.find(b=>b.id===p.branch_id);
       const detailObj = { ...p, price_display: `${p.currency} ${Number(p.price).toLocaleString('es-AR')}`, branch_name: branch?branch.name:'Sin asignar' };
+      const actionsHtml = `<button onclick='openPropModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteProp(${p.id})">Borrar</button>`;
       return `
       <tr data-branch-id="${p.branch_id||''}">
-        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {operation:"Operación",category:"Categoría",price_display:"Precio",status:"Estado",city:"Ciudad",branch_name:"Sucursal",description:"Descripción",bedrooms:"Dormitorios",bathrooms:"Baños",garage:"Cochera",address:"Dirección",composition:"Detalle ambientes",featured:"Destacada"})'>▸</button></td>
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {operation:"Operación",category:"Categoría",price_display:"Precio",status:"Estado",city:"Ciudad",branch_name:"Sucursal",description:"Descripción",bedrooms:"Dormitorios",bathrooms:"Baños",garage:"Cochera",address:"Dirección",composition:"Detalle ambientes",featured:"Destacada"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
         <td>${p.title}</td>
-        <td class="action-links">
-          <button onclick='openPropModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button>
-          <button style="color:var(--red)" onclick="deleteProp(${p.id})">Borrar</button>
-        </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
-  }catch(err){ tbody.innerHTML = '<tr><td colspan="3">Error al cargar.</td></tr>'; }
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:30px">Sin propiedades cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = '<tr><td colspan="2">Error al cargar.</td></tr>'; }
 }
 async function openPropModal(p){
   document.getElementById('prop-modal-title').textContent = p ? 'Editar propiedad' : 'Nueva propiedad';
@@ -1146,16 +1152,13 @@ async function loadInquiries(){
     const list = await api('/inquiries');
     tbody.innerHTML = list.length ? list.map(i => {
       const detailObj = { ...i, is_read_display: i.is_read?'Leída':'Nueva' };
+      const actionsHtml = `<button onclick="toggleRead(${i.id}, ${i.is_read})">${i.is_read?'Marcar no leída':'Marcar leída'}</button><button style="color:var(--red)" onclick="deleteInq(${i.id})">Borrar</button>`;
       return `
       <tr data-branch-id="${branchIdForProperty(i.property_id)}">
-        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {email:"Email",message:"Mensaje",is_read_display:"Estado"})'>▸</button></td>
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {email:"Email",message:"Mensaje",is_read_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
         <td>${i.name}</td>
-        <td class="action-links">
-          <button onclick="toggleRead(${i.id}, ${i.is_read})">${i.is_read?'Marcar no leída':'Marcar leída'}</button>
-          <button style="color:var(--red)" onclick="deleteInq(${i.id})">Borrar</button>
-        </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:30px">Sin consultas todavía.</td></tr>';
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:30px">Sin consultas todavía.</td></tr>';
   }catch(err){}
 }
 async function toggleRead(id, current){
@@ -1264,19 +1267,14 @@ async function loadTenants(){
         end_date_display: new Date(t.end_date).toLocaleDateString('es-AR'),
         status_display: statusText[status],
         payment_status: missing.length ? `${missing.length} mes(es) sin pagar` : 'Al día' };
+      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
       return `
       <tr data-branch-id="${branchIdForProperty(t.property_id)}">
-        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto actual",contract_total_display:"Monto total contrato",end_date_display:"Fin",status_display:"Estado",payment_status:"Pagos",dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"})'>▸</button></td>
+        <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto actual",contract_total_display:"Monto total contrato",end_date_display:"Fin",status_display:"Estado",payment_status:"Pagos",dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
         <td>${t.name}</td>
-        <td class="action-links">
-          <button onclick="openPaymentsModal(${t.id})">Pagos</button>
-          <button onclick="downloadContract(${t.id})">Generar contrato</button>
-          <button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button>
-          <button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>
-        </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="3">Error: ${err.message}</td></tr>`; }
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 
 // Al elegir una propiedad en el contrato del inquilino, completa solo el
@@ -1478,11 +1476,15 @@ async function loadDevelopments(){
   const tbody = document.getElementById('dev-tbody');
   try{
     ALL_DEVELOPMENTS = await api('/developments');
-    tbody.innerHTML = ALL_DEVELOPMENTS.length ? ALL_DEVELOPMENTS.map(d => `
-      <tr><td>${d.name}</td><td>${d.type}</td><td>${d.city||'-'}</td><td>${d.units}</td><td>$${Number(d.expenses).toLocaleString('es-AR')}</td>
-      <td class="action-links"><button onclick='openDevModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDev(${d.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin edificios cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = ALL_DEVELOPMENTS.length ? ALL_DEVELOPMENTS.map(d => {
+      const detailObj = { ...d, expenses_display: `$${Number(d.expenses).toLocaleString('es-AR')}` };
+      const actionsHtml = `<button onclick='openDevModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDev(${d.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {type:"Tipo",city:"Ciudad",units:"Unidades",expenses_display:"Expensas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${d.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin edificios cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openDevModal(d){
   document.getElementById('dev-modal-title').textContent = d ? 'Editar edificio' : 'Nuevo edificio';
@@ -1572,10 +1574,12 @@ async function loadExpensas(){
     ALL_EXPENSAS = await api('/expensas');
     tbody.innerHTML = ALL_EXPENSAS.length ? ALL_EXPENSAS.map(ex => {
       const dev = ALL_DEVELOPMENTS.find(d=>d.id===ex.development_id);
-      return `<tr><td>${dev?dev.name:'-'}</td><td>${ex.period}</td><td>$${Number(ex.total_amount).toLocaleString('es-AR')}</td><td>${(ex.invoices||[]).length} factura(s)</td>
-      <td class="action-links"><button onclick='openExpensaModal(${JSON.stringify(ex).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteExpensa(${ex.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin expensas cargadas todavía.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+      const detailObj = { total_display: `$${Number(ex.total_amount).toLocaleString('es-AR')}`, invoices_display: `${(ex.invoices||[]).length} factura(s)` };
+      const actionsHtml = `<button onclick='openExpensaModal(${JSON.stringify(ex).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteExpensa(${ex.id})">Borrar</button>`;
+      return `<tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {total_display:"Total",invoices_display:"Facturas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${dev?dev.name:'-'} — ${ex.period}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin expensas cargadas todavía.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openExpensaModal(ex){
   document.getElementById('expensa-modal-title').textContent = ex ? 'Editar liquidación de expensas' : 'Nueva liquidación de expensas';
@@ -1628,12 +1632,14 @@ async function loadOwners(){
   const tbody = document.getElementById('owner-tbody');
   try{
     ALL_OWNERS = await api('/owners');
-    tbody.innerHTML = ALL_OWNERS.length ? ALL_OWNERS.map(o => `
-      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(o).replace(/'/g,"&#39;")}, {dni:"DNI",cuit:"CUIT",phone:"Teléfono",email:"Email",address:"Dirección",cbu:"CBU",alias:"Alias",bank:"Banco",payment_method:"Forma de pago",iva:"IVA",monotributo:"Monotributo",notes:"Detalle"})'>▸</button></td>
-      <td>${o.name}</td>
-      <td class="action-links"><button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="3">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = ALL_OWNERS.length ? ALL_OWNERS.map(o => {
+      const actionsHtml = `<button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(o).replace(/'/g,"&#39;")}, {dni:"DNI",cuit:"CUIT",phone:"Teléfono",email:"Email",address:"Dirección",cbu:"CBU",alias:"Alias",bank:"Banco",payment_method:"Forma de pago",iva:"IVA",monotributo:"Monotributo",notes:"Detalle"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${o.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin propietarios cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openOwnerModal(o){
   document.getElementById('owner-modal-title').textContent = o ? 'Editar propietario' : 'Nuevo propietario';
@@ -1677,10 +1683,12 @@ async function loadRepairs(){
     const list = await api('/repairs');
     tbody.innerHTML = list.length ? list.map(r => {
       const prop = ALL_PROPERTIES.find(p=>p.id===r.property_id);
-      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td>${prop?prop.title:'-'}</td><td>${r.title}</td><td>${r.status}</td><td>$${Number(r.cost).toLocaleString('es-AR')}</td><td>${r.payer}</td>
-      <td class="action-links"><button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin reparaciones cargadas.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}` };
+      const actionsHtml = `<button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",cost_display:"Costo",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${r.title}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin reparaciones cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openRepairModal(r){
   document.getElementById('repair-modal-title').textContent = r ? 'Editar reparación' : 'Nueva reparación';
@@ -1719,11 +1727,14 @@ async function loadProviders(){
   const tbody = document.getElementById('provider-tbody');
   try{
     const list = await api('/providers');
-    tbody.innerHTML = list.length ? list.map(p => `
-      <tr><td>${p.category}</td><td>${p.favorite?'⭐ ':''}${p.name}</td><td>${p.phone||'-'}</td><td>${p.email||'-'}</td>
-      <td class="action-links"><button onclick='openProviderModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteProvider(${p.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin proveedores cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = list.length ? list.map(p => {
+      const actionsHtml = `<button onclick='openProviderModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteProvider(${p.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(p).replace(/'/g,"&#39;")}, {category:"Categoría",phone:"Teléfono",email:"Email",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${p.favorite?'⭐ ':''}${p.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin proveedores cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openProviderModal(p){
   document.getElementById('provider-modal-title').textContent = p ? 'Editar proveedor' : 'Nuevo proveedor';
@@ -1766,10 +1777,12 @@ async function loadDeals(){
     );
     tbody.innerHTML = list.length ? list.map(d => {
       const prop = ALL_PROPERTIES.find(p=>p.id===d.property_id);
-      return `<tr data-branch-id="${branchIdForProperty(d.property_id)}"><td>${d.name}</td><td>${d.category?`<span class="badge ${CAT_BADGE[d.category]||'warn'}">${CAT_LABEL[d.category]||d.category}</span>`:'-'}</td><td>${prop?prop.title:'-'}</td><td>$${Number(d.amount).toLocaleString('es-AR')}</td><td>${d.stage}</td>
-      <td class="action-links"><button onclick='openDealModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDeal(${d.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Sin leads que coincidan con el filtro.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+      const detailObj = { ...d, category_display: CAT_LABEL[d.category]||'-', property_name: prop?prop.title:'-', amount_display: `$${Number(d.amount).toLocaleString('es-AR')}` };
+      const actionsHtml = `<button onclick='openDealModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteDeal(${d.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForProperty(d.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {category_display:"Categoría",property_name:"Propiedad",amount_display:"Monto",stage:"Etapa",agent:"Vendedor",phone:"Teléfono",email:"Email",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${d.name}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin leads que coincidan con el filtro.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function refreshDealsCache(){ ALL_DEALS_CACHE = []; loadDeals(); }
 function openDealModal(d){
@@ -1813,11 +1826,12 @@ async function loadCharges(){
       const paid = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
       const isOverdue = c.due_date && c.due_date < today && paid < c.amount;
       const dueLabel = c.due_date ? new Date(c.due_date+'T00:00:00').toLocaleDateString('es-AR') : '-';
-      return `<tr data-branch-id="${branchIdForTenant(c.tenant_id)}" style="${isOverdue?'background:#fdeaea':''}"><td>${t?t.name:'-'}</td><td>${c.concept}</td><td>${c.label||'-'}</td><td>$${Number(c.amount).toLocaleString('es-AR')}</td><td>$${paid.toLocaleString('es-AR')}</td>
-      <td>${isOverdue?`<span class="badge bad">Vencido ${dueLabel}</span>`:dueLabel}</td>
-      <td class="action-links"><button onclick="chargeQuickPay(${c.id})">Pagar</button><button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+      const detailObj = { period: c.label||'-', amount_display: `$${Number(c.amount).toLocaleString('es-AR')}`, paid_display: `$${paid.toLocaleString('es-AR')}`, due_display: isOverdue?`Vencido (${dueLabel})`:dueLabel };
+      const actionsHtml = `<button onclick="chargeQuickPay(${c.id})">Pagar</button><button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForTenant(c.tenant_id)}" style="${isOverdue?'background:#fdeaea':''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {period:"Período",amount_display:"Adeudado",paid_display:"Pagado",due_display:"Vencimiento"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${t?t.name:'-'} — ${c.concept}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openChargeModal(){
   const sel = document.getElementById('ch-tenant');
@@ -1858,10 +1872,12 @@ async function loadSettlements(){
     SETTLEMENTS_CACHE = list;
     tbody.innerHTML = list.length ? list.map(s => {
       const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
-      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td>${t?t.name:'-'}</td><td>${s.period}</td><td>$${Number(s.net).toLocaleString('es-AR')}</td><td>${s.transferred?'Transferido':'Pendiente'}</td>
-      <td class="action-links">${!s.transferred?`<button onclick="markTransferred(${s.id})">Transferir</button>`:''}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+      const detailObj = { net_display: `$${Number(s.net).toLocaleString('es-AR')}`, status_display: s.transferred?'Transferido':'Pendiente' };
+      const actionsHtml = `${!s.transferred?`<button onclick="markTransferred(${s.id})">Transferir</button>`:''}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {net_display:"Neto",status_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${t?t.name:'-'} — ${s.period}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 let SETTLEMENTS_CACHE = [];
 function printSettlement(id){
@@ -1923,11 +1939,15 @@ async function loadEvents(){
   const tbody = document.getElementById('event-tbody');
   try{
     const list = await api('/agenda');
-    tbody.innerHTML = list.length ? list.map(e => `
-      <tr><td>${e.type}</td><td>${e.title}</td><td>${new Date(e.date).toLocaleDateString('es-AR')}</td><td>${e.status}</td>
-      <td class="action-links">${e.status!=='realizado'?`<button onclick="markEventDone(${e.id})">Realizado</button>`:''}<button style="color:var(--red)" onclick="deleteEvent(${e.id})">Borrar</button></td></tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin eventos cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = list.length ? list.map(e => {
+      const detailObj = { type: e.type, date_display: new Date(e.date).toLocaleDateString('es-AR'), status: e.status, notes: e.notes };
+      const actionsHtml = `${e.status!=='realizado'?`<button onclick="markEventDone(${e.id})">Realizado</button>`:''}<button style="color:var(--red)" onclick="deleteEvent(${e.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {type:"Tipo",date_display:"Fecha",status:"Estado",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${e.title}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin eventos cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 function openEventModal(){ document.getElementById('event-modal').classList.add('active'); }
 document.getElementById('event-form').addEventListener('submit', async e=>{
@@ -1949,10 +1969,14 @@ async function loadAudit(){
   const tbody = document.getElementById('audit-tbody');
   try{
     const list = await api('/audit');
-    tbody.innerHTML = list.length ? list.map(a => `
-      <tr><td>${a.user_name}</td><td>${new Date(a.created_at).toLocaleString('es-AR')}</td><td>${a.action}</td><td>${a.old_value}</td><td>${a.new_value}</td></tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">Sin cambios registrados todavía.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = list.length ? list.map(a => {
+      const detailObj = { date_display: new Date(a.created_at).toLocaleString('es-AR'), old_value: a.old_value, new_value: a.new_value };
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {date_display:"Fecha",old_value:"Antes",new_value:"Después"})'>▸</button></td>
+      <td>${a.user_name} — ${a.action}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin cambios registrados todavía.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 
 const ROLE_LABELS_SITE = { client:'Cliente', owner:'Propietario', tenant:'Inquilino', agent:'Agente' };
@@ -1961,11 +1985,15 @@ async function loadSiteUsers(){
   try{
     ALL_SITE_USERS = await api('/auth/site-users');
     const canManage = USER.role === 'superadmin';
-    tbody.innerHTML = ALL_SITE_USERS.length ? ALL_SITE_USERS.map(u => `
-      <tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone||'-'}</td><td>${ROLE_LABELS_SITE[u.role]||u.role}</td><td>${new Date(u.created_at).toLocaleDateString('es-AR')}</td>
-      <td class="action-links">${canManage ? `<button onclick='openSiteUserModal(${JSON.stringify(u).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteSiteUser(${u.id})">Borrar</button>` : '-'}</td></tr>`).join('')
-      : '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">Todavía no se registró ningún cliente.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = ALL_SITE_USERS.length ? ALL_SITE_USERS.map(u => {
+      const detailObj = { email: u.email, phone: u.phone||'-', role_display: ROLE_LABELS_SITE[u.role]||u.role, date_display: new Date(u.created_at).toLocaleDateString('es-AR') };
+      const actionsHtml = canManage ? `<button onclick='openSiteUserModal(${JSON.stringify(u).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteSiteUser(${u.id})">Borrar</button>` : '';
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {email:"Email",phone:"Teléfono",role_display:"Rol",date_display:"Fecha de registro"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${u.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no se registró ningún cliente.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 let ALL_SITE_USERS = [];
 function openSiteUserModal(u){
@@ -1998,24 +2026,29 @@ async function loadPayments(){
     const list = await api('/payments');
     tbody.innerHTML = list.length ? list.map(p => {
       const prop = ALL_PROPERTIES.find(x=>x.id===p.property_id);
-      return `<tr data-branch-id="${branchIdForProperty(p.property_id)}"><td>${p.tenant_name||p.tenant_email}</td><td>${prop?prop.title:'-'}</td><td>${p.concept}</td><td>${p.amount?'$'+Number(p.amount).toLocaleString('es-AR'):'-'}</td><td>${p.period||'-'}</td><td>${new Date(p.created_at).toLocaleDateString('es-AR')}</td>
-      <td class="action-links"><a href="${p.file_url}" target="_blank">Ver comprobante</a> <button style="color:var(--red)" onclick="deletePayment(${p.id})">Borrar</button></td></tr>`;
-    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Todavía no hay comprobantes cargados.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+      const detailObj = { property_name: prop?prop.title:'-', amount_display: p.amount?'$'+Number(p.amount).toLocaleString('es-AR'):'-', period: p.period||'-', date_display: new Date(p.created_at).toLocaleDateString('es-AR') };
+      const actionsHtml = `<a href="${p.file_url}" target="_blank">Ver comprobante</a> <button style="color:var(--red)" onclick="deletePayment(${p.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForProperty(p.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",amount_display:"Monto",period:"Período",date_display:"Fecha"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${p.tenant_name||p.tenant_email} — ${p.concept}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no hay comprobantes cargados.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 async function deletePayment(id){ if(!confirm('¿Borrar este comprobante?')) return; try{ await api(`/payments/${id}`,{method:'DELETE'}); loadPayments(); }catch(err){ toast(err.message); } }
 
 const INTEREST_LABELS = { comprar:'Comprar', alquilar:'Alquilar', vender:'Vender', invertir:'Invertir' };
 async function loadSurveys(){
   const tbody = document.getElementById('surveys-tbody');
-  const CAT_BADGE = { comprador:'ok', inquilino:'warn', propietario:'bad', inversor:'ok' };
   const CAT_LABEL = { comprador:'Comprador', inquilino:'Inquilino', propietario:'Propietario', inversor:'Inversor' };
   try{
     const list = await api('/auth/survey-responses');
-    tbody.innerHTML = list.length ? list.map(s => `
-      <tr><td>${s.name}</td><td>${s.email}${s.phone?' · '+s.phone:''}</td><td>${s.category?`<span class="badge ${CAT_BADGE[s.category]||'warn'}">${CAT_LABEL[s.category]||s.category}</span>`:'-'}</td><td>${INTEREST_LABELS[s.interest]||s.interest||'-'}</td><td>${s.budget||'-'}</td><td>${s.timeline||'-'}</td><td>${new Date(s.created_at).toLocaleDateString('es-AR')}</td></tr>`).join('')
-      : '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">Todavía no llegó ningún cuestionario.</td></tr>';
-  }catch(err){ tbody.innerHTML = `<tr><td colspan="7">Error: ${err.message}</td></tr>`; }
+    tbody.innerHTML = list.length ? list.map(s => {
+      const detailObj = { email: s.email, phone: s.phone||'-', category_display: CAT_LABEL[s.category]||s.category||'-', interest_display: INTEREST_LABELS[s.interest]||s.interest||'-', budget: s.budget||'-', timeline: s.timeline||'-', date_display: new Date(s.created_at).toLocaleDateString('es-AR') };
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {email:"Email",phone:"Teléfono",category_display:"Categoría",interest_display:"Interés",budget:"Presupuesto",timeline:"Plazo",date_display:"Fecha recibido"})'>▸</button></td>
+      <td>${s.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no llegó ningún cuestionario.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 
 // =====================================================================
