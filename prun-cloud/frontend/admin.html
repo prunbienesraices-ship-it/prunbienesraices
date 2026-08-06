@@ -701,6 +701,24 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 const API = window.location.origin + '/api';
 let TOKEN = localStorage.getItem('prun_token');
 let USER = JSON.parse(localStorage.getItem('prun_user') || 'null');
+// Cachés globales de datos: se declaran acá arriba de todo para que estén
+// disponibles antes de que arranque el panel (startApp), sin importar en
+// qué orden aparezcan las funciones que las usan más abajo en el archivo.
+let ALL_BRANCHES = [];
+let ALL_PROPERTIES = [];
+let ALL_DEVELOPMENTS = [];
+let ALL_EXPENSAS = [];
+let ALL_OWNERS = [];
+let ALL_DEALS_CACHE = [];
+let ALL_TENANTS_CACHE = [];
+let ALL_SITE_USERS = [];
+let PROP_TABLE_CACHE = [];
+let SETTLEMENTS_CACHE = [];
+const STAFF_ROLE_LABELS = { superadmin:'Administrador', secretaria:'Secretaria', vendedor:'Vendedor', contador:'Contador' };
+const FREQ_MONTHS = { bimestral:2, trimestral:3, cuatrimestral:4, semestral:6, anual:12 };
+const EXPENSA_DEFAULT_CONCEPTS = ['Luz', 'Agua', 'Impuestos', 'Limpieza', 'Otros gastos'];
+const ROLE_LABELS_SITE = { client:'Cliente', owner:'Propietario', tenant:'Inquilino', agent:'Agente' };
+const INTEREST_LABELS = { comprar:'Comprar', alquilar:'Alquilar', vender:'Vender', invertir:'Invertir' };
 
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
 // Buscador simple: oculta las filas de una tabla que no contengan el texto buscado.
@@ -944,8 +962,6 @@ function applyRolePermissions(){
   }
 }
 
-const STAFF_ROLE_LABELS = { superadmin:'Administrador', secretaria:'Secretaria', vendedor:'Vendedor', contador:'Contador' };
-let ALL_BRANCHES = [];
 async function loadStaff(){
   const tbody = document.getElementById('staff-tbody');
   try{
@@ -1062,7 +1078,6 @@ async function loadStats(){
     document.getElementById('k-inquiries').textContent = d.unreadInquiries;
   }catch(err){}
 }
-let PROP_TABLE_CACHE = [];
 async function loadProperties(){
   const tbody = document.getElementById('prop-tbody');
   try{
@@ -1223,8 +1238,6 @@ async function deleteInq(id){
 // =====================================================================
 // INQUILINOS / CONTRATOS / PAGOS
 // =====================================================================
-const FREQ_MONTHS = { bimestral:2, trimestral:3, cuatrimestral:4, semestral:6, anual:12 };
-let ALL_PROPERTIES = [];
 
 function addMonths(dateStr, months){
   const d = new Date(dateStr);
@@ -1534,7 +1547,6 @@ async function quickPay(tenantId, period, amount){
 // =====================================================================
 // EDIFICIOS
 // =====================================================================
-let ALL_DEVELOPMENTS = [];
 async function loadDevelopments(){
   const tbody = document.getElementById('dev-tbody');
   try{
@@ -1580,8 +1592,6 @@ async function deleteDev(id){ if(!confirm('¿Borrar?')) return; try{ await api(`
 // =====================================================================
 // EXPENSAS POR EDIFICIO
 // =====================================================================
-let ALL_EXPENSAS = [];
-const EXPENSA_DEFAULT_CONCEPTS = ['Luz', 'Agua', 'Impuestos', 'Limpieza', 'Otros gastos'];
 function addInventoryRow(room, detail){
   const rows = document.getElementById('p-inventory-rows');
   const row = document.createElement('div');
@@ -1714,7 +1724,6 @@ async function deleteExpensa(id){ if(!confirm('¿Borrar esta liquidación de exp
 // =====================================================================
 // PROPIETARIOS
 // =====================================================================
-let ALL_OWNERS = [];
 async function loadOwners(){
   const tbody = document.getElementById('owner-tbody');
   try{
@@ -1848,7 +1857,6 @@ async function deleteProvider(id){ if(!confirm('¿Borrar?')) return; try{ await 
 // =====================================================================
 // PIPELINE DE VENTAS
 // =====================================================================
-let ALL_DEALS_CACHE = [];
 async function loadDeals(){
   const tbody = document.getElementById('deal-tbody');
   const CAT_BADGE = { comprador:'ok', inquilino:'warn', propietario:'bad', inversor:'ok' };
@@ -1900,7 +1908,6 @@ async function deleteDeal(id){ if(!confirm('¿Borrar?')) return; try{ await api(
 // =====================================================================
 // COBRANZAS (otros conceptos)
 // =====================================================================
-let ALL_TENANTS_CACHE = [];
 // Calcula, para cada inquilino activo, cuánto se le debe cobrar este mes y
 // si tiene meses atrasados, actualizando el monto al día de hoy (con mora
 // si corresponde). Reutiliza toda la lógica de vencimientos que ya existe.
@@ -2012,7 +2019,6 @@ async function loadSettlements(){
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
-let SETTLEMENTS_CACHE = [];
 function printSettlement(id){
   const s = SETTLEMENTS_CACHE.find(x=>x.id===id);
   if(!s) return;
@@ -2112,7 +2118,6 @@ async function loadAudit(){
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
 
-const ROLE_LABELS_SITE = { client:'Cliente', owner:'Propietario', tenant:'Inquilino', agent:'Agente' };
 async function loadSiteUsers(){
   const tbody = document.getElementById('siteusers-tbody');
   try{
@@ -2128,7 +2133,6 @@ async function loadSiteUsers(){
       : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no se registró ningún cliente.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
-let ALL_SITE_USERS = [];
 function openSiteUserModal(u){
   document.getElementById('su-id').value = u.id;
   document.getElementById('su-name').value = u.name;
@@ -2168,7 +2172,6 @@ async function loadPayments(){
 }
 async function deletePayment(id){ if(!confirm('¿Borrar este comprobante?')) return; try{ await api(`/payments/${id}`,{method:'DELETE'}); loadPayments(); }catch(err){ toast(err.message); } }
 
-const INTEREST_LABELS = { comprar:'Comprar', alquilar:'Alquilar', vender:'Vender', invertir:'Invertir' };
 async function loadSurveys(){
   const tbody = document.getElementById('surveys-tbody');
   const CAT_LABEL = { comprador:'Comprador', inquilino:'Inquilino', propietario:'Propietario', inversor:'Inversor' };
