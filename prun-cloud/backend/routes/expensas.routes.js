@@ -38,6 +38,7 @@ router.post('/', requireAuth, upload.array('invoices', 15), async (req, res) => 
       detail: b.detail ? JSON.parse(b.detail) : [],
       invoices: invoiceUrls,
       notes: b.notes || '',
+      late_coefficient: Number(b.late_coefficient) || 0,
     }]).select().single();
     if (error) throw error;
     res.status(201).json(data);
@@ -70,6 +71,7 @@ router.put('/:id', requireAuth, upload.array('invoices', 15), async (req, res) =
     if (b.total_amount !== undefined) updates.total_amount = Number(b.total_amount);
     if (b.detail !== undefined) updates.detail = JSON.parse(b.detail);
     if (b.notes !== undefined) updates.notes = b.notes;
+    if (b.late_coefficient !== undefined) updates.late_coefficient = Number(b.late_coefficient) || 0;
 
     const { data, error } = await supabase.from('expensas').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;
