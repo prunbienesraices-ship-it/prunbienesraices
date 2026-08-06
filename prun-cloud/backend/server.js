@@ -53,6 +53,14 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
   },
 }));
 
+// Link "siempre fresco" al panel: cada vez que se entra acá, redirige al
+// admin.html agregando un numero distinto al final (la hora exacta), para
+// que nunca traiga una copia vieja guardada, sin tener que acordarse de
+// cambiar nada a mano. Usar https://.../panel en vez de admin.html directo.
+app.get('/panel', (req, res) => {
+  res.redirect(`/admin.html?v=${Date.now()}`);
+});
+
 // Restriccion de permisos por rol, valida para todas las rutas /api/*.
 // - vendedor: puede agregar y editar, pero nunca borrar (DELETE).
 // - contador: solo puede leer (GET), no puede crear, editar ni borrar nada.
