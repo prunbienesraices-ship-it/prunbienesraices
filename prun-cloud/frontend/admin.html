@@ -651,10 +651,11 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h3 style="font-size:17px;margin-bottom:16px">Nuevo cargo</h3>
     <form id="charge-form">
       <div class="form-row"><label>Inquilino</label><select id="ch-tenant" required></select></div>
-      <div class="form-row"><label>Concepto</label><select id="ch-concept"><option value="abl">ABL</option><option value="arba">ARBA</option><option value="luz">Luz</option><option value="gas">Gas</option><option value="agua">Agua</option><option value="seguro">Seguro</option><option value="honorarios">Honorarios</option><option value="comisiones">Comisiones</option><option value="intereses">Intereses</option><option value="multas">Multas</option></select></div>
+      <div class="form-row"><label>Concepto</label><select id="ch-concept"><option value="expensas">Expensas</option><option value="abl">ABL</option><option value="arba">ARBA</option><option value="luz">Luz</option><option value="gas">Gas</option><option value="agua">Agua</option><option value="seguro">Seguro</option><option value="honorarios">Honorarios</option><option value="comisiones">Comisiones</option><option value="intereses">Intereses</option><option value="multas">Multas</option></select></div>
       <div class="form-row"><label>Período / descripción</label><input type="text" id="ch-label"></div>
       <div class="form-row"><label>Monto adeudado</label><input type="number" id="ch-amount" required></div>
       <div class="form-row"><label>Fecha de vencimiento (opcional)</label><input type="date" id="ch-due-date"></div>
+      <div class="form-row"><label>Tasa de interés diario para mora (%) — se aplica en los 3 vencimientos (día 10 sin interés, día 20 con 20 días, fin de mes con los días del mes), a partir de la fecha de vencimiento</label><input type="number" id="ch-late-coef" min="0" step="0.01" value="0"></div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('charge-modal')">Cancelar</button></div>
     </form>
   </div>
@@ -1990,13 +1991,15 @@ async function loadCharges(){
 function openChargeModal(){
   const sel = document.getElementById('ch-tenant');
   sel.innerHTML = ALL_TENANTS_CACHE.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('ch-late-coef').value = 0;
   document.getElementById('charge-modal').classList.add('active');
 }
 document.getElementById('charge-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const body = { tenant_id: Number(document.getElementById('ch-tenant').value), concept: document.getElementById('ch-concept').value,
     label: document.getElementById('ch-label').value, amount: document.getElementById('ch-amount').value,
-    due_date: document.getElementById('ch-due-date').value || null };
+    due_date: document.getElementById('ch-due-date').value || null,
+    late_coefficient: document.getElementById('ch-late-coef').value };
   try{
     await api('/collections', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     toast('Cargo creado'); closeModal('charge-modal'); loadCharges();
