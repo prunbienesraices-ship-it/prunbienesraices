@@ -105,4 +105,30 @@ router.post('/payments', requireAuth, upload.single('file'), async (req, res) =>
   }
 });
 
+// El inquilino ve online su propio detalle de pago (lo mismo que se le
+// manda por mail), sin poder ver el de otros inquilinos.
+const { buildTenantDetailItems, buildDetailHtml, getSiteConfig } = require('../paymentDetail');
+router.get('/payment-detail', requireAuth, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const supabase = require('../supabaseClient');
+    const { data: tenant } = await supabase
+      .from('tenants').select('*').eq('email', email).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (!tenant) return res.json({ hasContract: false });
+
+    const { data: property } = await supabase.from('properties').select('*').eq('id', tenant.property_id).maybeSingle();
+    const items = await buildTenantDetailItems(tenant);
+    const total = items.reduce((s, i) => s + i.amount, 0);
+    const config = await getSiteConfig();
+    const html = buildDetailHtml({
+      tenantName: tenant.name, propertyLabel: property ? property.title : '-',
+      items, config, currency: tenant.currency || 'ARS',
+    });
+    res.json({ hasContract: true, items, total, currency: tenant.currency || 'ARS', html });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al buscar tu detalle de pago.' });
+  }
+});
+
 module.exports = router;
