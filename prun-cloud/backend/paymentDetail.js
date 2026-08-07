@@ -50,47 +50,98 @@ function getMissingPayments(t) {
   }
   return missing;
 }
-// Mismo sistema de 3 vencimientos que "Cobros del mes actual": hasta el dia
-// 10 sin interes, hasta el dia 20 con 20 dias, de ahi en mas con los dias
-// que tenga ese mes.
-function getLivePaymentInfo(t, period) {
-  const base = getRentAmountForPeriod(t, period);
-  const [y, m] = period.split('-').map(Number);
-  const today = new Date();
-  const periodDate = new Date(y, m - 1, 1);
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const coef = t.late_coefficient || 0;
-  if (periodDate > today) return { base, amountToday: base };
-  const isCurrentMonth = today.getFullYear() === y && today.getMonth() === m - 1;
-  const dayReference = isCurrentMonth ? today.getDate() : (daysInMonth + 1);
-  let tierDays;
-  if (dayReference <= 10) tierDays = 0;
-  else if (dayReference <= 20) tierDays = 20;
-  else tierDays = daysInMonth;
-  const amountToday = base * (1 + (coef / 100) * tierDays);
-  return { base, amountToday };
-}
 function monthLabel(period) {
   const [y, m] = period.split('-').map(Number);
   return `${MONTHS_ES[m - 1].toUpperCase()} ${y}`;
 }
 
-// Arma la lista de items pendientes de un inquilino: meses de alquiler +
-// cargos de otros conceptos sin pagar del todo.
+// Arma la lista de items pendientes de un inquilino: el alquiler adeudado
+// (acumulado, no mes por mes) + los cargos de otros conceptos (ej: expensas)
+// que ya estan vencidos y sin pagar del todo.
+//
+// El alquiler es ACUMULATIVO: cada mes que queda totalmente atras "se cierra"
+// a su monto final (con su propio interes ya adentro), y ese total pasa a
+// sumarse como capital del mes siguiente, sobre el que se calculan sus 3
+// nuevos vencimientos. Ejemplo: si julio (base $180) quedo en $200 y estamos
+// en agosto (base $180), el capital de agosto es $200 + $180 = $380: hasta
+// el dia 10 se deben esos $380 sin interes nuevo, hasta el dia 20 se le suma
+// el interes de 20 dias sobre esos $380, etc.
 async function buildTenantDetailItems(tenant) {
   const items = [];
-  const missing = getMissingPayments(tenant);
-  missing.forEach(period => {
-    const info = getLivePaymentInfo(tenant, period);
-    items.push({ concept: `ALQUILER ${monthLabel(period)}`, amount: Math.round(info.amountToday) });
-  });
+  const missing = getMissingPayments(tenant); // ya viene ordenado del mas viejo al mas nuevo
+  if (missing.length) {
+    const closedPeriods = missing.slice(0, -1);
+    const currentPeriod = missing[missing.length - 1];
+    const coef = tenant.late_coefficient || 0;
 
+    // Los meses que ya quedaron totalmente atras se cierran a su ultimo
+    // vencimiento (el mes ya paso entero, no hay forma de pagarlo antes).
+    let closedTotal = 0;
+    closedPeriods.forEach(period => {
+      const base = getRentAmountForPeriod(tenant, period);
+      const [y, m] = period.split('-').map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      closedTotal += base * (1 + (coef / 100) * daysInMonth);
+    });
+
+    // El mes mas reciente (el actual) calcula sus 3 vencimientos sobre el
+    // capital total: lo que ya se debia de antes, mas el alquiler de este mes.
+    const currentBase = getRentAmountForPeriod(tenant, currentPeriod);
+    const [cy, cm] = currentPeriod.split('-').map(Number);
+    const daysInCurrentMonth = new Date(cy, cm, 0).getDate();
+    const principal = closedTotal + currentBase;
+    const tier1 = principal;
+    const tier2 = principal * (1 + (coef / 100) * 20);
+    const tier3 = principal * (1 + (coef / 100) * daysInCurrentMonth);
+
+    const today = new Date();
+    const periodDate = new Date(cy, cm - 1, 1);
+    const isCurrentCalendarMonth = today.getFullYear() === cy && today.getMonth() === cm - 1;
+    const dayReference = periodDate > today ? 1 : (isCurrentCalendarMonth ? today.getDate() : (daysInCurrentMonth + 1));
+    const amountToday = dayReference <= 10 ? tier1 : dayReference <= 20 ? tier2 : tier3;
+
+    const label = closedPeriods.length
+      ? `ALQUILER ADEUDADO (${monthLabel(missing[0])} a ${monthLabel(currentPeriod)})`
+      : `ALQUILER ${monthLabel(currentPeriod)}`;
+
+    items.push({
+      concept: label, amount: Math.round(amountToday), hasTiers: true,
+      tier1: Math.round(tier1), tier2: Math.round(tier2), tier3: Math.round(tier3),
+    });
+  }
+
+  // Cargos de otros conceptos (ej: expensas) que ya vencieron y siguen sin
+  // pagarse del todo. Si un cargo tiene fecha de vencimiento futura, no se
+  // incluye todavia (no esta vencido). Si el cargo tiene una tasa de interes
+  // cargada, tambien se le calculan sus propios 3 vencimientos (dia 10, dia
+  // 20 y fin del mes de su fecha de vencimiento), igual que el alquiler.
+  const today = new Date().toISOString().slice(0, 10);
   const { data: charges } = await supabase.from('collections_charges').select('*').eq('tenant_id', tenant.id);
   (charges || []).forEach(c => {
+    if (c.due_date && c.due_date > today) return; // todavia no vence
     const paid = (c.payments || []).reduce((s, p) => s + p.amount, 0);
     const pending = Number(c.amount) - paid;
-    if (pending > 0.01) {
-      items.push({ concept: `${c.concept}${c.label ? ' — ' + c.label : ''}`, amount: Math.round(pending) });
+    if (pending <= 0.01) return;
+    const concept = `${c.concept}${c.label ? ' — ' + c.label : ''}`;
+
+    if (c.due_date && c.late_coefficient) {
+      const dueDate = new Date(c.due_date + 'T00:00:00');
+      const y = dueDate.getFullYear(), m = dueDate.getMonth() + 1;
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const coef = c.late_coefficient;
+      const tier1 = pending;
+      const tier2 = pending * (1 + (coef / 100) * 20);
+      const tier3 = pending * (1 + (coef / 100) * daysInMonth);
+      const now = new Date();
+      const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m - 1;
+      const dayReference = isCurrentMonth ? now.getDate() : (daysInMonth + 1);
+      const amountToday = dayReference <= 10 ? tier1 : dayReference <= 20 ? tier2 : tier3;
+      items.push({
+        concept, amount: Math.round(amountToday), hasTiers: true,
+        tier1: Math.round(tier1), tier2: Math.round(tier2), tier3: Math.round(tier3),
+      });
+    } else {
+      items.push({ concept, amount: Math.round(pending), hasTiers: false });
     }
   });
   return items;
@@ -103,13 +154,31 @@ async function getSiteConfig() {
 
 // Arma el HTML del detalle de pago, con el mismo estilo del modelo en Word
 // (encabezado con datos de la inmobiliaria, nombre, propiedad, detalle en
-// lista, y el texto fijo de abajo sobre como pagar).
+// lista, y el texto fijo de abajo sobre como pagar). Cada mes de alquiler
+// muestra los 3 vencimientos posibles, para que el inquilino sepa cuanto
+// le sale segun cuando pague.
 function buildDetailHtml({ tenantName, propertyLabel, items, config, currency }) {
   const total = items.reduce((s, i) => s + i.amount, 0);
   const money = n => `${currency || 'ARS'} ${Number(n).toLocaleString('es-AR')}`;
   const logoImg = config.logo_image ? `<img src="${config.logo_image}" alt="logo" style="width:90px;height:90px;object-fit:contain">` : '';
+  const itemsHtml = items.map(i => {
+    if (i.hasTiers) {
+      return `<li style="margin-bottom:10px">
+        <div>${i.concept}</div>
+        <table style="width:100%;font-size:12px;margin-top:4px;border-collapse:collapse">
+          <tr>
+            <td style="padding:4px 8px;background:#f3f3f3;border:1px solid #ddd">Hasta el día 10<br><strong>${money(i.tier1)}</strong></td>
+            <td style="padding:4px 8px;background:#f3f3f3;border:1px solid #ddd">Hasta el día 20<br><strong>${money(i.tier2)}</strong></td>
+            <td style="padding:4px 8px;background:#f3f3f3;border:1px solid #ddd">Después del 20<br><strong>${money(i.tier3)}</strong></td>
+          </tr>
+        </table>
+      </li>`;
+    }
+    return `<li style="margin-bottom:4px">${i.concept}: <strong>${money(i.amount)}</strong></li>`;
+  }).join('');
   return `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+    <meta charset="utf-8">
     <table style="width:100%;border:2px solid #000;border-collapse:collapse">
       <tr>
         <td style="padding:16px;vertical-align:top">
@@ -128,10 +197,11 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency })
         <div style="font-size:13px;margin-bottom:6px">Nombre: <strong>${tenantName}</strong></div>
         <div style="font-size:13px;margin-bottom:10px">Propiedad: <strong>${propertyLabel}</strong></div>
         <div style="font-size:13px;margin-bottom:6px">Detalle:</div>
-        <ul style="font-size:13px;margin:0 0 10px 20px;padding:0">
-          ${items.map(i => `<li style="margin-bottom:4px">${i.concept}: <strong>${money(i.amount)}</strong></li>`).join('')}
+        <ul style="font-size:13px;margin:0 0 10px 20px;padding:0;list-style:none">
+          ${itemsHtml}
         </ul>
-        <div style="font-size:14px;font-weight:700;border-top:1px solid #ccc;padding-top:8px">TOTAL A PAGAR: ${money(total)}</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">* El monto de alquiler depende de la fecha en que se realice el pago, según el vencimiento correspondiente.</div>
+        <div style="font-size:14px;font-weight:700;border-top:1px solid #ccc;padding-top:8px">TOTAL A PAGAR HOY: ${money(total)}</div>
       </td></tr>
     </table>
     <table style="width:100%;border:2px solid #000;border-top:none;border-collapse:collapse">
