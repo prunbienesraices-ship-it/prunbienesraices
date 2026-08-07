@@ -1343,7 +1343,7 @@ async function loadTenants(){
         end_date_display: new Date(t.end_date).toLocaleDateString('es-AR'),
         status_display: statusText[status],
         payment_status: missing.length ? `${missing.length} mes(es) sin pagar` : 'Al día' };
-      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
+      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick="sendPaymentDetail(${t.id})">Enviar detalle de pago</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
       return `
       <tr data-branch-id="${branchIdForProperty(t.property_id)}">
         <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto actual",contract_total_display:"Monto total contrato",end_date_display:"Fin",status_display:"Estado",payment_status:"Pagos",dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
@@ -1499,6 +1499,20 @@ async function downloadContract(id){
     const match = disposition.match(/filename="(.+)"/);
     link.download = match ? match[1] : 'contrato.docx';
     link.click();
+  }catch(err){ toast(err.message); }
+}
+async function sendPaymentDetail(tenantId){
+  // Primero muestra una vista previa (sin mandar nada), y recien si el
+  // usuario confirma, lo manda por mail de verdad.
+  try{
+    const preview = await api(`/payment-detail/tenants/${tenantId}`);
+    if(!preview.items.length){ toast('Este inquilino no tiene nada pendiente de pago.'); return; }
+    const lines = preview.items.map(i => `• ${i.concept}: ${preview.currency} ${i.amount.toLocaleString('es-AR')}`).join('\n');
+    const ok = confirm(`Se va a enviar este detalle a ${preview.tenantEmail}:\n\n${lines}\n\nTOTAL: ${preview.currency} ${preview.total.toLocaleString('es-AR')}\n\n¿Confirmás el envío?`);
+    if(!ok) return;
+    toast('Enviando...');
+    await api(`/payment-detail/tenants/${tenantId}/send`, { method:'POST' });
+    toast('Detalle de pago enviado por mail.');
   }catch(err){ toast(err.message); }
 }
 
