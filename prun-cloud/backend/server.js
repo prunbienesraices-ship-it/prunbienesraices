@@ -30,6 +30,7 @@ const myExpensasRoutes = require('./routes/my-expensas.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const branchesRoutes = require('./routes/branches.routes');
 const contractRoutes = require('./routes/contract.routes');
+const paymentDetailRoutes = require('./routes/payment-detail.routes');
 const contractTemplateRoutes = require('./routes/contract-template.routes');
 const { DEFAULT_CONTRACT_TEMPLATE } = require('./default-contract-template');
 
@@ -58,7 +59,7 @@ app.use(express.static(path.join(__dirname, '..', 'frontend'), {
 // que nunca traiga una copia vieja guardada, sin tener que acordarse de
 // cambiar nada a mano. Usar https://.../panel en vez de admin.html directo.
 app.get('/panel', (req, res) => {
-  res.redirect(`/admin.html?v=${Date.now()}`);
+  res.redirect(`/admin-nuevo.html?v=${Date.now()}`);
 });
 
 // Restriccion de permisos por rol, valida para todas las rutas /api/*.
@@ -108,6 +109,7 @@ app.use('/api/my-expensas', myExpensasRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/branches', branchesRoutes);
 app.use('/api/contract', contractRoutes);
+app.use('/api/payment-detail', paymentDetailRoutes);
 app.use('/api/contract-template', contractTemplateRoutes);
 
 app.get('/api/health', (req, res) => {
