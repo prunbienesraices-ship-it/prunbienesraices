@@ -580,6 +580,11 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Banco</label><input type="text" id="o-bank"></div>
         <div class="form-row"><label>Forma de pago</label><select id="o-payment-method"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></div>
       </div>
+      <div class="section-label"><span>Comisión por el servicio (se descuenta en el detalle de pago de este propietario)</span></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Tipo</label><select id="o-commission-type"><option value="percentage">Porcentaje del alquiler</option><option value="fixed">Monto fijo</option></select></div>
+        <div class="form-row"><label id="o-commission-label">Porcentaje (%)</label><input type="number" id="o-commission" min="0" step="0.01" value="0"></div>
+      </div>
       <div class="form-row"><label>Detalle (notas adicionales)</label><textarea id="o-notes" rows="3"></textarea></div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('owner-modal')">Cancelar</button></div>
     </form>
@@ -1516,6 +1521,18 @@ async function sendPaymentDetail(tenantId){
     toast('Detalle de pago enviado por mail.');
   }catch(err){ toast(err.message); }
 }
+async function sendOwnerPaymentDetail(ownerId){
+  try{
+    const preview = await api(`/payment-detail/owners/${ownerId}`);
+    if(!preview.items.length){ toast('Este propietario no tiene propiedades con inquilino activo.'); return; }
+    const lines = preview.items.map(i => `• ${i.propertyLabel}: cobrado ${i.rent.toLocaleString('es-AR')}, ${i.commissionLabel} -${i.commission.toLocaleString('es-AR')}, neto ${i.net.toLocaleString('es-AR')}`).join('\n');
+    const ok = confirm(`Se va a enviar este detalle a ${preview.ownerEmail}:\n\n${lines}\n\nTOTAL NETO: ${preview.total.toLocaleString('es-AR')}\n\n¿Confirmás el envío?`);
+    if(!ok) return;
+    toast('Enviando...');
+    await api(`/payment-detail/owners/${ownerId}/send`, { method:'POST' });
+    toast('Detalle de pago enviado por mail.');
+  }catch(err){ toast(err.message); }
+}
 
 async function openPaymentsModal(tenantId){
   const t = await api(`/tenants/${tenantId}`);
@@ -1744,7 +1761,7 @@ async function loadOwners(){
   try{
     ALL_OWNERS = await api('/owners');
     tbody.innerHTML = ALL_OWNERS.length ? ALL_OWNERS.map(o => {
-      const actionsHtml = `<button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button>`;
+      const actionsHtml = `<button onclick="sendOwnerPaymentDetail(${o.id})">Enviar detalle de pago</button><button onclick='openOwnerModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteOwner(${o.id})">Borrar</button>`;
       return `
       <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(o).replace(/'/g,"&#39;")}, {dni:"DNI",cuit:"CUIT",phone:"Teléfono",email:"Email",address:"Dirección",cbu:"CBU",alias:"Alias",bank:"Banco",payment_method:"Forma de pago",iva:"IVA",monotributo:"Monotributo",notes:"Detalle"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${o.name}</td></tr>`;
@@ -1766,8 +1783,16 @@ function openOwnerModal(o){
   document.getElementById('o-alias').value = o ? (o.alias||'') : '';
   document.getElementById('o-bank').value = o ? (o.bank||'') : '';
   document.getElementById('o-payment-method').value = o ? o.payment_method : 'transferencia';
+  document.getElementById('o-commission-type').value = o ? (o.commission_type||'percentage') : 'percentage';
+  document.getElementById('o-commission').value = o ? (o.commission_withholding||0) : 0;
+  updateCommissionLabel();
   document.getElementById('owner-modal').classList.add('active');
 }
+function updateCommissionLabel(){
+  const type = document.getElementById('o-commission-type').value;
+  document.getElementById('o-commission-label').textContent = type === 'fixed' ? 'Monto fijo ($)' : 'Porcentaje (%)';
+}
+document.getElementById('o-commission-type').addEventListener('change', updateCommissionLabel);
 document.getElementById('owner-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('o-id').value;
@@ -1775,7 +1800,8 @@ document.getElementById('owner-form').addEventListener('submit', async e=>{
     address: document.getElementById('o-address').value, notes: document.getElementById('o-notes').value,
     cuit: document.getElementById('o-cuit').value, phone: document.getElementById('o-phone').value, email: document.getElementById('o-email').value,
     cbu: document.getElementById('o-cbu').value, alias: document.getElementById('o-alias').value, bank: document.getElementById('o-bank').value,
-    payment_method: document.getElementById('o-payment-method').value };
+    payment_method: document.getElementById('o-payment-method').value,
+    commission_type: document.getElementById('o-commission-type').value, commission_withholding: document.getElementById('o-commission').value };
   try{
     if(id) await api(`/owners/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     else await api('/owners', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});

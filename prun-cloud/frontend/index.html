@@ -342,7 +342,7 @@ function refreshUserNav(){
     document.getElementById('nav-owner-btn').style.display = SITE_USER.role === 'owner' ? 'inline-block' : 'none';
     document.getElementById('nav-tenant-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
     document.getElementById('nav-expensas-btn').style.display = (SITE_USER.role === 'owner' || SITE_USER.role === 'tenant') ? 'inline-block' : 'none';
-    document.getElementById('nav-detail-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
+    document.getElementById('nav-detail-btn').style.display = (SITE_USER.role === 'tenant' || SITE_USER.role === 'owner') ? 'inline-block' : 'none';
     document.getElementById('nav-payments-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
   } else {
     document.getElementById('nav-guest').style.display = 'inline';
@@ -460,12 +460,19 @@ async function openMyPaymentDetail(){
   document.getElementById('payment-detail-modal').classList.add('active');
   const box = document.getElementById('payment-detail-content');
   box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  const isOwner = SITE_USER.role === 'owner';
+  const endpoint = isOwner ? 'owner-portal/payment-detail' : 'tenant-portal/payment-detail';
   try{
-    const res = await fetch(`${API}/tenant-portal/payment-detail`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const res = await fetch(`${API}/${endpoint}`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Error al buscar tu detalle de pago.');
-    if(!data.hasContract){ box.innerHTML = '<p style="color:var(--gray)">No encontramos un contrato de alquiler asociado a tu cuenta.</p>'; return; }
-    if(!data.items.length){ box.innerHTML = '<p style="color:var(--green)">✅ No tenés nada pendiente de pago. ¡Estás al día!</p>'; return; }
+    if(isOwner){
+      if(!data.isOwner){ box.innerHTML = '<p style="color:var(--gray)">No encontramos tu ficha de propietario.</p>'; return; }
+      if(!data.items.length){ box.innerHTML = '<p style="color:var(--gray)">Todavía no hay nada para mostrar (sin propiedades con inquilino activo).</p>'; return; }
+    } else {
+      if(!data.hasContract){ box.innerHTML = '<p style="color:var(--gray)">No encontramos un contrato de alquiler asociado a tu cuenta.</p>'; return; }
+      if(!data.items.length){ box.innerHTML = '<p style="color:var(--green)">✅ No tenés nada pendiente de pago. ¡Estás al día!</p>'; return; }
+    }
     box.innerHTML = data.html;
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
