@@ -67,6 +67,7 @@ router.post('/', requireAuth, upload.array('photos', 20), async (req, res) => {
       photos: photoUrls, amenities: b.amenities ? JSON.parse(b.amenities) : [],
       owner_id: b.owner_id ? Number(b.owner_id) : null,
       branch_id: b.branch_id ? Number(b.branch_id) : null,
+      development_id: b.development_id ? Number(b.development_id) : null,
       services: b.services ? JSON.parse(b.services) : {},
       composition: b.composition || '',
       inventory: b.inventory ? JSON.parse(b.inventory) : [],
@@ -99,6 +100,7 @@ router.put('/:id', requireAuth, upload.array('photos', 20), async (req, res) => 
     });
     if (b.owner_id !== undefined) updates.owner_id = b.owner_id ? Number(b.owner_id) : null;
     if (b.branch_id !== undefined) updates.branch_id = b.branch_id ? Number(b.branch_id) : null;
+    if (b.development_id !== undefined) updates.development_id = b.development_id ? Number(b.development_id) : null;
     if (b.featured !== undefined) updates.featured = b.featured === 'true' || b.featured === true;
     if (b.amenities !== undefined) updates.amenities = JSON.parse(b.amenities);
     if (b.services !== undefined) updates.services = JSON.parse(b.services);
