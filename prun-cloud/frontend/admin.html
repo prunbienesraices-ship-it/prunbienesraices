@@ -187,15 +187,21 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <div class="page-head" style="margin-top:36px">
       <h2 style="font-size:20px">Cobros del mes actual</h2>
     </div>
-    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Alquileres del mes en curso, actualizados al día de hoy (incluye mora si corresponde). Se recalcula solo cada vez que entrás a esta sección.</p>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Alquileres y expensas, actualizados al día de hoy (incluye mora si corresponde). Se recalcula solo cada vez que entrás a esta sección.</p>
     <div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap">
-      <div><div style="font-size:22px;font-weight:900" id="rc-total-esperado">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Total a cobrar este mes</div></div>
-      <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-total-debido">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Todavía adeudado (con mora)</div></div>
-      <div><div style="font-size:22px;font-weight:900" id="rc-count-debe">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Inquilinos que deben</div></div>
+      <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-rent-pending-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Alquileres pendientes</div></div>
+      <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-exp-pending-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Expensas pendientes</div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn rc-tab-btn" data-tab="rentPending" onclick="switchRentCollectionTab('rentPending')" style="padding:8px 14px">Alquileres pendientes</button>
+      <button class="btn rc-tab-btn" data-tab="rentPaid" onclick="switchRentCollectionTab('rentPaid')" style="padding:8px 14px;background:#fff;color:var(--black)">Alquileres abonados</button>
+      <button class="btn rc-tab-btn" data-tab="expensasPending" onclick="switchRentCollectionTab('expensasPending')" style="padding:8px 14px;background:#fff;color:var(--black)">Expensas pendientes</button>
+      <button class="btn rc-tab-btn" data-tab="expensasPaid" onclick="switchRentCollectionTab('expensasPaid')" style="padding:8px 14px;background:#fff;color:var(--black)">Expensas abonadas</button>
+      <button class="btn rc-tab-btn" data-tab="all" onclick="switchRentCollectionTab('all')" style="padding:8px 14px;background:#fff;color:var(--black)">Todo (abonados y no abonados)</button>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="rentcol-tbody-search" placeholder="🔎 Buscar por inquilino, propiedad..." oninput="filterTable(this.value,'rentcol-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="rentcol-tbody"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th></th><th>Inquilino</th></tr></thead>
+      <thead><tr id="rentcol-thead"><th></th><th>Inquilino</th></tr></thead>
       <tbody id="rentcol-tbody"></tbody>
     </table></div>
 
@@ -1982,48 +1988,76 @@ async function deleteDeal(id){ if(!confirm('¿Borrar?')) return; try{ await api(
 // Calcula, para cada inquilino activo, cuánto se le debe cobrar este mes y
 // si tiene meses atrasados, actualizando el monto al día de hoy (con mora
 // si corresponde). Reutiliza toda la lógica de vencimientos que ya existe.
+let RENT_COLLECTION_REPORT = null;
+let RENT_COLLECTION_TAB = 'rentPending';
+
 async function loadRentCollection(){
   const tbody = document.getElementById('rentcol-tbody');
+  tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Cargando...</td></tr>';
   try{
-    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
-    const list = await api('/tenants');
-    let totalEsperado = 0, totalDebido = 0, countDebe = 0;
-    const rows = list.filter(t => computeTenantStatus(t) !== 'rescindido').map(t => {
-      const prop = ALL_PROPERTIES.find(p=>p.id===t.property_id);
-      const missing = getMissingPayments(t);
-      const rentNow = getCurrentRentAmount(t);
-      totalEsperado += rentNow;
-      let owedToday = 0, maxDaysLate = 0, worstTierLabel = '';
-      missing.forEach(period => {
-        const info = getLivePaymentInfo(t, period);
-        owedToday += info.amountToday;
-        if(info.tierDays >= maxDaysLate){ maxDaysLate = info.tierDays; worstTierLabel = info.tierLabel; }
-      });
-      if(missing.length){ totalDebido += owedToday; countDebe++; }
-      return { t, prop, missing, rentNow, owedToday, maxDaysLate, worstTierLabel };
-    }).sort((a,b) => b.owedToday - a.owedToday); // los que mas deben, primero
-
-    document.getElementById('rc-total-esperado').textContent = `$${Math.round(totalEsperado).toLocaleString('es-AR')}`;
-    document.getElementById('rc-total-debido').textContent = `$${Math.round(totalDebido).toLocaleString('es-AR')}`;
-    document.getElementById('rc-count-debe').textContent = countDebe;
-
-    tbody.innerHTML = rows.length ? rows.map(r => {
-      const { t, prop, missing, rentNow, owedToday, maxDaysLate, worstTierLabel } = r;
-      const alDia = missing.length === 0;
-      const detailObj = {
-        property_name: prop?prop.title:'-',
-        rent_display: `${t.currency} ${Number(rentNow).toLocaleString('es-AR')}`,
-        missing_periods: missing.length ? missing.join(', ') : 'Ninguno',
-        tier_display: worstTierLabel || '-',
-        owed_display: missing.length ? `${t.currency} ${Math.round(owedToday).toLocaleString('es-AR')}` : '$0',
-        status_display: alDia ? 'Al día' : `Debe ${missing.length} mes(es)`,
-      };
-      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Ver pagos</button>`;
-      const rowStyle = alDia ? '' : (maxDaysLate > 10 ? 'background:#fdeaea' : 'background:#fff8e1');
-      return `<tr style="${rowStyle}" data-branch-id="${branchIdForProperty(t.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto del mes",missing_periods:"Meses pendientes",tier_display:"Vencimiento",owed_display:"Total a cobrar hoy",status_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
-      <td>${t.name}${alDia?' ✅':' 🔴'}</td></tr>`;
-    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">No hay inquilinos activos.</td></tr>';
+    RENT_COLLECTION_REPORT = await api('/payment-detail/collections-report');
+    const rentTotal = RENT_COLLECTION_REPORT.rentPending.reduce((s,r)=>s+r.amount,0);
+    const expTotal = RENT_COLLECTION_REPORT.expensasPending.reduce((s,r)=>s+r.amount,0);
+    document.getElementById('rc-rent-pending-total').textContent = `$${Math.round(rentTotal).toLocaleString('es-AR')}`;
+    document.getElementById('rc-exp-pending-total').textContent = `$${Math.round(expTotal).toLocaleString('es-AR')}`;
+    switchRentCollectionTab(RENT_COLLECTION_TAB);
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+// Cambia entre las 5 vistas: alquileres/expensas x pendientes/abonados, y
+// "todo" junto (marcando cual esta pagado y cual no).
+function switchRentCollectionTab(tab){
+  RENT_COLLECTION_TAB = tab;
+  document.querySelectorAll('.rc-tab-btn').forEach(b=>{
+    const active = b.dataset.tab === tab;
+    b.style.background = active ? '' : '#fff';
+    b.style.color = active ? '' : 'var(--black)';
+  });
+  const tbody = document.getElementById('rentcol-tbody');
+  const thead = document.getElementById('rentcol-thead');
+  if(!RENT_COLLECTION_REPORT){ tbody.innerHTML = ''; return; }
+  const r = RENT_COLLECTION_REPORT;
+
+  const money = row => `${row.currency} ${Math.round(row.amount).toLocaleString('es-AR')}`;
+  const rowHtml = (row, conceptLabel, estadoLabel, estadoColor) => {
+    const detailObj = {
+      property_name: row.propertyName,
+      edificio: row.developmentName || '-',
+      periodo: row.periodLabel,
+      monto: money(row),
+      estado: estadoLabel,
+    };
+    const actionsHtml = `<button onclick="openPaymentsModal(${row.tenantId})">Ver pagos</button><button onclick="sendPaymentDetail(${row.tenantId})">Enviar detalle de pago</button>`;
+    return `<tr data-branch-id="${row.branchId||''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 3, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",edificio:"Edificio",periodo:"Período",monto:"Monto",estado:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${row.tenantName} — ${conceptLabel} ${row.periodLabel}</td>
+      <td style="color:${estadoColor};font-weight:700;white-space:nowrap">${estadoLabel}</td></tr>`;
+  };
+
+  if(tab === 'all'){
+    thead.innerHTML = '<th></th><th>Inquilino</th><th>Estado</th>';
+    const combined = [
+      ...r.rentPending.map(x=>({...x, tipo:'Alquiler', estado:'Pendiente', color:'var(--red)'})),
+      ...r.rentPaid.map(x=>({...x, tipo:'Alquiler', estado:'Abonado', color:'var(--green)'})),
+      ...r.expensasPending.map(x=>({...x, tipo:'Expensas', estado:'Pendiente', color:'var(--red)'})),
+      ...r.expensasPaid.map(x=>({...x, tipo:'Expensas', estado:'Abonado', color:'var(--green)'})),
+    ];
+    tbody.innerHTML = combined.length ? combined.map(row => rowHtml(row, row.tipo, row.estado, row.color)).join('')
+      : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:20px">Sin datos.</td></tr>';
+    return;
+  }
+
+  thead.innerHTML = '<th></th><th>Inquilino</th>';
+  const map = {
+    rentPending: { list: r.rentPending, concept: 'Alquiler', estado: 'Pendiente', color: 'var(--red)' },
+    rentPaid: { list: r.rentPaid, concept: 'Alquiler', estado: 'Abonado', color: 'var(--green)' },
+    expensasPending: { list: r.expensasPending, concept: 'Expensas', estado: 'Pendiente', color: 'var(--red)' },
+    expensasPaid: { list: r.expensasPaid, concept: 'Expensas', estado: 'Abonado', color: 'var(--green)' },
+  }[tab];
+  tbody.innerHTML = map.list.length ? map.list.map(row => {
+    const detailObj = { property_name: row.propertyName, edificio: row.developmentName || '-', periodo: row.periodLabel, monto: money(row) };
+    const actionsHtml = `<button onclick="openPaymentsModal(${row.tenantId})">Ver pagos</button><button onclick="sendPaymentDetail(${row.tenantId})">Enviar detalle de pago</button>`;
+    return `<tr data-branch-id="${row.branchId||''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",edificio:"Edificio",periodo:"Período",monto:"Monto"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${row.tenantName} — ${map.concept} ${row.periodLabel} <span style="color:${map.color};font-weight:700">(${map.estado})</span></td></tr>`;
+  }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin registros en esta vista.</td></tr>';
 }
 async function loadCharges(){
   const tbody = document.getElementById('charge-tbody');
