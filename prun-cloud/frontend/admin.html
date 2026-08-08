@@ -335,6 +335,18 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     </div>
   </div>
 
+  <div id="payment-detail-template-section" style="display:none">
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Modelo de detalle de pago</h2>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:820px">
+      <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Estas son las notas que aparecen al final del "Detalle de pago" que reciben inquilinos y propietarios (por mail y online). El logo, dirección, teléfono y email de arriba se editan en "Apariencia del sitio". Podés agregar, borrar o editar cualquier nota. Usá el código <code>{{EMAIL}}</code> donde quieras que aparezca el mail de contacto como link, sin escribirlo a mano.</p>
+      <div id="pdt-notes-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+      <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="addPaymentDetailNoteRow('')">+ Agregar nota</button>
+      <button class="btn" type="button" style="width:100%;margin-top:16px" onclick="savePaymentDetailTemplate()">Guardar modelo de detalle de pago</button>
+    </div>
+  </div>
+
   <div id="apariencia-section" style="display:none">
     <div class="page-head" style="margin-top:36px">
       <h2 style="font-size:20px">Apariencia del sitio</h2>
@@ -938,7 +950,8 @@ async function startApp(){
     document.getElementById('apariencia-section').style.display = 'block';
     document.getElementById('staff-section').style.display = 'block';
     document.getElementById('contract-template-section').style.display = 'block';
-    loadSiteConfig(); loadStaff(); loadBranches(); loadContractTemplate();
+    document.getElementById('payment-detail-template-section').style.display = 'block';
+    loadSiteConfig(); loadStaff(); loadBranches(); loadContractTemplate(); loadPaymentDetailTemplate();
   }
   applyRolePermissions();
   addExportButtonsToAllTables();
@@ -2278,6 +2291,34 @@ async function saveContractTemplate(){
   try{
     await api('/contract-template', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     toast('Modelo de contrato guardado.');
+  }catch(err){ toast(err.message); }
+}
+// =====================================================================
+// MODELO DE DETALLE DE PAGO (solo Administrador puede editarlo)
+// =====================================================================
+function addPaymentDetailNoteRow(text){
+  const list = document.getElementById('pdt-notes-list');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:flex-start';
+  row.innerHTML = `
+    <textarea class="pdt-note-text" rows="2" style="flex:1" placeholder="Ej: LOS PAGOS NO PUEDEN SER PARCIALES...">${text||''}</textarea>
+    <button type="button" class="btn" style="background:#fff;color:var(--red);padding:9px 12px" onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(row);
+}
+async function loadPaymentDetailTemplate(){
+  try{
+    const t = await api('/payment-detail-template');
+    document.getElementById('pdt-notes-list').innerHTML = '';
+    (t.footer_notes || []).forEach(n => addPaymentDetailNoteRow(n));
+    if(!t.footer_notes || !t.footer_notes.length) addPaymentDetailNoteRow('');
+  }catch(err){ toast('No pudimos cargar el modelo de detalle de pago.'); }
+}
+async function savePaymentDetailTemplate(){
+  const notes = Array.from(document.querySelectorAll('.pdt-note-text')).map(t=>t.value.trim()).filter(Boolean);
+  try{
+    await api('/payment-detail-template', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ footer_notes: notes }) });
+    toast('Modelo de detalle de pago guardado.');
   }catch(err){ toast(err.message); }
 }
 async function loadSiteConfig(){
