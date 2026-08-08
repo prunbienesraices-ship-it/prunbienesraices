@@ -484,7 +484,8 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 
       <div class="section-label">Datos del inquilino</div>
       <div class="form-grid">
-        <div class="form-row"><label>Nombre completo</label><input type="text" id="t-name" required></div>
+        <div class="form-row"><label>Nombre completo</label><input type="text" id="t-name" list="tenant-name-datalist" oninput="autofillTenantFromDirectory(this)" required></div>
+        <datalist id="tenant-name-datalist"></datalist>
         <div class="form-row"><label>DNI</label><input type="text" id="t-dni"></div>
         <div class="form-row"><label>Teléfono</label><input type="tel" id="t-phone"></div>
         <div class="form-row"><label>Email</label><input type="email" id="t-email"></div>
@@ -1446,6 +1447,7 @@ async function showOwnerForProperty(){
 async function openTenantModal(t){
   document.getElementById('tenant-modal-title').textContent = t ? 'Editar contrato' : 'Nuevo contrato';
   document.getElementById('t-id').value = t ? t.id : '';
+  refreshTenantNameDatalist();
 
   try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){}
   const sel = document.getElementById('t-property');
@@ -1518,6 +1520,32 @@ function autofillGuarantorRow(nameInput){
 function refreshGuarantorsDatalist(){
   const dl = document.getElementById('guarantors-datalist');
   if(dl) dl.innerHTML = ALL_GUARANTORS.map(g => `<option value="${g.name}">`).join('');
+}
+// Arma la lista de sugerencias del nombre en "Nuevo contrato", combinando
+// inquilinos YA cargados y garantes YA cargados (marcados como "(Garante)"
+// para diferenciarlos), asi una misma persona se puede convertir en
+// inquilino facilmente sin volver a tipear sus datos.
+function refreshTenantNameDatalist(){
+  const dl = document.getElementById('tenant-name-datalist');
+  if(!dl) return;
+  const tenantNames = (ALL_TENANTS_CACHE||[]).map(t => `<option value="${t.name}">`);
+  const guarantorNames = (ALL_GUARANTORS||[]).map(g => `<option value="${g.name} (Garante)">`);
+  dl.innerHTML = tenantNames.join('') + guarantorNames.join('');
+}
+// Si el nombre elegido corresponde a un garante ya cargado, completa DNI,
+// teléfono y email del inquilino con los datos de ese garante, y limpia el
+// "(Garante)" del campo para que quede solo el nombre.
+function autofillTenantFromDirectory(input){
+  const raw = input.value;
+  if(!raw.endsWith(' (Garante)')) return;
+  const name = raw.slice(0, -' (Garante)'.length);
+  const match = ALL_GUARANTORS.find(g => g.name === name);
+  if(!match) return;
+  input.value = name;
+  document.getElementById('t-dni').value = match.dni || '';
+  document.getElementById('t-phone').value = match.phone || '';
+  document.getElementById('t-email').value = match.email || '';
+  toast('Datos del garante completados — revisá y completá el resto del contrato.');
 }
 function collectGuarantors(){
   return Array.from(document.querySelectorAll('#guarantors-list .dyn-row')).map(r => ({
