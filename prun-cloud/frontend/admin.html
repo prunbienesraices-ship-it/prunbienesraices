@@ -202,12 +202,15 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <div style="display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap">
       <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-rent-pending-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Alquileres pendientes</div></div>
       <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-exp-pending-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Expensas pendientes</div></div>
+      <div><div style="font-size:22px;font-weight:900;color:var(--red)" id="rc-other-pending-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Otros cargos pendientes</div></div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       <button class="btn rc-tab-btn" data-tab="rentPending" onclick="switchRentCollectionTab('rentPending')" style="padding:8px 14px">Alquileres pendientes</button>
       <button class="btn rc-tab-btn" data-tab="rentPaid" onclick="switchRentCollectionTab('rentPaid')" style="padding:8px 14px;background:#fff;color:var(--black)">Alquileres abonados</button>
       <button class="btn rc-tab-btn" data-tab="expensasPending" onclick="switchRentCollectionTab('expensasPending')" style="padding:8px 14px;background:#fff;color:var(--black)">Expensas pendientes</button>
       <button class="btn rc-tab-btn" data-tab="expensasPaid" onclick="switchRentCollectionTab('expensasPaid')" style="padding:8px 14px;background:#fff;color:var(--black)">Expensas abonadas</button>
+      <button class="btn rc-tab-btn" data-tab="otherPending" onclick="switchRentCollectionTab('otherPending')" style="padding:8px 14px;background:#fff;color:var(--black)">Otros cargos pendientes</button>
+      <button class="btn rc-tab-btn" data-tab="otherPaid" onclick="switchRentCollectionTab('otherPaid')" style="padding:8px 14px;background:#fff;color:var(--black)">Otros cargos abonados</button>
       <button class="btn rc-tab-btn" data-tab="all" onclick="switchRentCollectionTab('all')" style="padding:8px 14px;background:#fff;color:var(--black)">Todo (abonados y no abonados)</button>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="rentcol-tbody-search" placeholder="🔎 Buscar por inquilino, propiedad..." oninput="filterTable(this.value,'rentcol-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="rentcol-tbody"></div>
@@ -2150,8 +2153,10 @@ async function loadRentCollection(){
     RENT_COLLECTION_REPORT = await api('/payment-detail/collections-report');
     const rentTotal = RENT_COLLECTION_REPORT.rentPending.reduce((s,r)=>s+r.amount,0);
     const expTotal = RENT_COLLECTION_REPORT.expensasPending.reduce((s,r)=>s+r.amount,0);
+    const otherTotal = RENT_COLLECTION_REPORT.otherPending.reduce((s,r)=>s+r.amount,0);
     document.getElementById('rc-rent-pending-total').textContent = `$${Math.round(rentTotal).toLocaleString('es-AR')}`;
     document.getElementById('rc-exp-pending-total').textContent = `$${Math.round(expTotal).toLocaleString('es-AR')}`;
+    document.getElementById('rc-other-pending-total').textContent = `$${Math.round(otherTotal).toLocaleString('es-AR')}`;
     switchRentCollectionTab(RENT_COLLECTION_TAB);
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
@@ -2191,6 +2196,8 @@ function switchRentCollectionTab(tab){
       ...r.rentPaid.map(x=>({...x, tipo:'Alquiler', estado:'Abonado', color:'var(--green)'})),
       ...r.expensasPending.map(x=>({...x, tipo:'Expensas', estado:'Pendiente', color:'var(--red)'})),
       ...r.expensasPaid.map(x=>({...x, tipo:'Expensas', estado:'Abonado', color:'var(--green)'})),
+      ...r.otherPending.map(x=>({...x, tipo:'Otro cargo', estado:'Pendiente', color:'var(--red)'})),
+      ...r.otherPaid.map(x=>({...x, tipo:'Otro cargo', estado:'Abonado', color:'var(--green)'})),
     ];
     tbody.innerHTML = combined.length ? combined.map(row => rowHtml(row, row.tipo, row.estado, row.color)).join('')
       : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:20px">Sin datos.</td></tr>';
@@ -2203,6 +2210,8 @@ function switchRentCollectionTab(tab){
     rentPaid: { list: r.rentPaid, concept: 'Alquiler', estado: 'Abonado', color: 'var(--green)' },
     expensasPending: { list: r.expensasPending, concept: 'Expensas', estado: 'Pendiente', color: 'var(--red)' },
     expensasPaid: { list: r.expensasPaid, concept: 'Expensas', estado: 'Abonado', color: 'var(--green)' },
+    otherPending: { list: r.otherPending, concept: 'Otro cargo', estado: 'Pendiente', color: 'var(--red)' },
+    otherPaid: { list: r.otherPaid, concept: 'Otro cargo', estado: 'Abonado', color: 'var(--green)' },
   }[tab];
   tbody.innerHTML = map.list.length ? map.list.map(row => {
     const detailObj = { property_name: row.propertyName, edificio: row.developmentName || '-', periodo: row.periodLabel, monto: money(row) };
