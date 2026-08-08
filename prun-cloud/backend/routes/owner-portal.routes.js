@@ -88,7 +88,7 @@ router.post('/report', requireAuth, async (req, res) => {
 
 // El propietario ve online su propio detalle de pago (alquiler cobrado menos
 // la comisión del servicio, por cada una de sus propiedades).
-const { buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig } = require('../paymentDetail');
+const { buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes } = require('../paymentDetail');
 router.get('/payment-detail', requireAuth, async (req, res) => {
   try {
     const email = req.user.email;
@@ -98,7 +98,8 @@ router.get('/payment-detail', requireAuth, async (req, res) => {
     const items = await buildOwnerDetailItems(owner);
     const total = items.reduce((s, i) => s + i.net, 0);
     const config = await getSiteConfig();
-    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config });
+    const footerNotes = await getPaymentDetailNotes();
+    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config, footerNotes });
     res.json({ isOwner: true, items, total, html });
   } catch (err) {
     console.error(err);

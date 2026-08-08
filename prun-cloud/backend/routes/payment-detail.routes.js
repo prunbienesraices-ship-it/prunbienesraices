@@ -2,7 +2,7 @@
 const express = require('express');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
-const { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig } = require('../paymentDetail');
+const { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes } = require('../paymentDetail');
 const { sendMail } = require('../mailer');
 
 const router = express.Router();
@@ -43,10 +43,11 @@ router.post('/tenants/:id/send', requireAuth, async (req, res) => {
     if (!items.length) return res.status(400).json({ error: 'Este inquilino no tiene nada pendiente de pago — no hay nada para enviar.' });
 
     const config = await getSiteConfig();
+    const footerNotes = await getPaymentDetailNotes();
     const html = buildDetailHtml({
       tenantName: tenant.name,
       propertyLabel: property ? property.title : '-',
-      items, config, currency: tenant.currency || 'ARS',
+      items, config, currency: tenant.currency || 'ARS', footerNotes,
     });
     await sendMail({ to: tenant.email, subject: 'Detalle de pago — Prun Bienes Raíces', html });
     res.json({ ok: true });
@@ -81,7 +82,8 @@ router.post('/owners/:id/send', requireAuth, async (req, res) => {
     if (!items.length) return res.status(400).json({ error: 'Este propietario no tiene propiedades con inquilino activo — no hay nada para enviar.' });
 
     const config = await getSiteConfig();
-    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config });
+    const footerNotes = await getPaymentDetailNotes();
+    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config, footerNotes });
     await sendMail({ to: owner.email, subject: 'Detalle de pago — Prun Bienes Raíces', html });
     res.json({ ok: true });
   } catch (err) {
