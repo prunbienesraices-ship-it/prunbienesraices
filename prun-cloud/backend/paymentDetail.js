@@ -396,4 +396,68 @@ function buildOwnerDetailHtml({ ownerName, items, config, footerNotes, headerLin
   </div></body></html>`;
 }
 
-module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus };
+// Arma el reporte completo de un inquilino, con el alquiler y las expensas
+// SEPARADOS, uno por período individual (no en cascada como el detalle de
+// pago), para poder listarlos por separado según pendiente/pagado.
+async function buildTenantCollectionsReport(tenant, property) {
+  const rentPending = [];
+  const rentPaid = [];
+  const expensasPending = [];
+  const expensasPaid = [];
+
+  // --- Alquiler ---
+  const missing = getMissingPayments(tenant);
+  missing.forEach(period => {
+    const base = getRentAmountForPeriod(tenant, period);
+    const [y, m] = period.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const coef = tenant.late_coefficient || 0;
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m - 1;
+    const dayReference = isCurrentMonth ? now.getDate() : (daysInMonth + 1);
+    const tier1 = base, tier2 = base * (1 + (coef / 100) * 20), tier3 = base * (1 + (coef / 100) * daysInMonth);
+    const amountToday = dayReference <= 10 ? tier1 : dayReference <= 20 ? tier2 : tier3;
+    rentPending.push({ period, periodLabel: monthLabel(period), amount: Math.round(amountToday), currency: tenant.currency || 'ARS' });
+  });
+  (tenant.payments || []).forEach(p => {
+    rentPaid.push({ period: p.period, periodLabel: monthLabel(p.period), amount: Math.round(p.amount), currency: tenant.currency || 'ARS', date: p.date || null });
+  });
+
+  // --- Expensas (si la propiedad pertenece a un edificio) ---
+  if (property && property.development_id) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const now = new Date();
+    const { data: expensasList } = await supabase.from('expensas').select('*').eq('development_id', property.development_id);
+    const { data: charges } = await supabase.from('collections_charges').select('*').eq('tenant_id', tenant.id);
+
+    (expensasList || []).forEach(ex => {
+      const periodDate = periodToDate(ex.period);
+      if (periodDate > now || periodDate < sixMonthsAgo || !Number(ex.total_amount)) return;
+
+      // Si ya existe un cargo de expensas para este inquilino en ese período,
+      // y está totalmente pagado, se cuenta como abonada.
+      const matchingCharge = (charges || []).find(c => /expensa/i.test(c.concept) && c.label === ex.period);
+      const paidOnCharge = matchingCharge ? (matchingCharge.payments || []).reduce((s, p) => s + p.amount, 0) : 0;
+      const chargeAmount = matchingCharge ? Number(matchingCharge.amount) : Number(ex.total_amount);
+      if (matchingCharge && paidOnCharge >= chargeAmount - 0.01) {
+        expensasPaid.push({ period: ex.period, periodLabel: monthLabel(ex.period), amount: Math.round(chargeAmount), currency: tenant.currency || 'ARS' });
+        return;
+      }
+
+      const [y, m] = ex.period.split('-').map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const coef = ex.late_coefficient || 0;
+      const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m - 1;
+      const dayReference = isCurrentMonth ? now.getDate() : (daysInMonth + 1);
+      const base = Number(ex.total_amount);
+      const tier1 = base, tier2 = base * (1 + (coef / 100) * 20), tier3 = base * (1 + (coef / 100) * daysInMonth);
+      const amountToday = dayReference <= 10 ? tier1 : dayReference <= 20 ? tier2 : tier3;
+      expensasPending.push({ period: ex.period, periodLabel: monthLabel(ex.period), amount: Math.round(amountToday), currency: tenant.currency || 'ARS' });
+    });
+  }
+
+  return { rentPending, rentPaid, expensasPending, expensasPaid };
+}
+
+module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, buildTenantCollectionsReport };
