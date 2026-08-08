@@ -2,7 +2,7 @@
 const express = require('express');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
-const { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines } = require('../paymentDetail');
+const { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, buildTenantCollectionsReport } = require('../paymentDetail');
 const { sendMail } = require('../mailer');
 
 const router = express.Router();
@@ -91,6 +91,70 @@ router.post('/owners/:id/send', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Error al enviar el email.' });
+  }
+});
+
+// Resumen para "Cobros del mes actual": junta, para cada inquilino activo,
+// todo lo que debe (alquiler + expensas del edificio, ya con la lógica en
+// cascada) en un solo pedido. Reutiliza exactamente el mismo cálculo que el
+// detalle de pago real, para que nunca queden desincronizados.
+router.get('/rent-collection-summary', requireAuth, async (req, res) => {
+  try {
+    const { data: tenants } = await supabase.from('tenants').select('*');
+    const { data: properties } = await supabase.from('properties').select('id, title, branch_id');
+    const propMap = {};
+    (properties || []).forEach(p => { propMap[p.id] = p; });
+
+    const rows = [];
+    for (const tenant of tenants || []) {
+      if (computeTenantStatus(tenant) === 'rescindido') continue;
+      const items = await buildTenantDetailItems(tenant);
+      const owed = items.reduce((s, i) => s + i.amount, 0);
+      const prop = propMap[tenant.property_id];
+      rows.push({
+        tenantId: tenant.id, tenantName: tenant.name, currency: tenant.currency || 'ARS',
+        propertyId: tenant.property_id, propertyName: prop ? prop.title : '-', branchId: prop ? prop.branch_id : null,
+        items, owed,
+      });
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al armar el resumen de cobros.' });
+  }
+});
+
+// Reporte completo de cobros: junta, para TODOS los inquilinos activos, el
+// alquiler y las expensas separados en 4 listas (pendientes/pagados de cada
+// uno), para que el panel pueda mostrarlas como vistas distintas.
+router.get('/collections-report', requireAuth, async (req, res) => {
+  try {
+    const { data: tenants } = await supabase.from('tenants').select('*');
+    const { data: properties } = await supabase.from('properties').select('id, title, branch_id, development_id');
+    const { data: developments } = await supabase.from('developments').select('id, name');
+    const propMap = {}; (properties || []).forEach(p => { propMap[p.id] = p; });
+    const devMap = {}; (developments || []).forEach(d => { devMap[d.id] = d; });
+
+    const rentPending = [], rentPaid = [], expensasPending = [], expensasPaid = [];
+
+    for (const tenant of tenants || []) {
+      if (computeTenantStatus(tenant) === 'rescindido') continue;
+      const property = propMap[tenant.property_id];
+      const report = await buildTenantCollectionsReport(tenant, property);
+      const base = {
+        tenantId: tenant.id, tenantName: tenant.name,
+        propertyName: property ? property.title : '-', branchId: property ? property.branch_id : null,
+        developmentName: property && property.development_id ? (devMap[property.development_id] || {}).name : null,
+      };
+      report.rentPending.forEach(x => rentPending.push({ ...base, ...x }));
+      report.rentPaid.forEach(x => rentPaid.push({ ...base, ...x }));
+      report.expensasPending.forEach(x => expensasPending.push({ ...base, ...x }));
+      report.expensasPaid.forEach(x => expensasPaid.push({ ...base, ...x }));
+    }
+    res.json({ rentPending, rentPaid, expensasPending, expensasPaid });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al armar el reporte de cobros.' });
   }
 });
 
