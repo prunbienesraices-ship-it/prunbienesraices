@@ -135,7 +135,7 @@ router.get('/collections-report', requireAuth, async (req, res) => {
     const propMap = {}; (properties || []).forEach(p => { propMap[p.id] = p; });
     const devMap = {}; (developments || []).forEach(d => { devMap[d.id] = d; });
 
-    const rentPending = [], rentPaid = [], expensasPending = [], expensasPaid = [];
+    const rentPending = [], rentPaid = [], expensasPending = [], expensasPaid = [], otherPending = [], otherPaid = [];
 
     for (const tenant of tenants || []) {
       if (computeTenantStatus(tenant) === 'rescindido') continue;
@@ -150,8 +150,10 @@ router.get('/collections-report', requireAuth, async (req, res) => {
       report.rentPaid.forEach(x => rentPaid.push({ ...base, ...x }));
       report.expensasPending.forEach(x => expensasPending.push({ ...base, ...x }));
       report.expensasPaid.forEach(x => expensasPaid.push({ ...base, ...x }));
+      report.otherPending.forEach(x => otherPending.push({ ...base, ...x }));
+      report.otherPaid.forEach(x => otherPaid.push({ ...base, ...x }));
     }
-    res.json({ rentPending, rentPaid, expensasPending, expensasPaid });
+    res.json({ rentPending, rentPaid, expensasPending, expensasPaid, otherPending, otherPaid });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al armar el reporte de cobros.' });
