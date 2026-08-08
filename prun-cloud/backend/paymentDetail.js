@@ -146,39 +146,67 @@ async function buildTenantDetailItems(tenant) {
   });
 
   // Expensas del edificio al que pertenece la propiedad del inquilino (si
-  // está vinculada a un edificio), para los períodos que ya vencieron y no
-  // fueron cubiertos ya por un cargo de "otros conceptos" cargado a mano.
-  // Igual que el alquiler, cada período de expensas tiene sus propios 3
-  // vencimientos, usando la tasa cargada en esa liquidación de expensas.
+  // está vinculada a un edificio). Funciona EXACTAMENTE igual que el
+  // alquiler: cada mes de expensas que queda totalmente atrás "se cierra" a
+  // su monto final (con su propio interés adentro), y ese total se suma
+  // como capital del mes de expensas siguiente, sobre el que se calculan
+  // sus 3 nuevos vencimientos.
   const { data: property } = await supabase.from('properties').select('development_id').eq('id', tenant.property_id).maybeSingle();
   if (property && property.development_id) {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const now = new Date();
     const { data: expensasList } = await supabase.from('expensas').select('*').eq('development_id', property.development_id);
-    (expensasList || []).forEach(ex => {
-      const periodDate = periodToDate(ex.period);
-      const now = new Date();
-      if (periodDate > now) return; // todavia no vence ese mes
-      if (periodDate < sixMonthsAgo) return; // muy vieja, se asume ya resuelta fuera del sistema
-      const alreadyCovered = items.some(i => /expensa/i.test(i.concept) && i.concept.includes(ex.period));
-      if (alreadyCovered) return;
 
-      const base = Number(ex.total_amount) || 0;
-      if (!base) return;
-      const [y, m] = ex.period.split('-').map(Number);
-      const daysInMonth = new Date(y, m, 0).getDate();
-      const coef = ex.late_coefficient || 0;
-      const tier1 = base;
-      const tier2 = base * (1 + (coef / 100) * 20);
-      const tier3 = base * (1 + (coef / 100) * daysInMonth);
-      const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m - 1;
-      const dayReference = isCurrentMonth ? now.getDate() : (daysInMonth + 1);
+    // Solo las que ya vencieron, no son muy viejas, y tienen monto cargado,
+    // ordenadas de la mas vieja a la mas nueva (igual que el alquiler).
+    const pendingExpensas = (expensasList || [])
+      .filter(ex => {
+        const periodDate = periodToDate(ex.period);
+        if (periodDate > now) return false;
+        if (periodDate < sixMonthsAgo) return false;
+        if (!Number(ex.total_amount)) return false;
+        return !items.some(i => /expensa/i.test(i.concept) && i.concept.includes(ex.period));
+      })
+      .sort((a, b) => periodToDate(a.period) - periodToDate(b.period));
+
+    if (pendingExpensas.length) {
+      const closedExpensas = pendingExpensas.slice(0, -1);
+      const currentExpensa = pendingExpensas[pendingExpensas.length - 1];
+
+      // Las expensas de meses ya totalmente pasados se cierran a su ultimo
+      // vencimiento, cada una con su propia tasa.
+      let closedTotal = 0;
+      closedExpensas.forEach(ex => {
+        const [y, m] = ex.period.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const coef = ex.late_coefficient || 0;
+        closedTotal += Number(ex.total_amount) * (1 + (coef / 100) * daysInMonth);
+      });
+
+      // Las del mes mas reciente calculan sus 3 vencimientos sobre el
+      // capital total: lo que ya se debia de expensas, mas la de este mes.
+      const [cy, cm] = currentExpensa.period.split('-').map(Number);
+      const daysInCurrentMonth = new Date(cy, cm, 0).getDate();
+      const coef = currentExpensa.late_coefficient || 0;
+      const principal = closedTotal + Number(currentExpensa.total_amount);
+      const tier1 = principal;
+      const tier2 = principal * (1 + (coef / 100) * 20);
+      const tier3 = principal * (1 + (coef / 100) * daysInCurrentMonth);
+
+      const isCurrentCalendarMonth = now.getFullYear() === cy && now.getMonth() === cm - 1;
+      const dayReference = isCurrentCalendarMonth ? now.getDate() : (daysInCurrentMonth + 1);
       const amountToday = dayReference <= 10 ? tier1 : dayReference <= 20 ? tier2 : tier3;
+
+      const label = closedExpensas.length
+        ? `EXPENSAS ADEUDADAS (${monthLabel(pendingExpensas[0].period)} a ${monthLabel(currentExpensa.period)})`
+        : `EXPENSAS ${monthLabel(currentExpensa.period)}`;
+
       items.push({
-        concept: `EXPENSAS ${monthLabel(ex.period)}`, amount: Math.round(amountToday), hasTiers: true,
+        concept: label, amount: Math.round(amountToday), hasTiers: true,
         tier1: Math.round(tier1), tier2: Math.round(tier2), tier3: Math.round(tier3),
       });
-    });
+    }
   }
 
   return items;
