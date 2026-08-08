@@ -340,7 +340,13 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <h2 style="font-size:20px">Modelo de detalle de pago</h2>
     </div>
     <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:820px">
-      <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Estas son las notas que aparecen al final del "Detalle de pago" que reciben inquilinos y propietarios (por mail y online). El logo, dirección, teléfono y email de arriba se editan en "Apariencia del sitio". Podés agregar, borrar o editar cualquier nota. Usá el código <code>{{EMAIL}}</code> donde quieras que aparezca el mail de contacto como link, sin escribirlo a mano.</p>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:14px">El logo (imagen) y el título en negrita se editan en "Apariencia del sitio". Acá abajo podés armar libremente el resto: las líneas de arriba a la izquierda (dirección, teléfono, mail) y las notas del final (aviso sobre pagos, dónde mandar comprobantes). Usá estos códigos donde quieras que se completen solos: <code>{{ADDRESS}}</code> <code>{{PHONE}}</code> <code>{{EMAIL}}</code> (toman los datos de "Apariencia del sitio").</p>
+
+      <div class="section-label"><span>Líneas de arriba a la izquierda</span></div>
+      <div id="pdt-header-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px"></div>
+      <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="addPaymentDetailHeaderRow('')">+ Agregar línea</button>
+
+      <div class="section-label" style="margin-top:24px"><span>Notas del final</span></div>
       <div id="pdt-notes-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
       <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="addPaymentDetailNoteRow('')">+ Agregar nota</button>
       <button class="btn" type="button" style="width:100%;margin-top:16px" onclick="savePaymentDetailTemplate()">Guardar modelo de detalle de pago</button>
@@ -2296,6 +2302,16 @@ async function saveContractTemplate(){
 // =====================================================================
 // MODELO DE DETALLE DE PAGO (solo Administrador puede editarlo)
 // =====================================================================
+function addPaymentDetailHeaderRow(text){
+  const list = document.getElementById('pdt-header-list');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center';
+  row.innerHTML = `
+    <input type="text" class="pdt-header-text" style="flex:1" placeholder="Ej: {{ADDRESS}}" value="${(text||'').replace(/"/g,'&quot;')}">
+    <button type="button" class="btn" style="background:#fff;color:var(--red);padding:9px 12px" onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(row);
+}
 function addPaymentDetailNoteRow(text){
   const list = document.getElementById('pdt-notes-list');
   const row = document.createElement('div');
@@ -2309,15 +2325,21 @@ function addPaymentDetailNoteRow(text){
 async function loadPaymentDetailTemplate(){
   try{
     const t = await api('/payment-detail-template');
+    document.getElementById('pdt-header-list').innerHTML = '';
+    (t.header_lines || []).forEach(l => addPaymentDetailHeaderRow(l));
+    if(!t.header_lines || !t.header_lines.length){
+      ['{{ADDRESS}}', 'Tel. {{PHONE}}', 'mail: {{EMAIL}}'].forEach(l => addPaymentDetailHeaderRow(l));
+    }
     document.getElementById('pdt-notes-list').innerHTML = '';
     (t.footer_notes || []).forEach(n => addPaymentDetailNoteRow(n));
     if(!t.footer_notes || !t.footer_notes.length) addPaymentDetailNoteRow('');
   }catch(err){ toast('No pudimos cargar el modelo de detalle de pago.'); }
 }
 async function savePaymentDetailTemplate(){
+  const headerLines = Array.from(document.querySelectorAll('.pdt-header-text')).map(t=>t.value.trim()).filter(Boolean);
   const notes = Array.from(document.querySelectorAll('.pdt-note-text')).map(t=>t.value.trim()).filter(Boolean);
   try{
-    await api('/payment-detail-template', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ footer_notes: notes }) });
+    await api('/payment-detail-template', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ header_lines: headerLines, footer_notes: notes }) });
     toast('Modelo de detalle de pago guardado.');
   }catch(err){ toast(err.message); }
 }
