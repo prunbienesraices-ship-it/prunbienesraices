@@ -766,10 +766,12 @@ function initCollapsibleSections(){
     h2.prepend(arrow);
     h2.style.cursor = 'pointer';
 
-    // Junta todos los elementos siguientes hasta la próxima sección.
+    // Junta todos los elementos siguientes hasta la próxima sección (ya sea
+    // un page-head directo, o un "envoltorio" que tenga una sección adentro,
+    // como pasa con Usuarios del panel, Sucursales, los Modelos y Apariencia).
     const siblings = [];
     let el = pageHead.nextElementSibling;
-    while(el && !el.classList.contains('page-head')){
+    while(el && !el.classList.contains('page-head') && !el.querySelector('.page-head')){
       siblings.push(el);
       el = el.nextElementSibling;
     }
