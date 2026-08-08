@@ -12,8 +12,13 @@ function getTransporter() {
   }
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      connectionTimeout: 10000, // si no logra conectarse en 10s, avisa el error en vez de quedarse colgado
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
   return transporter;
@@ -22,12 +27,17 @@ function getTransporter() {
 async function sendMail({ to, subject, html }) {
   const t = getTransporter();
   console.log(`[mailer] Intentando enviar mail a: ${to} — desde: ${process.env.EMAIL_USER}`);
-  const info = await t.sendMail({
-    from: `"${process.env.EMAIL_FROM_NAME || 'Prun Bienes Raíces'}" <${process.env.EMAIL_USER}>`,
-    to, subject, html, encoding: 'utf-8',
-  });
-  console.log(`[mailer] Respuesta de Gmail: messageId=${info.messageId} — accepted=${JSON.stringify(info.accepted)} — rejected=${JSON.stringify(info.rejected)} — response=${info.response}`);
-  return info;
+  try {
+    const info = await t.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'Prun Bienes Raíces'}" <${process.env.EMAIL_USER}>`,
+      to, subject, html, encoding: 'utf-8',
+    });
+    console.log(`[mailer] Respuesta de Gmail: messageId=${info.messageId} — accepted=${JSON.stringify(info.accepted)} — rejected=${JSON.stringify(info.rejected)} — response=${info.response}`);
+    return info;
+  } catch (err) {
+    console.error(`[mailer] ERROR al enviar -> code=${err.code} — command=${err.command} — message=${err.message}`);
+    throw err;
+  }
 }
 
 module.exports = { sendMail };
