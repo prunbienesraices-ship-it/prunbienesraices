@@ -21,10 +21,13 @@ function getTransporter() {
 
 async function sendMail({ to, subject, html }) {
   const t = getTransporter();
-  await t.sendMail({
+  console.log(`[mailer] Intentando enviar mail a: ${to} — desde: ${process.env.EMAIL_USER}`);
+  const info = await t.sendMail({
     from: `"${process.env.EMAIL_FROM_NAME || 'Prun Bienes Raíces'}" <${process.env.EMAIL_USER}>`,
-    to, subject, html,
+    to, subject, html, encoding: 'utf-8',
   });
+  console.log(`[mailer] Respuesta de Gmail: messageId=${info.messageId} — accepted=${JSON.stringify(info.accepted)} — rejected=${JSON.stringify(info.rejected)} — response=${info.response}`);
+  return info;
 }
 
 module.exports = { sendMail };
