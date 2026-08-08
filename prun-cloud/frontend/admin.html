@@ -340,6 +340,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <h2 style="font-size:20px">Apariencia del sitio</h2>
     </div>
     <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px">
+      <p style="font-size:12px;color:var(--gray);margin-bottom:14px">El logo, la dirección, el teléfono y el email de acá también son los que aparecen en el encabezado del "Detalle de pago" que se les envía a inquilinos y propietarios.</p>
       <form id="site-config-form">
         <div class="form-row"><label>Nombre / logo (texto)</label><input type="text" id="sc-logo-text"></div>
         <div class="form-row"><label>Logo (imagen, opcional)</label><input type="file" id="sc-logo-image" accept="image/*"><div id="sc-logo-image-status" style="font-size:11px;color:var(--green);margin-top:4px"></div></div>
@@ -349,6 +350,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-grid">
           <div class="form-row"><label>Teléfono de contacto</label><input type="text" id="sc-contact-phone"></div>
           <div class="form-row"><label>Email de contacto</label><input type="email" id="sc-contact-email"></div>
+          <div class="form-row"><label>Dirección de la oficina</label><input type="text" id="sc-office-address" placeholder="Ej: Fray Mamerto Esquiú Nº 850, Córdoba"></div>
           <div class="form-row"><label>WhatsApp (solo números, con código de país)</label><input type="text" id="sc-whatsapp" placeholder="Ej: 5491122334455"></div>
           <div class="form-row"><label>Color principal del sitio</label><input type="color" id="sc-primary-color" style="height:44px;padding:4px"></div>
         </div>
@@ -2286,6 +2288,7 @@ async function loadSiteConfig(){
     document.getElementById('sc-hero-subtitle').value = c.hero_subtitle || '';
     document.getElementById('sc-contact-phone').value = c.contact_phone || '';
     document.getElementById('sc-contact-email').value = c.contact_email || '';
+    document.getElementById('sc-office-address').value = c.office_address || '';
     document.getElementById('sc-whatsapp').value = c.whatsapp_number || '';
     document.getElementById('sc-primary-color').value = c.primary_color || '#F4C300';
     document.getElementById('sc-footer-text').value = c.footer_text || '';
@@ -2296,7 +2299,7 @@ async function loadSiteConfig(){
 document.getElementById('site-config-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const fd = new FormData();
-  ['logo-text','hero-title','hero-subtitle','contact-phone','contact-email','whatsapp','primary-color','footer-text'].forEach(f=>{
+  ['logo-text','hero-title','hero-subtitle','contact-phone','contact-email','office-address','whatsapp','primary-color','footer-text'].forEach(f=>{
     fd.append(f.replace(/-/g,'_'), document.getElementById('sc-'+f).value);
   });
   const heroFile = document.getElementById('sc-hero-image').files[0];
