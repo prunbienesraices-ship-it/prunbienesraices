@@ -215,4 +215,80 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency })
   </div>`;
 }
 
-module.exports = { buildTenantDetailItems, buildDetailHtml, getSiteConfig, computeTenantStatus };
+// Arma el detalle de pago de un PROPIETARIO: por cada propiedad suya con
+// inquilino, cuanto se cobra de alquiler, cuanto se descuenta de comisión
+// por el servicio (según el tipo cargado en su ficha: porcentaje o monto
+// fijo), y cuánto neto le corresponde a él.
+async function buildOwnerDetailItems(owner) {
+  const items = [];
+  const { data: properties } = await supabase.from('properties').select('*').eq('owner_id', owner.id);
+  for (const prop of properties || []) {
+    const { data: tenant } = await supabase.from('tenants').select('*').eq('property_id', prop.id)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (!tenant) continue;
+    const status = computeTenantStatus(tenant);
+    if (status === 'rescindido') continue;
+    const rent = getCurrentRentAmount(tenant);
+    if (!rent) continue;
+    const commission = owner.commission_type === 'fixed'
+      ? (Number(owner.commission_withholding) || 0)
+      : rent * ((Number(owner.commission_withholding) || 0) / 100);
+    const net = Math.max(0, rent - commission);
+    items.push({
+      propertyLabel: prop.title, rent: Math.round(rent), commission: Math.round(commission),
+      net: Math.round(net), currency: tenant.currency || 'ARS',
+      commissionLabel: owner.commission_type === 'fixed' ? 'Comisión (monto fijo)' : `Comisión (${owner.commission_withholding || 0}%)`,
+    });
+  }
+  return items;
+}
+
+// Arma el HTML del detalle de pago del propietario, con el mismo estilo de
+// letterhead que el de los inquilinos.
+function buildOwnerDetailHtml({ ownerName, items, config }) {
+  const totalNet = items.reduce((s, i) => s + i.net, 0);
+  const money = (n, currency) => `${currency || 'ARS'} ${Number(n).toLocaleString('es-AR')}`;
+  const logoImg = config.logo_image ? `<img src="${config.logo_image}" alt="logo" style="width:90px;height:90px;object-fit:contain">` : '';
+  const rowsHtml = items.map(i => `
+    <tr>
+      <td style="padding:8px;border:1px solid #ddd;font-size:12px">${i.propertyLabel}</td>
+      <td style="padding:8px;border:1px solid #ddd;font-size:12px;text-align:right">${money(i.rent, i.currency)}</td>
+      <td style="padding:8px;border:1px solid #ddd;font-size:12px;text-align:right;color:#b00">-${money(i.commission, i.currency)}<br><span style="font-size:10px;color:#888">${i.commissionLabel}</span></td>
+      <td style="padding:8px;border:1px solid #ddd;font-size:12px;text-align:right;font-weight:700">${money(i.net, i.currency)}</td>
+    </tr>`).join('');
+  return `
+  <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto">
+    <meta charset="utf-8">
+    <table style="width:100%;border:2px solid #000;border-collapse:collapse">
+      <tr>
+        <td style="padding:16px;vertical-align:top">
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px">${config.logo_text || 'Administración Prun Bienes Raíces'}</div>
+          <div style="border-top:1px solid #4a90d9;width:70%;margin-bottom:10px"></div>
+          <div style="font-size:13px;line-height:1.8">
+            ${config.contact_phone ? `Tel. ${config.contact_phone}<br>` : ''}
+            mail: <a href="mailto:${config.contact_email || ''}" style="color:#1155cc">${config.contact_email || ''}</a>
+          </div>
+        </td>
+        <td style="width:90px;padding:16px;text-align:right;vertical-align:top">${logoImg}</td>
+      </tr>
+    </table>
+    <table style="width:100%;border:2px solid #000;border-top:none;border-collapse:collapse">
+      <tr><td style="padding:16px">
+        <div style="font-size:13px;margin-bottom:10px">Nombre: <strong>${ownerName}</strong></div>
+        <div style="font-size:13px;margin-bottom:6px">Detalle por propiedad:</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+          <tr style="background:#f3f3f3">
+            <td style="padding:6px 8px;border:1px solid #ddd;font-size:11px;font-weight:700">PROPIEDAD</td>
+            <td style="padding:6px 8px;border:1px solid #ddd;font-size:11px;font-weight:700;text-align:right">ALQUILER COBRADO</td>
+            <td style="padding:6px 8px;border:1px solid #ddd;font-size:11px;font-weight:700;text-align:right">COMISIÓN</td>
+            <td style="padding:6px 8px;border:1px solid #ddd;font-size:11px;font-weight:700;text-align:right">NETO A DEPOSITAR</td>
+          </tr>
+          ${rowsHtml}
+        </table>
+        <div style="font-size:14px;font-weight:700;border-top:1px solid #ccc;padding-top:8px">TOTAL NETO A DEPOSITAR: ${money(totalNet, items[0] ? items[0].currency : 'ARS')}</div>
+      </td></tr>
+    </table>
+  </div>`;
+}
+
+module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, computeTenantStatus };
