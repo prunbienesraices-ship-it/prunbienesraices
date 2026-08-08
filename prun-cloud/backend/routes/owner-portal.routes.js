@@ -86,4 +86,24 @@ router.post('/report', requireAuth, async (req, res) => {
   }
 });
 
+// El propietario ve online su propio detalle de pago (alquiler cobrado menos
+// la comisión del servicio, por cada una de sus propiedades).
+const { buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig } = require('../paymentDetail');
+router.get('/payment-detail', requireAuth, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { data: owner } = await supabase.from('owners').select('*').eq('email', email).maybeSingle();
+    if (!owner) return res.json({ isOwner: false });
+
+    const items = await buildOwnerDetailItems(owner);
+    const total = items.reduce((s, i) => s + i.net, 0);
+    const config = await getSiteConfig();
+    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config });
+    res.json({ isOwner: true, items, total, html });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al buscar tu detalle de pago.' });
+  }
+});
+
 module.exports = router;
