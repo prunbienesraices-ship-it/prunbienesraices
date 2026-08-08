@@ -417,6 +417,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <div class="form-row"><label>Baños</label><input type="number" id="p-bathrooms" value="0"></div>
         <div class="form-row"><label>Propietario</label><select id="p-owner"><option value="">Sin asignar</option></select></div>
         <div class="form-row"><label>Sucursal</label><select id="p-branch"><option value="">Sin asignar</option></select></div>
+        <div class="form-row"><label>Edificio / Conjunto</label><select id="p-development"><option value="">No pertenece a ningún edificio</option></select></div>
       </div>
 
       <div class="section-label"><span>Números de cuenta de servicios e impuestos (uso interno, no se publican en el sitio)</span></div>
@@ -1191,14 +1192,20 @@ async function openPropModal(p){
     branchSelect.innerHTML = '<option value="">Sin asignar</option>' + ALL_BRANCHES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
     branchSelect.value = p && p.branch_id ? p.branch_id : '';
   }catch(e){}
+  try{
+    if(!ALL_DEVELOPMENTS.length) ALL_DEVELOPMENTS = await api('/developments');
+    const devSelect = document.getElementById('p-development');
+    devSelect.innerHTML = '<option value="">No pertenece a ningún edificio</option>' + ALL_DEVELOPMENTS.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    devSelect.value = p && p.development_id ? p.development_id : '';
+  }catch(e){}
   document.getElementById('prop-modal').classList.add('active');
 }
 document.getElementById('prop-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('p-id').value;
   const fd = new FormData();
-  ['title','description','operation','category','price','currency','address','city','status','bedrooms','bathrooms','owner','branch'].forEach(f=>{
-    fd.append(f==='owner'?'owner_id':f==='branch'?'branch_id':f, document.getElementById('p-'+f).value);
+  ['title','description','operation','category','price','currency','address','city','status','bedrooms','bathrooms','owner','branch','development'].forEach(f=>{
+    fd.append(f==='owner'?'owner_id':f==='branch'?'branch_id':f==='development'?'development_id':f, document.getElementById('p-'+f).value);
   });
   fd.append('featured', document.getElementById('p-featured').checked);
   fd.append('services', JSON.stringify({
