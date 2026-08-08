@@ -2,7 +2,7 @@
 const express = require('express');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
-const { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes } = require('../paymentDetail');
+const { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines } = require('../paymentDetail');
 const { sendMail } = require('../mailer');
 
 const router = express.Router();
@@ -44,10 +44,11 @@ router.post('/tenants/:id/send', requireAuth, async (req, res) => {
 
     const config = await getSiteConfig();
     const footerNotes = await getPaymentDetailNotes();
+    const headerLines = await getPaymentDetailHeaderLines();
     const html = buildDetailHtml({
       tenantName: tenant.name,
       propertyLabel: property ? property.title : '-',
-      items, config, currency: tenant.currency || 'ARS', footerNotes,
+      items, config, currency: tenant.currency || 'ARS', footerNotes, headerLines,
     });
     await sendMail({ to: tenant.email, subject: 'Detalle de pago — Prun Bienes Raíces', html });
     res.json({ ok: true });
@@ -83,7 +84,8 @@ router.post('/owners/:id/send', requireAuth, async (req, res) => {
 
     const config = await getSiteConfig();
     const footerNotes = await getPaymentDetailNotes();
-    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config, footerNotes });
+    const headerLines = await getPaymentDetailHeaderLines();
+    const html = buildOwnerDetailHtml({ ownerName: owner.name, items, config, footerNotes, headerLines });
     await sendMail({ to: owner.email, subject: 'Detalle de pago — Prun Bienes Raíces', html });
     res.json({ ok: true });
   } catch (err) {

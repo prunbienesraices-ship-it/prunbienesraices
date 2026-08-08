@@ -107,7 +107,7 @@ router.post('/payments', requireAuth, upload.single('file'), async (req, res) =>
 
 // El inquilino ve online su propio detalle de pago (lo mismo que se le
 // manda por mail), sin poder ver el de otros inquilinos.
-const { buildTenantDetailItems, buildDetailHtml, getSiteConfig, getPaymentDetailNotes } = require('../paymentDetail');
+const { buildTenantDetailItems, buildDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines } = require('../paymentDetail');
 router.get('/payment-detail', requireAuth, async (req, res) => {
   try {
     const email = req.user.email;
@@ -121,9 +121,10 @@ router.get('/payment-detail', requireAuth, async (req, res) => {
     const total = items.reduce((s, i) => s + i.amount, 0);
     const config = await getSiteConfig();
     const footerNotes = await getPaymentDetailNotes();
+    const headerLines = await getPaymentDetailHeaderLines();
     const html = buildDetailHtml({
       tenantName: tenant.name, propertyLabel: property ? property.title : '-',
-      items, config, currency: tenant.currency || 'ARS', footerNotes,
+      items, config, currency: tenant.currency || 'ARS', footerNotes, headerLines,
     });
     res.json({ hasContract: true, items, total, currency: tenant.currency || 'ARS', html });
   } catch (err) {
