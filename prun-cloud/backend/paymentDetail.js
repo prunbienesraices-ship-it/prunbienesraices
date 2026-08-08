@@ -404,6 +404,8 @@ async function buildTenantCollectionsReport(tenant, property) {
   const rentPaid = [];
   const expensasPending = [];
   const expensasPaid = [];
+  const otherPending = [];
+  const otherPaid = [];
 
   // --- Alquiler ---
   const missing = getMissingPayments(tenant);
@@ -423,13 +425,20 @@ async function buildTenantCollectionsReport(tenant, property) {
     rentPaid.push({ period: p.period, periodLabel: monthLabel(p.period), amount: Math.round(p.amount), currency: tenant.currency || 'ARS', date: p.date || null });
   });
 
-  // --- Expensas (si la propiedad pertenece a un edificio) ---
+  // --- Cargos de "otros conceptos" cargados en Cobranzas (honorarios, ABL,
+  // luz, gas, multas, expensas cargadas a mano, etc). Cada uno se clasifica
+  // como "expensas" (si su concepto lo dice) o "otro" segun corresponda, y
+  // como pendiente o pagado segun cuanto se le haya cargado en payments.
+  const { data: charges } = await supabase.from('collections_charges').select('*').eq('tenant_id', tenant.id);
+  const today = new Date().toISOString().slice(0, 10);
+  const expensasPeriodsAlreadyCounted = new Set();
+
+  // --- Expensas del edificio (si la propiedad pertenece a uno) ---
   if (property && property.development_id) {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     const now = new Date();
     const { data: expensasList } = await supabase.from('expensas').select('*').eq('development_id', property.development_id);
-    const { data: charges } = await supabase.from('collections_charges').select('*').eq('tenant_id', tenant.id);
 
     (expensasList || []).forEach(ex => {
       const periodDate = periodToDate(ex.period);
@@ -440,6 +449,7 @@ async function buildTenantCollectionsReport(tenant, property) {
       const matchingCharge = (charges || []).find(c => /expensa/i.test(c.concept) && c.label === ex.period);
       const paidOnCharge = matchingCharge ? (matchingCharge.payments || []).reduce((s, p) => s + p.amount, 0) : 0;
       const chargeAmount = matchingCharge ? Number(matchingCharge.amount) : Number(ex.total_amount);
+      if (matchingCharge) expensasPeriodsAlreadyCounted.add(matchingCharge.id);
       if (matchingCharge && paidOnCharge >= chargeAmount - 0.01) {
         expensasPaid.push({ period: ex.period, periodLabel: monthLabel(ex.period), amount: Math.round(chargeAmount), currency: tenant.currency || 'ARS' });
         return;
@@ -457,7 +467,23 @@ async function buildTenantCollectionsReport(tenant, property) {
     });
   }
 
-  return { rentPending, rentPaid, expensasPending, expensasPaid };
+  // --- Todo lo demás cargado en Cobranzas (honorarios, ABL, luz, gas,
+  // seguro, multas, y expensas cargadas a mano que no coinciden con una
+  // liquidación de edificio) ---
+  (charges || []).forEach(c => {
+    if (expensasPeriodsAlreadyCounted.has(c.id)) return; // ya contada arriba como expensas del edificio
+    const paid = (c.payments || []).reduce((s, p) => s + p.amount, 0);
+    const pending = Number(c.amount) - paid;
+    const label = `${c.concept}${c.label ? ' — ' + c.label : ''}`;
+    if (pending > 0.01) {
+      if (c.due_date && c.due_date > today) return; // todavia no vence
+      otherPending.push({ period: c.label || '', periodLabel: label, amount: Math.round(pending), currency: tenant.currency || 'ARS' });
+    } else if (paid > 0.01) {
+      otherPaid.push({ period: c.label || '', periodLabel: label, amount: Math.round(paid), currency: tenant.currency || 'ARS' });
+    }
+  });
+
+  return { rentPending, rentPaid, expensasPending, expensasPaid, otherPending, otherPaid };
 }
 
 module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, buildTenantCollectionsReport };
