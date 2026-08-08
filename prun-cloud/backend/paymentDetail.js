@@ -153,13 +153,37 @@ async function getSiteConfig() {
 }
 
 // Trae las notas editables que van al final del detalle de pago (el aviso
-// sobre pagos parciales, donde mandar comprobantes, etc.), configuradas por
-// el Administrador en "Modelo de detalle de pago".
+// sobre pagos parciales, donde mandar comprobantes, etc.), y las líneas
+// editables que van arriba a la izquierda (dirección, teléfono, mail),
+// configuradas por el Administrador en "Modelo de detalle de pago".
 async function getPaymentDetailNotes() {
   const { data } = await supabase.from('payment_detail_template').select('footer_notes').eq('id', 1).maybeSingle();
   return (data && data.footer_notes && data.footer_notes.length) ? data.footer_notes : [
     'LOS PAGOS NO PUEDEN SER PARCIALES, SOLO SE ACEPTAN PAGOS TOTAL DE LA DEUDA.',
   ];
+}
+async function getPaymentDetailHeaderLines() {
+  const { data } = await supabase.from('payment_detail_template').select('header_lines').eq('id', 1).maybeSingle();
+  return (data && data.header_lines && data.header_lines.length) ? data.header_lines : [
+    '{{ADDRESS}}', 'Tel. {{PHONE}}', 'mail: {{EMAIL}}',
+  ];
+}
+// Reemplaza los codigos {{ADDRESS}}, {{PHONE}}, {{EMAIL}} de una linea por
+// los datos reales cargados en "Apariencia del sitio".
+function fillHeaderTokens(line, config) {
+  const email = (config && config.contact_email) || '';
+  const emailLink = `<a href="mailto:${email}" style="color:#1155cc">${email}</a>`;
+  return line
+    .split('{{ADDRESS}}').join((config && config.office_address) || '')
+    .split('{{PHONE}}').join((config && config.contact_phone) || '')
+    .split('{{EMAIL}}').join(emailLink);
+}
+// Arma el bloque HTML con las lineas del encabezado (arriba a la izquierda).
+function buildHeaderLinesHtml(lines, config) {
+  return (lines || [])
+    .map(l => fillHeaderTokens(l, config))
+    .filter(Boolean)
+    .join('<br>');
 }
 // Arma el bloque HTML con esas notas, una debajo de la otra. Soporta el
 // código {{EMAIL}} para insertar automáticamente el mail de contacto como
@@ -175,7 +199,7 @@ function buildFooterNotesHtml(notes, config) {
 // lista, y el texto fijo de abajo sobre como pagar). Cada mes de alquiler
 // muestra los 3 vencimientos posibles, para que el inquilino sepa cuanto
 // le sale segun cuando pague.
-function buildDetailHtml({ tenantName, propertyLabel, items, config, currency, footerNotes }) {
+function buildDetailHtml({ tenantName, propertyLabel, items, config, currency, footerNotes, headerLines }) {
   const total = items.reduce((s, i) => s + i.amount, 0);
   const money = n => `${currency || 'ARS'} ${Number(n).toLocaleString('es-AR')}`;
   const logoImg = config.logo_image ? `<img src="${config.logo_image}" alt="logo" style="width:90px;height:90px;object-fit:contain">` : '';
@@ -202,9 +226,7 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency, f
           <div style="font-size:16px;font-weight:600;margin-bottom:8px">${config.logo_text || 'Administración Prun Bienes Raíces'}</div>
           <div style="border-top:1px solid #4a90d9;width:70%;margin-bottom:10px"></div>
           <div style="font-size:13px;line-height:1.8">
-            ${config.office_address ? `${config.office_address}<br>` : ''}
-            ${config.contact_phone ? `Tel. ${config.contact_phone}<br>` : ''}
-            mail: <a href="mailto:${config.contact_email || ''}" style="color:#1155cc">${config.contact_email || ''}</a>
+            ${buildHeaderLinesHtml(headerLines, config)}
           </div>
         </td>
         <td style="width:90px;padding:16px;text-align:right;vertical-align:top">${logoImg}</td>
@@ -260,7 +282,7 @@ async function buildOwnerDetailItems(owner) {
 
 // Arma el HTML del detalle de pago del propietario, con el mismo estilo de
 // letterhead que el de los inquilinos.
-function buildOwnerDetailHtml({ ownerName, items, config, footerNotes }) {
+function buildOwnerDetailHtml({ ownerName, items, config, footerNotes, headerLines }) {
   const totalNet = items.reduce((s, i) => s + i.net, 0);
   const money = (n, currency) => `${currency || 'ARS'} ${Number(n).toLocaleString('es-AR')}`;
   const logoImg = config.logo_image ? `<img src="${config.logo_image}" alt="logo" style="width:90px;height:90px;object-fit:contain">` : '';
@@ -279,9 +301,7 @@ function buildOwnerDetailHtml({ ownerName, items, config, footerNotes }) {
           <div style="font-size:16px;font-weight:600;margin-bottom:8px">${config.logo_text || 'Administración Prun Bienes Raíces'}</div>
           <div style="border-top:1px solid #4a90d9;width:70%;margin-bottom:10px"></div>
           <div style="font-size:13px;line-height:1.8">
-            ${config.office_address ? `${config.office_address}<br>` : ''}
-            ${config.contact_phone ? `Tel. ${config.contact_phone}<br>` : ''}
-            mail: <a href="mailto:${config.contact_email || ''}" style="color:#1155cc">${config.contact_email || ''}</a>
+            ${buildHeaderLinesHtml(headerLines, config)}
           </div>
         </td>
         <td style="width:90px;padding:16px;text-align:right;vertical-align:top">${logoImg}</td>
@@ -311,4 +331,4 @@ function buildOwnerDetailHtml({ ownerName, items, config, footerNotes }) {
   </div></body></html>`;
 }
 
-module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, computeTenantStatus };
+module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus };
