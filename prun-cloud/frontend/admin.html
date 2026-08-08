@@ -142,6 +142,17 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </table></div>
 
   <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Garantes</h2>
+    <button class="btn" onclick="openGuarantorModal()">+ Nuevo garante</button>
+  </div>
+  <p style="font-size:12px;color:var(--gray);margin-bottom:10px">Estas son las personas que figuran como garantes en uno o más contratos. Se completan solas cuando cargás un garante nuevo en "Nuevo contrato" — no hace falta cargarlas dos veces. Una misma persona puede figurar acá como garante, y también como inquilino en su propio contrato.</p>
+  <input type="text" placeholder="🔎 Buscar por nombre, DNI, email..." oninput="filterTable(this.value,'guarantor-tbody')" style="max-width:340px;margin-bottom:10px">
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Nombre</th></tr></thead>
+    <tbody id="guarantor-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
     <h2 style="font-size:20px">Reparaciones</h2>
     <button class="btn" onclick="openRepairModal()">+ Nueva reparación</button>
   </div>
@@ -618,6 +629,28 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
 </div>
 
+<div class="modal-overlay" id="guarantor-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="guarantor-modal-title">Nuevo garante</h3>
+    <form id="guarantor-form">
+      <input type="hidden" id="g-id">
+      <div class="form-row"><label>Nombre completo</label><input type="text" id="g-name" required></div>
+      <div class="form-grid">
+        <div class="form-row"><label>DNI</label><input type="text" id="g-dni"></div>
+        <div class="form-row"><label>Teléfono</label><input type="tel" id="g-phone"></div>
+        <div class="form-row"><label>Email</label><input type="email" id="g-email"></div>
+      </div>
+      <div class="form-row"><label>Domicilio</label><input type="text" id="g-address"></div>
+      <div class="form-row"><label>Notas</label><textarea id="g-notes" rows="2"></textarea></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" type="submit">Guardar</button>
+        <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('guarantor-modal')">Cancelar</button>
+        <button class="btn" type="button" style="background:#fff;color:var(--black)" id="g-create-tenant-btn" onclick="createTenantFromGuarantor()" disabled>Crear contrato como inquilino con estos datos</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Reparaciones -->
 <div class="modal-overlay" id="repair-modal">
   <div class="modal-box">
@@ -742,6 +775,7 @@ let ALL_PROPERTIES = [];
 let ALL_DEVELOPMENTS = [];
 let ALL_EXPENSAS = [];
 let ALL_OWNERS = [];
+let ALL_GUARANTORS = [];
 let ALL_DEALS_CACHE = [];
 let ALL_TENANTS_CACHE = [];
 let ALL_SITE_USERS = [];
@@ -954,7 +988,7 @@ async function startApp(){
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
-  loadDevelopments(); loadOwners(); loadRepairs(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
+  loadDevelopments(); loadOwners(); loadGuarantors(); loadRepairs(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
     loadRentCollection(); loadCharges(); loadSettlements();
@@ -1456,19 +1490,50 @@ function addGuarantorRow(data){
   const div = document.createElement('div');
   div.className = 'dyn-row';
   div.innerHTML = `
-    <input type="text" class="g-name" placeholder="Nombre" value="${data&&data.name?data.name:''}">
+    <input type="text" class="g-name" placeholder="Nombre (elegí uno existente o escribí uno nuevo)" list="guarantors-datalist" value="${data&&data.name?data.name:''}" oninput="autofillGuarantorRow(this)">
     <input type="text" class="g-dni" placeholder="DNI" value="${data&&data.dni?data.dni:''}">
     <input type="text" class="g-address" placeholder="Domicilio" value="${data&&data.address?data.address:''}">
     <input type="tel" class="g-phone" placeholder="Teléfono" value="${data&&data.phone?data.phone:''}">
     <input type="email" class="g-email" placeholder="Email" value="${data&&data.email?data.email:''}">
     <button type="button" onclick="this.closest('.dyn-row').remove()">✕</button>`;
   c.appendChild(div);
+  if(!document.getElementById('guarantors-datalist')){
+    const dl = document.createElement('datalist');
+    dl.id = 'guarantors-datalist';
+    document.body.appendChild(dl);
+  }
+  refreshGuarantorsDatalist();
+}
+// Cuando el nombre escrito coincide con un garante ya cargado en la lista
+// de Garantes, completa el resto de la fila solo (DNI, domicilio, etc.).
+function autofillGuarantorRow(nameInput){
+  const match = ALL_GUARANTORS.find(g => g.name.trim().toLowerCase() === nameInput.value.trim().toLowerCase());
+  if(!match) return;
+  const row = nameInput.closest('.dyn-row');
+  row.querySelector('.g-dni').value = match.dni || '';
+  row.querySelector('.g-address').value = match.address || '';
+  row.querySelector('.g-phone').value = match.phone || '';
+  row.querySelector('.g-email').value = match.email || '';
+}
+function refreshGuarantorsDatalist(){
+  const dl = document.getElementById('guarantors-datalist');
+  if(dl) dl.innerHTML = ALL_GUARANTORS.map(g => `<option value="${g.name}">`).join('');
 }
 function collectGuarantors(){
   return Array.from(document.querySelectorAll('#guarantors-list .dyn-row')).map(r => ({
     name: r.querySelector('.g-name').value, dni: r.querySelector('.g-dni').value, address: r.querySelector('.g-address').value,
     phone: r.querySelector('.g-phone').value, email: r.querySelector('.g-email').value,
   })).filter(g=>g.name||g.dni||g.address||g.phone||g.email);
+}
+// Guarda (o actualiza) en la lista central de Garantes cada garante que se
+// haya cargado en un contrato, para que quede disponible para reutilizar
+// despues sin tener que volver a tipearlo, y que su ficha se mantenga al día.
+async function syncGuarantorsToDirectory(guarantors){
+  for(const g of guarantors){
+    if(!g.dni) continue; // sin DNI no podemos evitar duplicados, no lo sincronizamos
+    try{ await api('/guarantors/upsert-by-dni', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(g)}); }catch(e){}
+  }
+  loadGuarantors();
 }
 function addScheduleRow(data){
   const c = document.getElementById('schedule-list');
@@ -1519,6 +1584,7 @@ document.getElementById('tenant-form').addEventListener('submit', async e=>{
   try{
     if(id) await api(`/tenants/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     else await api('/tenants', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    syncGuarantorsToDirectory(body.guarantors);
     toast(id ? 'Contrato actualizado' : 'Contrato creado');
     closeModal('tenant-modal');
     loadTenants();
@@ -1845,6 +1911,64 @@ document.getElementById('owner-form').addEventListener('submit', async e=>{
   }catch(err){ toast(err.message); }
 });
 async function deleteOwner(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/owners/${id}`,{method:'DELETE'}); loadOwners(); }catch(err){ toast(err.message); } }
+
+// =====================================================================
+// GARANTES
+// =====================================================================
+async function loadGuarantors(){
+  const tbody = document.getElementById('guarantor-tbody');
+  try{
+    ALL_GUARANTORS = await api('/guarantors');
+    tbody.innerHTML = ALL_GUARANTORS.length ? ALL_GUARANTORS.map(g => {
+      const actionsHtml = `<button onclick='openGuarantorModal(${JSON.stringify(g).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteGuarantor(${g.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(g).replace(/'/g,"&#39;")}, {dni:"DNI",phone:"Teléfono",email:"Email",address:"Domicilio",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${g.name}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin garantes cargados todavía. Se completan solos cuando cargás un garante en "Nuevo contrato".</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+function openGuarantorModal(g){
+  document.getElementById('guarantor-modal-title').textContent = g ? 'Editar garante' : 'Nuevo garante';
+  document.getElementById('g-id').value = g ? g.id : '';
+  document.getElementById('g-name').value = g ? g.name : '';
+  document.getElementById('g-dni').value = g ? (g.dni||'') : '';
+  document.getElementById('g-phone').value = g ? (g.phone||'') : '';
+  document.getElementById('g-email').value = g ? (g.email||'') : '';
+  document.getElementById('g-address').value = g ? (g.address||'') : '';
+  document.getElementById('g-notes').value = g ? (g.notes||'') : '';
+  document.getElementById('g-create-tenant-btn').disabled = !g;
+  document.getElementById('guarantor-modal').classList.add('active');
+}
+document.getElementById('guarantor-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('g-id').value;
+  const body = { name: document.getElementById('g-name').value, dni: document.getElementById('g-dni').value,
+    phone: document.getElementById('g-phone').value, email: document.getElementById('g-email').value,
+    address: document.getElementById('g-address').value, notes: document.getElementById('g-notes').value };
+  try{
+    if(id) await api(`/guarantors/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/guarantors', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('guarantor-modal'); loadGuarantors();
+  }catch(err){ toast(err.message); }
+});
+async function deleteGuarantor(id){ if(!confirm('¿Borrar este garante? (esto no afecta a los contratos donde ya figura)')) return; try{ await api(`/guarantors/${id}`,{method:'DELETE'}); loadGuarantors(); }catch(err){ toast(err.message); } }
+// Abre "Nuevo contrato" con los datos de este garante ya cargados como
+// inquilino, para cuando una misma persona pasa a alquilar ella misma.
+function createTenantFromGuarantor(){
+  const g = {
+    name: document.getElementById('g-name').value, dni: document.getElementById('g-dni').value,
+    phone: document.getElementById('g-phone').value, email: document.getElementById('g-email').value,
+  };
+  closeModal('guarantor-modal');
+  openTenantModal().then(()=>{
+    document.getElementById('t-name').value = g.name;
+    document.getElementById('t-dni').value = g.dni;
+    document.getElementById('t-phone').value = g.phone;
+    document.getElementById('t-email').value = g.email;
+    toast('Datos del garante cargados — completá el resto del contrato.');
+  });
+}
 
 // =====================================================================
 // REPARACIONES
