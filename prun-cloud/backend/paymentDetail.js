@@ -144,6 +144,43 @@ async function buildTenantDetailItems(tenant) {
       items.push({ concept, amount: Math.round(pending), hasTiers: false });
     }
   });
+
+  // Expensas del edificio al que pertenece la propiedad del inquilino (si
+  // está vinculada a un edificio), para los períodos que ya vencieron y no
+  // fueron cubiertos ya por un cargo de "otros conceptos" cargado a mano.
+  // Igual que el alquiler, cada período de expensas tiene sus propios 3
+  // vencimientos, usando la tasa cargada en esa liquidación de expensas.
+  const { data: property } = await supabase.from('properties').select('development_id').eq('id', tenant.property_id).maybeSingle();
+  if (property && property.development_id) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const { data: expensasList } = await supabase.from('expensas').select('*').eq('development_id', property.development_id);
+    (expensasList || []).forEach(ex => {
+      const periodDate = periodToDate(ex.period);
+      const now = new Date();
+      if (periodDate > now) return; // todavia no vence ese mes
+      if (periodDate < sixMonthsAgo) return; // muy vieja, se asume ya resuelta fuera del sistema
+      const alreadyCovered = items.some(i => /expensa/i.test(i.concept) && i.concept.includes(ex.period));
+      if (alreadyCovered) return;
+
+      const base = Number(ex.total_amount) || 0;
+      if (!base) return;
+      const [y, m] = ex.period.split('-').map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const coef = ex.late_coefficient || 0;
+      const tier1 = base;
+      const tier2 = base * (1 + (coef / 100) * 20);
+      const tier3 = base * (1 + (coef / 100) * daysInMonth);
+      const isCurrentMonth = now.getFullYear() === y && now.getMonth() === m - 1;
+      const dayReference = isCurrentMonth ? now.getDate() : (daysInMonth + 1);
+      const amountToday = dayReference <= 10 ? tier1 : dayReference <= 20 ? tier2 : tier3;
+      items.push({
+        concept: `EXPENSAS ${monthLabel(ex.period)}`, amount: Math.round(amountToday), hasTiers: true,
+        tier1: Math.round(tier1), tier2: Math.round(tier2), tier3: Math.round(tier3),
+      });
+    });
+  }
+
   return items;
 }
 
