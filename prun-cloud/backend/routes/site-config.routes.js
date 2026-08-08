@@ -19,7 +19,7 @@ router.put('/', requireSuperadmin, upload.fields([{ name: 'hero_image', maxCount
   try {
     const b = req.body;
     const updates = {};
-    ['logo_text', 'hero_title', 'hero_subtitle', 'footer_text', 'contact_phone', 'contact_email', 'whatsapp_number', 'primary_color']
+    ['logo_text', 'hero_title', 'hero_subtitle', 'footer_text', 'contact_phone', 'contact_email', 'office_address', 'whatsapp_number', 'primary_color']
       .forEach(f => { if (b[f] !== undefined) updates[f] = b[f]; });
 
     const files = req.files || {};
