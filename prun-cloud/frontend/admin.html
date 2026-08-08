@@ -2230,7 +2230,8 @@ async function loadCharges(){
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
-function openChargeModal(){
+async function openChargeModal(){
+  if(!ALL_TENANTS_CACHE.length){ try{ ALL_TENANTS_CACHE = await api('/tenants'); }catch(e){} }
   const sel = document.getElementById('ch-tenant');
   sel.innerHTML = ALL_TENANTS_CACHE.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
   document.getElementById('ch-late-coef').value = 0;
@@ -2238,7 +2239,9 @@ function openChargeModal(){
 }
 document.getElementById('charge-form').addEventListener('submit', async e=>{
   e.preventDefault();
-  const body = { tenant_id: Number(document.getElementById('ch-tenant').value), concept: document.getElementById('ch-concept').value,
+  const tenantId = Number(document.getElementById('ch-tenant').value);
+  if(!tenantId){ toast('Elegí un inquilino antes de guardar.'); return; }
+  const body = { tenant_id: tenantId, concept: document.getElementById('ch-concept').value,
     label: document.getElementById('ch-label').value, amount: document.getElementById('ch-amount').value,
     due_date: document.getElementById('ch-due-date').value || null,
     late_coefficient: document.getElementById('ch-late-coef').value };
