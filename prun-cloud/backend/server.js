@@ -31,6 +31,7 @@ const paymentsRoutes = require('./routes/payments.routes');
 const branchesRoutes = require('./routes/branches.routes');
 const contractRoutes = require('./routes/contract.routes');
 const paymentDetailRoutes = require('./routes/payment-detail.routes');
+const paymentDetailTemplateRoutes = require('./routes/payment-detail-template.routes');
 const contractTemplateRoutes = require('./routes/contract-template.routes');
 const { DEFAULT_CONTRACT_TEMPLATE } = require('./default-contract-template');
 
@@ -110,6 +111,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/branches', branchesRoutes);
 app.use('/api/contract', contractRoutes);
 app.use('/api/payment-detail', paymentDetailRoutes);
+app.use('/api/payment-detail-template', paymentDetailTemplateRoutes);
 app.use('/api/contract-template', contractTemplateRoutes);
 
 app.get('/api/health', (req, res) => {
@@ -160,7 +162,29 @@ async function ensureContractTemplate() {
   else console.log('Modelo de contrato por defecto cargado.');
 }
 
-ensureAdminAccount().then(() => ensureContractTemplate()).then(() => {
+// Carga las notas por defecto del detalle de pago la primera vez que arranca
+// el servidor (si todavia esta vacio). Despues de eso, el Administrador las
+// edita desde el panel y esos cambios prevalecen siempre.
+async function ensurePaymentDetailTemplate() {
+  const { data: existing, error: selectError } = await supabase
+    .from('payment_detail_template').select('footer_notes').eq('id', 1).maybeSingle();
+
+  if (selectError) {
+    console.error('No se pudo verificar el modelo de detalle de pago. ¿Corriste el schema de payment_detail_template? ->', selectError.message);
+    return;
+  }
+  if (existing && existing.footer_notes && existing.footer_notes.length) return;
+
+  const defaultNotes = [
+    'LOS PAGOS NO PUEDEN SER PARCIALES, SOLO SE ACEPTAN PAGOS TOTAL DE LA DEUDA.',
+    'Los comprobantes de servicios y depósito deben ser enviados al mail indicado arriba, asunto: (nombre y apellido, y datos de la propiedad).',
+  ];
+  const { error: updateError } = await supabase.from('payment_detail_template').update({ footer_notes: defaultNotes }).eq('id', 1);
+  if (updateError) console.error('No se pudo cargar el modelo de detalle de pago por defecto ->', updateError.message);
+  else console.log('Modelo de detalle de pago por defecto cargado.');
+}
+
+ensureAdminAccount().then(() => ensureContractTemplate()).then(() => ensurePaymentDetailTemplate()).then(() => {
   app.listen(PORT, () => {
     console.log('==================================================');
     console.log(' PRUN BIENES RAICES - Servidor (nube) iniciado');

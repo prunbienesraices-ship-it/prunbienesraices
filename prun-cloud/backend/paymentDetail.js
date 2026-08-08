@@ -152,12 +152,30 @@ async function getSiteConfig() {
   return data || {};
 }
 
+// Trae las notas editables que van al final del detalle de pago (el aviso
+// sobre pagos parciales, donde mandar comprobantes, etc.), configuradas por
+// el Administrador en "Modelo de detalle de pago".
+async function getPaymentDetailNotes() {
+  const { data } = await supabase.from('payment_detail_template').select('footer_notes').eq('id', 1).maybeSingle();
+  return (data && data.footer_notes && data.footer_notes.length) ? data.footer_notes : [
+    'LOS PAGOS NO PUEDEN SER PARCIALES, SOLO SE ACEPTAN PAGOS TOTAL DE LA DEUDA.',
+  ];
+}
+// Arma el bloque HTML con esas notas, una debajo de la otra. Soporta el
+// código {{EMAIL}} para insertar automáticamente el mail de contacto como
+// link, sin tener que escribirlo a mano cada vez.
+function buildFooterNotesHtml(notes, config) {
+  const email = (config && config.contact_email) || '';
+  const emailLink = `<a href="mailto:${email}" style="color:#1155cc">${email}</a>`;
+  return (notes || []).map(n => `<p style="margin:0 0 8px 0">${n.split('{{EMAIL}}').join(emailLink)}</p>`).join('');
+}
+
 // Arma el HTML del detalle de pago, con el mismo estilo del modelo en Word
 // (encabezado con datos de la inmobiliaria, nombre, propiedad, detalle en
 // lista, y el texto fijo de abajo sobre como pagar). Cada mes de alquiler
 // muestra los 3 vencimientos posibles, para que el inquilino sepa cuanto
 // le sale segun cuando pague.
-function buildDetailHtml({ tenantName, propertyLabel, items, config, currency }) {
+function buildDetailHtml({ tenantName, propertyLabel, items, config, currency, footerNotes }) {
   const total = items.reduce((s, i) => s + i.amount, 0);
   const money = n => `${currency || 'ARS'} ${Number(n).toLocaleString('es-AR')}`;
   const logoImg = config.logo_image ? `<img src="${config.logo_image}" alt="logo" style="width:90px;height:90px;object-fit:contain">` : '';
@@ -176,9 +194,8 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency })
     }
     return `<li style="margin-bottom:4px">${i.concept}: <strong>${money(i.amount)}</strong></li>`;
   }).join('');
-  return `
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:0">
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
-    <meta charset="utf-8">
     <table style="width:100%;border:2px solid #000;border-collapse:collapse">
       <tr>
         <td style="padding:16px;vertical-align:top">
@@ -207,13 +224,10 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency })
     </table>
     <table style="width:100%;border:2px solid #000;border-top:none;border-collapse:collapse">
       <tr><td style="padding:16px;font-size:12px;font-weight:700">
-        LOS PAGOS NO PUEDEN SER PARCIALES, SOLO SE ACEPTAN PAGOS TOTAL DE LA DEUDA.
-        Los <em><u>comprobantes de servicios y depósito</u></em> deben ser enviados al mail:
-        <a href="mailto:${config.contact_email || ''}" style="color:#1155cc">${config.contact_email || ''}</a>,
-        asunto: (nombre y apellido, y datos de la propiedad).
+        ${buildFooterNotesHtml(footerNotes, config)}
       </td></tr>
     </table>
-  </div>`;
+  </div></body></html>`;
 }
 
 // Arma el detalle de pago de un PROPIETARIO: por cada propiedad suya con
@@ -246,7 +260,7 @@ async function buildOwnerDetailItems(owner) {
 
 // Arma el HTML del detalle de pago del propietario, con el mismo estilo de
 // letterhead que el de los inquilinos.
-function buildOwnerDetailHtml({ ownerName, items, config }) {
+function buildOwnerDetailHtml({ ownerName, items, config, footerNotes }) {
   const totalNet = items.reduce((s, i) => s + i.net, 0);
   const money = (n, currency) => `${currency || 'ARS'} ${Number(n).toLocaleString('es-AR')}`;
   const logoImg = config.logo_image ? `<img src="${config.logo_image}" alt="logo" style="width:90px;height:90px;object-fit:contain">` : '';
@@ -257,9 +271,8 @@ function buildOwnerDetailHtml({ ownerName, items, config }) {
       <td style="padding:8px;border:1px solid #ddd;font-size:12px;text-align:right;color:#b00">-${money(i.commission, i.currency)}<br><span style="font-size:10px;color:#888">${i.commissionLabel}</span></td>
       <td style="padding:8px;border:1px solid #ddd;font-size:12px;text-align:right;font-weight:700">${money(i.net, i.currency)}</td>
     </tr>`).join('');
-  return `
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:0">
   <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto">
-    <meta charset="utf-8">
     <table style="width:100%;border:2px solid #000;border-collapse:collapse">
       <tr>
         <td style="padding:16px;vertical-align:top">
@@ -290,7 +303,12 @@ function buildOwnerDetailHtml({ ownerName, items, config }) {
         <div style="font-size:14px;font-weight:700;border-top:1px solid #ccc;padding-top:8px">TOTAL NETO A DEPOSITAR: ${money(totalNet, items[0] ? items[0].currency : 'ARS')}</div>
       </td></tr>
     </table>
-  </div>`;
+    ${footerNotes && footerNotes.length ? `<table style="width:100%;border:2px solid #000;border-top:none;border-collapse:collapse">
+      <tr><td style="padding:16px;font-size:12px;font-weight:700">
+        ${buildFooterNotesHtml(footerNotes, config)}
+      </td></tr>
+    </table>` : ''}
+  </div></body></html>`;
 }
 
-module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, computeTenantStatus };
+module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, computeTenantStatus };
