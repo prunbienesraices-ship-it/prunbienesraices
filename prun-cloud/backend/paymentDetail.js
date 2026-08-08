@@ -185,6 +185,7 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency })
           <div style="font-size:16px;font-weight:600;margin-bottom:8px">${config.logo_text || 'Administración Prun Bienes Raíces'}</div>
           <div style="border-top:1px solid #4a90d9;width:70%;margin-bottom:10px"></div>
           <div style="font-size:13px;line-height:1.8">
+            ${config.office_address ? `${config.office_address}<br>` : ''}
             ${config.contact_phone ? `Tel. ${config.contact_phone}<br>` : ''}
             mail: <a href="mailto:${config.contact_email || ''}" style="color:#1155cc">${config.contact_email || ''}</a>
           </div>
@@ -265,6 +266,7 @@ function buildOwnerDetailHtml({ ownerName, items, config }) {
           <div style="font-size:16px;font-weight:600;margin-bottom:8px">${config.logo_text || 'Administración Prun Bienes Raíces'}</div>
           <div style="border-top:1px solid #4a90d9;width:70%;margin-bottom:10px"></div>
           <div style="font-size:13px;line-height:1.8">
+            ${config.office_address ? `${config.office_address}<br>` : ''}
             ${config.contact_phone ? `Tel. ${config.contact_phone}<br>` : ''}
             mail: <a href="mailto:${config.contact_email || ''}" style="color:#1155cc">${config.contact_email || ''}</a>
           </div>
