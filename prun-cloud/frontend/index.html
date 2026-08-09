@@ -269,6 +269,8 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <form id="tenant-report-form" style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
       <input type="text" id="tr-title" placeholder="¿Qué hay que reparar? (ej: pierde la canilla de la cocina)" required maxlength="150">
       <textarea id="tr-notes" placeholder="Detalles adicionales (opcional)" rows="3" maxlength="2000"></textarea>
+      <label style="font-size:12px;color:var(--gray)">Fotos (opcional, hasta 5)</label>
+      <input type="file" id="tr-images" accept="image/*" multiple>
       <button class="btn" type="submit">Enviar reporte</button>
     </form>
     <div id="tenant-repairs-list"></div>
@@ -418,6 +420,8 @@ async function openOwnerPortal(){
           <select id="or-property" required>${data.properties.map(p=>`<option value="${p.id}">${p.title}</option>`).join('')}</select>
           <input type="text" id="or-title" placeholder="¿Qué hay que reparar?" required maxlength="150">
           <textarea id="or-notes" placeholder="Detalles adicionales (opcional)" rows="2" maxlength="2000"></textarea>
+          <label style="font-size:12px;color:var(--gray)">Fotos (opcional, hasta 5)</label>
+          <input type="file" id="or-images" accept="image/*" multiple>
           <button class="btn" type="submit">Enviar reclamo</button>
         </form>
       </div>
@@ -463,9 +467,15 @@ async function openOwnerPortal(){
       e.preventDefault();
       const msg = document.getElementById('owner-report-msg');
       try{
+        const fd = new FormData();
+        fd.append('property_id', document.getElementById('or-property').value);
+        fd.append('title', document.getElementById('or-title').value);
+        fd.append('notes', document.getElementById('or-notes').value);
+        const files = document.getElementById('or-images').files;
+        for(let i=0;i<files.length;i++) fd.append('images', files[i]);
         const r = await fetch(`${API}/owner-portal/report`, {
-          method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
-          body: JSON.stringify({ property_id: Number(document.getElementById('or-property').value), title: document.getElementById('or-title').value, notes: document.getElementById('or-notes').value }),
+          method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` },
+          body: fd,
         });
         const d = await r.json();
         if(!r.ok) throw new Error(d.error || 'No pudimos enviar tu reclamo.');
@@ -497,6 +507,8 @@ async function openGuarantorPortal(){
           <select id="gr-property" required>${data.properties.map(p=>`<option value="${p.id}">${p.title}</option>`).join('')}</select>
           <input type="text" id="gr-title" placeholder="¿Qué hay que reparar?" required maxlength="150">
           <textarea id="gr-notes" placeholder="Detalles adicionales (opcional)" rows="2" maxlength="2000"></textarea>
+          <label style="font-size:12px;color:var(--gray)">Fotos (opcional, hasta 5)</label>
+          <input type="file" id="gr-images" accept="image/*" multiple>
           <button class="btn" type="submit">Enviar reclamo</button>
         </form>` : '<p style="color:var(--gray);font-size:13px">No encontramos ninguna propiedad que estés garantizando todavía.</p>'}
       </div>
@@ -514,9 +526,15 @@ async function openGuarantorPortal(){
       e.preventDefault();
       const msg = document.getElementById('guarantor-report-msg');
       try{
+        const fd = new FormData();
+        fd.append('property_id', document.getElementById('gr-property').value);
+        fd.append('title', document.getElementById('gr-title').value);
+        fd.append('notes', document.getElementById('gr-notes').value);
+        const files = document.getElementById('gr-images').files;
+        for(let i=0;i<files.length;i++) fd.append('images', files[i]);
         const r = await fetch(`${API}/guarantor-portal/report`, {
-          method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
-          body: JSON.stringify({ property_id: Number(document.getElementById('gr-property').value), title: document.getElementById('gr-title').value, notes: document.getElementById('gr-notes').value }),
+          method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` },
+          body: fd,
         });
         const d = await r.json();
         if(!r.ok) throw new Error(d.error || 'No pudimos enviar tu reclamo.');
@@ -844,9 +862,14 @@ document.getElementById('tenant-report-form').addEventListener('submit', async e
   e.preventDefault();
   const msg = document.getElementById('tenant-report-msg');
   try{
+    const fd = new FormData();
+    fd.append('title', document.getElementById('tr-title').value);
+    fd.append('notes', document.getElementById('tr-notes').value);
+    const files = document.getElementById('tr-images').files;
+    for(let i=0;i<files.length;i++) fd.append('images', files[i]);
     const res = await fetch(`${API}/tenant-portal/report`, {
-      method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
-      body: JSON.stringify({ title: document.getElementById('tr-title').value, notes: document.getElementById('tr-notes').value }),
+      method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` },
+      body: fd,
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'No pudimos enviar tu reporte.');

@@ -2011,9 +2011,12 @@ async function loadRepairs(){
     const list = await api('/repairs');
     tbody.innerHTML = list.length ? list.map(r => {
       const prop = ALL_PROPERTIES.find(p=>p.id===r.property_id);
-      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}` };
+      const imagesHtml = (r.images && r.images.length)
+        ? r.images.map(url => `<a href="${url}" target="_blank"><img src="${url}" style="width:60px;height:60px;object-fit:cover;border:1px solid var(--line);margin-right:6px;border-radius:4px"></a>`).join('')
+        : '';
+      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}`, images_html: imagesHtml };
       const actionsHtml = `<button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",cost_display:"Costo",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",cost_display:"Costo",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas",images_html:"Fotos"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${r.title}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin reparaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
