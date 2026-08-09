@@ -1,8 +1,37 @@
 // routes/owners.routes.js
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
 const router = express.Router();
+
+// Cuando se crea un propietario con email, le crea automáticamente una
+// cuenta para que pueda entrar al sitio (usuario: su email, contraseña: su
+// DNI). Si ya tenía cuenta con un rol "menor" (garante), la sube a
+// propietario. Si ya era inquilino o propietario, no la toca.
+async function ensureOwnerSiteAccount(owner) {
+  if (!owner.email) return;
+  try {
+    const { data: existing } = await supabase.from('site_users').select('id, role').eq('email', owner.email).maybeSingle();
+    if (existing) {
+      if (existing.role === 'guarantor') {
+        await supabase.from('site_users').update({ role: 'owner' }).eq('id', existing.id);
+        console.log(`Cuenta de ${owner.email} actualizada de garante a propietario.`);
+      }
+      return;
+    }
+    if (!owner.dni) { console.log(`No se pudo crear la cuenta de ${owner.email}: falta el DNI para usarlo como contraseña.`); return; }
+    const dniDigits = owner.dni.replace(/\D/g, '');
+    if (!dniDigits) { console.log(`No se pudo crear la cuenta de ${owner.email}: el DNI cargado no tiene números.`); return; }
+    const password_hash = bcrypt.hashSync(dniDigits, 10);
+    await supabase.from('site_users').insert([{
+      name: owner.name, email: owner.email, password_hash, phone: owner.phone || '', role: 'owner',
+    }]);
+    console.log(`Cuenta del sitio creada para el propietario ${owner.name} (${owner.email}).`);
+  } catch (err) {
+    console.error('No se pudo crear la cuenta del propietario en el sitio ->', err.message);
+  }
+}
 
 router.get('/', requireAuth, async (req, res) => {
   const { data, error } = await supabase.from('owners').select('*').order('created_at', { ascending: false });
@@ -21,6 +50,7 @@ router.post('/', requireAuth, async (req, res) => {
     notes: b.notes || '',
   }]).select().single();
   if (error) return res.status(500).json({ error: 'Error al crear el propietario.' });
+  await ensureOwnerSiteAccount(data);
   res.status(201).json(data);
 });
 
@@ -34,6 +64,7 @@ router.put('/:id', requireAuth, async (req, res) => {
   if (b.commission_withholding !== undefined) updates.commission_withholding = Number(b.commission_withholding) || 0;
   const { data, error } = await supabase.from('owners').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(500).json({ error: 'Error al editar el propietario.' });
+  await ensureOwnerSiteAccount(data);
   res.json(data);
 });
 

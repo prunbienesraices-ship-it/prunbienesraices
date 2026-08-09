@@ -13,8 +13,17 @@ const router = express.Router();
 async function ensureTenantSiteAccount(tenant) {
   if (!tenant.email) return;
   try {
-    const { data: existing } = await supabase.from('site_users').select('id').eq('email', tenant.email).maybeSingle();
-    if (existing) return;
+    const { data: existing } = await supabase.from('site_users').select('id, role').eq('email', tenant.email).maybeSingle();
+    if (existing) {
+      // Si ya tenía cuenta pero con un rol "menor" (ej: garante), la subimos
+      // a inquilino, para que ya pueda usar el portal de inquilino. Si ya
+      // era inquilino o propietario, no la tocamos.
+      if (existing.role === 'guarantor') {
+        await supabase.from('site_users').update({ role: 'tenant' }).eq('id', existing.id);
+        console.log(`Cuenta de ${tenant.email} actualizada de garante a inquilino.`);
+      }
+      return;
+    }
     if (!tenant.dni) { console.log(`No se pudo crear la cuenta de ${tenant.email}: falta el DNI para usarlo como contraseña.`); return; }
     const dniDigits = tenant.dni.replace(/\D/g, ''); // solo numeros, sin puntos ni espacios
     if (!dniDigits) { console.log(`No se pudo crear la cuenta de ${tenant.email}: el DNI cargado no tiene números.`); return; }
