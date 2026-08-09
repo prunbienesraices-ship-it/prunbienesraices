@@ -1,9 +1,32 @@
 // routes/tenants.routes.js
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
 
 const router = express.Router();
+
+// Cuando se crea un inquilino con email, le crea automáticamente una cuenta
+// para que pueda entrar al sitio (usuario: su email, contraseña: su DNI).
+// Si ya existe una cuenta con ese email (por ejemplo, si ya se había
+// registrado solo, o ya es propietario tambien), no la toca ni la duplica.
+async function ensureTenantSiteAccount(tenant) {
+  if (!tenant.email) return;
+  try {
+    const { data: existing } = await supabase.from('site_users').select('id').eq('email', tenant.email).maybeSingle();
+    if (existing) return;
+    if (!tenant.dni) { console.log(`No se pudo crear la cuenta de ${tenant.email}: falta el DNI para usarlo como contraseña.`); return; }
+    const dniDigits = tenant.dni.replace(/\D/g, ''); // solo numeros, sin puntos ni espacios
+    if (!dniDigits) { console.log(`No se pudo crear la cuenta de ${tenant.email}: el DNI cargado no tiene números.`); return; }
+    const password_hash = bcrypt.hashSync(dniDigits, 10);
+    await supabase.from('site_users').insert([{
+      name: tenant.name, email: tenant.email, password_hash, phone: tenant.phone || '', role: 'tenant',
+    }]);
+    console.log(`Cuenta del sitio creada para el inquilino ${tenant.name} (${tenant.email}).`);
+  } catch (err) {
+    console.error('No se pudo crear la cuenta del inquilino en el sitio ->', err.message);
+  }
+}
 
 // Todas las rutas de inquilinos requieren estar logueado en el panel.
 
@@ -48,6 +71,7 @@ router.post('/', requireAuth, async (req, res) => {
       notes: b.notes || '',
     }]).select().single();
     if (error) throw error;
+    await ensureTenantSiteAccount(data);
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -71,6 +95,7 @@ router.put('/:id', requireAuth, async (req, res) => {
 
     const { data, error } = await supabase.from('tenants').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;
+    await ensureTenantSiteAccount(data);
     res.json(data);
   } catch (err) {
     console.error(err);
