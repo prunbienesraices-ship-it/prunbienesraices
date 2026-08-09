@@ -49,7 +49,18 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       payments = paymentsData || [];
     }
 
-    res.json({ isOwner: true, owner, properties: properties || [], repairs, tenants, payments });
+    // Liquidaciones de sus inquilinos, para que el propietario vea cuánto le
+    // corresponde de cada período (nunca puede editar nada de esto).
+    let settlements = [];
+    const tenantIds = tenants.map(t => t.id);
+    if (tenantIds.length) {
+      const { data: settlementsData, error: settlementsErr } = await supabase
+        .from('settlements').select('*').in('tenant_id', tenantIds).order('created_at', { ascending: false });
+      if (settlementsErr) throw settlementsErr;
+      settlements = settlementsData || [];
+    }
+
+    res.json({ isOwner: true, owner, properties: properties || [], repairs, tenants, payments, settlements });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al buscar tu información como propietario.' });
