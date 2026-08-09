@@ -1,9 +1,26 @@
 // routes/guarantor-portal.routes.js
 const express = require('express');
+const multer = require('multer');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+
+// Sube las fotos que adjunte un reclamo al mismo bucket de Supabase Storage
+// que ya se usa para las fotos de las propiedades, y devuelve las URLs.
+async function uploadReportImages(files) {
+  if (!files || !files.length) return [];
+  const urls = [];
+  for (const file of files) {
+    const fileName = `reclamo-${Date.now()}-${Math.round(Math.random() * 1e9)}.${file.originalname.split('.').pop()}`;
+    const { error } = await supabase.storage.from('property-photos').upload(fileName, file.buffer, { contentType: file.mimetype });
+    if (error) { console.error('Error subiendo imagen de reclamo:', error); continue; }
+    const { data } = supabase.storage.from('property-photos').getPublicUrl(fileName);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
 
 // Busca las propiedades que este garante garantiza: mira su DNI (de su
 // ficha de garante) y busca entre todos los inquilinos cuáles lo tienen
@@ -46,7 +63,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
 // El garante puede cargar un reclamo nuevo, solo sobre una propiedad que
 // efectivamente garantiza.
-router.post('/report', requireAuth, async (req, res) => {
+router.post('/report', requireAuth, upload.array('images', 5), async (req, res) => {
   try {
     const { property_id, title, notes } = req.body;
     if (!title) return res.status(400).json({ error: 'Contanos qué hay que reparar.' });
@@ -55,10 +72,11 @@ router.post('/report', requireAuth, async (req, res) => {
     const prop = properties.find(p => p.id === Number(property_id));
     if (!prop) return res.status(403).json({ error: 'Esa propiedad no está entre las que garantizás.' });
 
+    const images = await uploadReportImages(req.files);
     const { data, error } = await supabase.from('repairs').insert([{
       property_id: prop.id, type: 'incidencia', status: 'reportado',
       title, notes: notes || '', date_reported: new Date().toISOString().slice(0, 10),
-      payer: 'a definir',
+      payer: 'a definir', images,
     }]).select().single();
     if (error) throw error;
     res.status(201).json({ ok: true, repair: data });

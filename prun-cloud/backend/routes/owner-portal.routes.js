@@ -1,9 +1,26 @@
 // routes/owner-portal.routes.js
 const express = require('express');
+const multer = require('multer');
 const supabase = require('../supabaseClient');
 const { requireAuth } = require('../auth');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+
+// Sube las fotos que adjunte un reclamo al mismo bucket de Supabase Storage
+// que ya se usa para las fotos de las propiedades, y devuelve las URLs.
+async function uploadReportImages(files) {
+  if (!files || !files.length) return [];
+  const urls = [];
+  for (const file of files) {
+    const fileName = `reclamo-${Date.now()}-${Math.round(Math.random() * 1e9)}.${file.originalname.split('.').pop()}`;
+    const { error } = await supabase.storage.from('property-photos').upload(fileName, file.buffer, { contentType: file.mimetype });
+    if (error) { console.error('Error subiendo imagen de reclamo:', error); continue; }
+    const { data } = supabase.storage.from('property-photos').getPublicUrl(fileName);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
 
 // El propietario logueado (con su cuenta de cliente/sitio) ve sus propiedades
 // y los reclamos/reparaciones vinculados a ellas.
@@ -69,7 +86,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
 // El propietario puede cargar un reclamo nuevo (nunca editar ni borrar nada),
 // solo para una de sus propias propiedades.
-router.post('/report', requireAuth, async (req, res) => {
+router.post('/report', requireAuth, upload.array('images', 5), async (req, res) => {
   try {
     const email = req.user.email;
     const { property_id, title, notes } = req.body;
@@ -84,10 +101,11 @@ router.post('/report', requireAuth, async (req, res) => {
     if (propErr) throw propErr;
     if (!prop) return res.status(403).json({ error: 'Esa propiedad no te pertenece.' });
 
+    const images = await uploadReportImages(req.files);
     const { data, error } = await supabase.from('repairs').insert([{
       property_id: prop.id, type: 'incidencia', status: 'reportado',
       title, notes: notes || '', date_reported: new Date().toISOString().slice(0, 10),
-      payer: 'propietario',
+      payer: 'propietario', images,
     }]).select().single();
     if (error) throw error;
     res.status(201).json({ ok: true, repair: data });
