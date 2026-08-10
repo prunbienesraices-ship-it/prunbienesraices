@@ -666,10 +666,21 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <div class="form-grid">
         <div class="form-row"><label>Tipo</label><select id="r-type"><option value="incidencia">Incidencia</option><option value="reclamo">Reclamo</option></select></div>
         <div class="form-row"><label>Estado</label><select id="r-status"><option value="reportado">Reportado</option><option value="presupuestando">Presupuestando</option><option value="aprobado">Aprobado</option><option value="en_proceso">En proceso</option><option value="finalizado">Finalizado</option></select></div>
+        <div class="form-row"><label>Prioridad</label><select id="r-priority"><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
+        <div class="form-row"><label>Fecha estimada de resolución</label><input type="date" id="r-estimated-date"></div>
         <div class="form-row"><label>Costo</label><input type="number" id="r-cost" min="0"></div>
         <div class="form-row"><label>Paga</label><select id="r-payer"><option value="propietario">Propietario</option><option value="inquilino">Inquilino</option><option value="inmobiliaria">Inmobiliaria</option></select></div>
         <div class="form-row"><label>Proveedor</label><input type="text" id="r-provider"></div>
         <div class="form-row"><label>Garantía</label><input type="text" id="r-warranty"></div>
+      </div>
+      <div class="section-label"><span>Respuesta para quien reclamó</span></div>
+      <div class="form-row"><label>Detalle de la respuesta (se le va a avisar por mail si cargó email)</label><textarea id="r-response" rows="3" placeholder="Ej: Ya coordinamos con el plomero, pasa el jueves a la tarde."></textarea></div>
+      <div class="section-label"><span>Presupuestos</span></div>
+      <div id="r-budgets-list" style="margin-bottom:10px;font-size:12px"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Agregar presupuesto — monto</label><input type="number" id="r-budget-amount" min="0"></div>
+        <div class="form-row"><label>Proveedor de este presupuesto</label><input type="text" id="r-budget-provider"></div>
+        <div class="form-row"><label>Archivo (PDF o foto, opcional)</label><input type="file" id="r-budget-file" accept="image/*,.pdf"></div>
       </div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('repair-modal')">Cancelar</button></div>
     </form>
@@ -2006,6 +2017,8 @@ function createTenantFromGuarantor(){
 // =====================================================================
 async function loadRepairs(){
   const tbody = document.getElementById('repair-tbody');
+  const PRIORITY_ICON = { baja: '⚪', media: '🔵', alta: '🟠', urgente: '🔴' };
+  const PRIORITY_LABEL = { baja: 'Baja', media: 'Media', alta: 'Alta', urgente: 'Urgente' };
   try{
     if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
     const list = await api('/repairs');
@@ -2014,10 +2027,11 @@ async function loadRepairs(){
       const imagesHtml = (r.images && r.images.length)
         ? r.images.map(url => `<a href="${url}" target="_blank"><img src="${url}" style="width:60px;height:60px;object-fit:cover;border:1px solid var(--line);margin-right:6px;border-radius:4px"></a>`).join('')
         : '';
-      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}`, images_html: imagesHtml };
+      const priorityDisplay = `${PRIORITY_ICON[r.priority]||'🔵'} ${PRIORITY_LABEL[r.priority]||'Media'}`;
+      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}`, images_html: imagesHtml, priority_display: priorityDisplay, estimated_date: r.estimated_date || '' };
       const actionsHtml = `<button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",cost_display:"Costo",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas",images_html:"Fotos"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
-      <td>${r.title}</td></tr>`;
+      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",priority_display:"Prioridad",estimated_date:"Fecha estimada",cost_display:"Costo",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas",images_html:"Fotos"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${PRIORITY_ICON[r.priority]||'🔵'} ${r.title}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin reparaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
 }
@@ -2034,18 +2048,52 @@ function openRepairModal(r){
   document.getElementById('r-payer').value = r ? r.payer : 'propietario';
   document.getElementById('r-provider').value = r ? (r.provider||'') : '';
   document.getElementById('r-warranty').value = r ? (r.warranty||'') : '';
+  document.getElementById('r-priority').value = r ? (r.priority||'media') : 'media';
+  document.getElementById('r-estimated-date').value = r ? (r.estimated_date||'') : '';
+  document.getElementById('r-response').value = r ? (r.response||'') : '';
+  document.getElementById('r-budget-amount').value = '';
+  document.getElementById('r-budget-provider').value = '';
+  document.getElementById('r-budget-file').value = '';
+  const budgetsList = document.getElementById('r-budgets-list');
+  const budgets = (r && r.budgets) || [];
+  budgetsList.innerHTML = budgets.length ? budgets.map(b => `
+    <div style="padding:6px 0;border-bottom:1px solid var(--line)">
+      ${b.amount ? `<strong>$${Number(b.amount).toLocaleString('es-AR')}</strong>` : '<em>Sin monto</em>'}
+      ${b.provider ? ' — ' + b.provider : ''} ${b.date ? '(' + b.date + ')' : ''}
+      ${b.file_url ? ` — <a href="${b.file_url}" target="_blank">Ver archivo</a>` : ''}
+    </div>`).join('') : '<p style="color:var(--gray)">Todavía no hay presupuestos cargados.</p>';
   document.getElementById('repair-modal').classList.add('active');
 }
 document.getElementById('repair-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('r-id').value;
-  const body = { property_id: Number(document.getElementById('r-property').value), title: document.getElementById('r-title').value,
-    type: document.getElementById('r-type').value, status: document.getElementById('r-status').value,
-    cost: document.getElementById('r-cost').value, payer: document.getElementById('r-payer').value,
-    provider: document.getElementById('r-provider').value, warranty: document.getElementById('r-warranty').value };
+  const fd = new FormData();
+  fd.append('property_id', document.getElementById('r-property').value);
+  fd.append('title', document.getElementById('r-title').value);
+  fd.append('type', document.getElementById('r-type').value);
+  fd.append('status', document.getElementById('r-status').value);
+  fd.append('cost', document.getElementById('r-cost').value);
+  fd.append('payer', document.getElementById('r-payer').value);
+  fd.append('provider', document.getElementById('r-provider').value);
+  fd.append('warranty', document.getElementById('r-warranty').value);
+  fd.append('priority', document.getElementById('r-priority').value);
+  fd.append('estimated_date', document.getElementById('r-estimated-date').value);
+  fd.append('response', document.getElementById('r-response').value);
+  const budgetAmount = document.getElementById('r-budget-amount').value;
+  const budgetProvider = document.getElementById('r-budget-provider').value;
+  const budgetFile = document.getElementById('r-budget-file').files[0];
+  if(budgetAmount) fd.append('budget_amount', budgetAmount);
+  if(budgetProvider) fd.append('budget_provider', budgetProvider);
+  if(budgetFile) fd.append('budget_file', budgetFile);
   try{
-    if(id) await api(`/repairs/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-    else await api('/repairs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if(id) await api(`/repairs/${id}`, {method:'PUT', body: fd});
+    else await api('/repairs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      property_id: Number(document.getElementById('r-property').value), title: document.getElementById('r-title').value,
+      type: document.getElementById('r-type').value, status: document.getElementById('r-status').value,
+      cost: document.getElementById('r-cost').value, payer: document.getElementById('r-payer').value,
+      provider: document.getElementById('r-provider').value, warranty: document.getElementById('r-warranty').value,
+      priority: document.getElementById('r-priority').value, estimated_date: document.getElementById('r-estimated-date').value,
+    })});
     toast('Guardado'); closeModal('repair-modal'); loadRepairs();
   }catch(err){ toast(err.message); }
 });

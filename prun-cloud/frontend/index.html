@@ -458,8 +458,9 @@ async function openOwnerPortal(){
         const prop = data.properties.find(p=>p.id===r.property_id);
         return `<div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
           <strong>${r.title}</strong> — ${prop?prop.title:''}<br>
-          <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''}</span>
-          ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}`).join(' · ')}</div>` : ''}
+          <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''} ${r.estimated_date?'· Fecha estimada: '+r.estimated_date:''}</span>
+          ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}${b.file_url?` — <a href="${b.file_url}" target="_blank">Ver archivo</a>`:''}`).join(' · ')}</div>` : ''}
+          ${r.response ? `<div style="margin-top:6px;background:var(--cream);padding:8px;border-radius:4px"><strong>Respuesta del equipo:</strong> ${r.response}</div>` : ''}
         </div>`;
       }).join('') : '<p style="color:var(--gray);font-size:13px">No hay reclamos registrados en tus propiedades.</p>'}
     `;
@@ -517,7 +518,9 @@ async function openGuarantorPortal(){
         const prop = data.properties.find(p=>p.id===r.property_id);
         return `<div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
           <strong>${r.title}</strong> — ${prop?prop.title:''}<br>
-          <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''}</span>
+          <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.estimated_date?'· Fecha estimada: '+r.estimated_date:''}</span>
+          ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}${b.file_url?` — <a href="${b.file_url}" target="_blank">Ver archivo</a>`:''}`).join(' · ')}</div>` : ''}
+          ${r.response ? `<div style="margin-top:6px;background:var(--cream);padding:8px;border-radius:4px"><strong>Respuesta del equipo:</strong> ${r.response}</div>` : ''}
         </div>`;
       }).join('') : '<p style="color:var(--gray);font-size:13px">No hay reclamos registrados todavía.</p>'}
     `;
@@ -848,8 +851,9 @@ async function loadTenantRepairsList(){
     box.innerHTML = data.repairs.length ? `<h4 style="font-size:13px;margin-bottom:8px">Tus reclamos anteriores</h4>` + data.repairs.map(r => `
       <div style="padding:10px 0;border-bottom:1px solid var(--line);font-size:13px">
         <strong>${r.title}</strong><br>
-        <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS_TENANT[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''}</span>
-        ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}`).join(' · ')}</div>` : ''}
+        <span style="color:var(--gray)">Estado: ${REPAIR_STATUS_LABELS_TENANT[r.status]||r.status} ${r.cost?'· Costo: $'+Number(r.cost).toLocaleString('es-AR'):''} ${r.provider?'· Proveedor: '+r.provider:''} ${r.estimated_date?'· Fecha estimada: '+r.estimated_date:''}</span>
+        ${r.budgets && r.budgets.length ? `<div style="margin-top:4px;color:var(--gray)">Presupuestos: ${r.budgets.map(b=>`$${Number(b.amount||b).toLocaleString('es-AR')}${b.provider?' ('+b.provider+')':''}${b.file_url?` — <a href="${b.file_url}" target="_blank">Ver archivo</a>`:''}`).join(' · ')}</div>` : ''}
+        ${r.response ? `<div style="margin-top:6px;background:var(--cream);padding:8px;border-radius:4px"><strong>Respuesta del equipo:</strong> ${r.response}</div>` : ''}
       </div>
     `).join('') : '<p style="color:var(--gray);font-size:13px">Todavía no cargaste ningún reclamo.</p>';
   }catch(err){ box.innerHTML = `<p style="color:var(--red);font-size:13px">${err.message}</p>`; }
