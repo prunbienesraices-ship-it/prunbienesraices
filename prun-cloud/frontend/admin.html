@@ -655,6 +655,15 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
 </div>
 
+<div class="modal-overlay" id="reputation-modal">
+  <div class="modal-box" style="max-width:640px">
+    <button class="modal-close" onclick="closeModal('reputation-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:6px" id="reputation-modal-title">Reputación</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Uso interno solamente — nunca se comparte con la persona ni con otras inmobiliarias.</p>
+    <div id="reputation-content"><p style="color:var(--gray)">Cargando...</p></div>
+  </div>
+</div>
+
 <!-- Reparaciones -->
 <div class="modal-overlay" id="repair-modal">
   <div class="modal-box">
@@ -1434,7 +1443,7 @@ async function loadTenants(){
         end_date_display: new Date(t.end_date).toLocaleDateString('es-AR'),
         status_display: statusText[status],
         payment_status: missing.length ? `${missing.length} mes(es) sin pagar` : 'Al día' };
-      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick="sendPaymentDetail(${t.id})">Enviar detalle de pago</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
+      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="openReputationModal('${t.dni||''}','${(t.name||'').replace(/'/g,"&#39;")}')">Reputación</button><button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick="sendPaymentDetail(${t.id})">Enviar detalle de pago</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
       return `
       <tr data-branch-id="${branchIdForProperty(t.property_id)}">
         <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto actual",contract_total_display:"Monto total contrato",end_date_display:"Fin",status_display:"Estado",payment_status:"Pagos",dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
@@ -2031,7 +2040,7 @@ async function loadGuarantors(){
   try{
     ALL_GUARANTORS = await api('/guarantors');
     tbody.innerHTML = ALL_GUARANTORS.length ? ALL_GUARANTORS.map(g => {
-      const actionsHtml = `<button onclick='openGuarantorModal(${JSON.stringify(g).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteGuarantor(${g.id})">Borrar</button>`;
+      const actionsHtml = `<button onclick="openReputationModal('${g.dni||''}','${(g.name||'').replace(/'/g,"&#39;")}')">Reputación</button><button onclick='openGuarantorModal(${JSON.stringify(g).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteGuarantor(${g.id})">Borrar</button>`;
       return `
       <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(g).replace(/'/g,"&#39;")}, {dni:"DNI",phone:"Teléfono",email:"Email",address:"Domicilio",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${g.name}</td></tr>`;
@@ -2079,6 +2088,95 @@ function createTenantFromGuarantor(){
     document.getElementById('t-email').value = g.email;
     toast('Datos del garante cargados — completá el resto del contrato.');
   });
+}
+
+// =====================================================================
+// REPUTACIÓN (interna) — puntualidad automática + notas de comunicación
+// y cuidado de la propiedad cargadas a mano. Uso solo del personal.
+// =====================================================================
+const REPUTATION_CATEGORY_LABELS = { comunicacion: 'Comunicación', cuidado_propiedad: 'Cuidado de la propiedad', general: 'General' };
+async function openReputationModal(dni, name){
+  document.getElementById('reputation-modal-title').textContent = `Reputación — ${name || 'sin nombre'}`;
+  document.getElementById('reputation-modal').classList.add('active');
+  const box = document.getElementById('reputation-content');
+  if(!dni){ box.innerHTML = '<p style="color:var(--gray)">Esta persona no tiene DNI cargado — sin DNI no podemos identificarla de forma única para llevar su historial.</p>'; return; }
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    const data = await api(`/reputation/${dni}`);
+    renderReputationContent(data);
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+function renderReputationContent(data){
+  const box = document.getElementById('reputation-content');
+  const p = data.puntualidad;
+  const notesByCategory = cat => data.notes.filter(n => n.category === cat);
+  const renderNotes = (cat) => {
+    const notes = notesByCategory(cat);
+    return notes.length ? notes.map(n => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:12px">
+        ${n.score ? `<strong>${'⭐'.repeat(n.score)}</strong> — ` : ''}${n.note || '<em>(sin texto)</em>'}<br>
+        <span style="color:var(--gray)">${new Date(n.created_at).toLocaleDateString('es-AR')} ${n.created_by ? '— '+n.created_by : ''}</span>
+        <button style="color:var(--red);font-size:11px;margin-left:8px" onclick="deleteReputationNote(${n.id}, '${data.dni}')">Borrar</button>
+      </div>`).join('') : '<p style="color:var(--gray);font-size:12px">Sin notas cargadas todavía.</p>';
+  };
+  box.innerHTML = `
+    <div style="background:var(--cream);padding:14px;margin-bottom:18px">
+      <div style="font-size:15px;font-weight:800;margin-bottom:8px">${p.semaforo}</div>
+      <div style="font-size:12px;color:var(--gray);line-height:1.8">
+        ✅ Pagos a tiempo: <strong>${p.aTiempo}</strong><br>
+        🟡 Pagos en 2do vencimiento: <strong>${p.segundoVencimiento}</strong><br>
+        🔴 Pagos en 3er vencimiento: <strong>${p.tercerVencimiento}</strong><br>
+        ${p.pagadoPorGarante>0?`⚠️ Veces que pagó el garante (no el inquilino): <strong>${p.pagadoPorGarante}</strong><br>`:''}
+        ${p.mesesPendientesActuales>0?`🔴 Meses que debe ahora mismo: <strong>${p.mesesPendientesActuales}</strong><br>`:''}
+        ${data.isGuarantor && p.timesCoveredAsGuarantor>0?`⚠️ Veces que tuvo que cubrir como garante de alguien: <strong>${p.timesCoveredAsGuarantor}</strong><br>`:''}
+        Contratos registrados: <strong>${data.contractsCount}</strong>
+      </div>
+    </div>
+
+    <div class="section-label"><span>Comunicación</span></div>
+    <div style="margin-bottom:10px">${renderNotes('comunicacion')}</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+      <select id="rep-comm-score" style="padding:8px"><option value="">Sin puntaje</option><option value="5">⭐⭐⭐⭐⭐ Excelente</option><option value="4">⭐⭐⭐⭐ Buena</option><option value="3">⭐⭐⭐ Regular</option><option value="2">⭐⭐ Mala</option><option value="1">⭐ Evita el contacto</option></select>
+      <input type="text" id="rep-comm-note" placeholder="Nota (opcional)" style="flex:1;min-width:150px;padding:8px">
+      <button class="btn btn-sm" onclick="addReputationNote('${data.dni}','comunicacion')">Agregar</button>
+    </div>
+
+    <div class="section-label"><span>Cuidado de la propiedad</span></div>
+    <div style="margin-bottom:10px">${renderNotes('cuidado_propiedad')}</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+      <select id="rep-cuidado-score" style="padding:8px"><option value="">Sin puntaje</option><option value="5">⭐⭐⭐⭐⭐ Excelente</option><option value="4">⭐⭐⭐⭐ Buena</option><option value="3">⭐⭐⭐ Regular</option><option value="2">⭐⭐ Con daños menores</option><option value="1">⭐ Con daños importantes</option></select>
+      <input type="text" id="rep-cuidado-note" placeholder="Nota (opcional)" style="flex:1;min-width:150px;padding:8px">
+      <button class="btn btn-sm" onclick="addReputationNote('${data.dni}','cuidado_propiedad')">Agregar</button>
+    </div>
+
+    <div class="section-label"><span>Notas generales</span></div>
+    <div style="margin-bottom:10px">${renderNotes('general')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" id="rep-general-note" placeholder="Nota libre" style="flex:1;min-width:150px;padding:8px">
+      <button class="btn btn-sm" onclick="addReputationNote('${data.dni}','general')">Agregar</button>
+    </div>
+  `;
+}
+async function addReputationNote(dni, category){
+  const scoreEl = document.getElementById(`rep-${category==='comunicacion'?'comm':category==='cuidado_propiedad'?'cuidado':'general'}-score`);
+  const noteEl = document.getElementById(`rep-${category==='comunicacion'?'comm':category==='cuidado_propiedad'?'cuidado':'general'}-note`);
+  const score = scoreEl ? scoreEl.value : null;
+  const note = noteEl ? noteEl.value : '';
+  if(!score && !note){ toast('Cargá al menos un puntaje o una nota.'); return; }
+  try{
+    await api(`/reputation/${dni}/note`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({category, score, note})});
+    const data = await api(`/reputation/${dni}`);
+    renderReputationContent(data);
+    toast('Nota agregada.');
+  }catch(err){ toast(err.message); }
+}
+async function deleteReputationNote(id, dni){
+  if(!confirm('¿Borrar esta nota?')) return;
+  try{
+    await api(`/reputation/note/${id}`, {method:'DELETE'});
+    const data = await api(`/reputation/${dni}`);
+    renderReputationContent(data);
+  }catch(err){ toast(err.message); }
 }
 
 // =====================================================================
