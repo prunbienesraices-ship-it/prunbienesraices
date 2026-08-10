@@ -489,7 +489,8 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <div class="form-grid">
         <div class="form-row"><label>Nombre completo</label><input type="text" id="t-name" list="tenant-name-datalist" oninput="autofillTenantFromDirectory(this)" required></div>
         <datalist id="tenant-name-datalist"></datalist>
-        <div class="form-row"><label>DNI</label><input type="text" id="t-dni"></div>
+        <div class="form-row"><label>DNI</label><input type="text" id="t-dni" onblur="checkReputationWarning(this.value)"></div>
+        <div id="t-dni-warning" style="grid-column:1/-1"></div>
         <div class="form-row"><label>Teléfono</label><input type="tel" id="t-phone"></div>
         <div class="form-row"><label>Email</label><input type="email" id="t-email"></div>
       </div>
@@ -1431,26 +1432,58 @@ async function loadTenants(){
   try{
     if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
     const list = await api('/tenants');
+    const dnis = [...new Set(list.map(t=>t.dni).filter(Boolean))];
+    let semaforos = {};
+    if(dnis.length){ try{ semaforos = await api('/reputation/bulk-semaforo', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({dnis})}); }catch(e){} }
     const statusLabels = { vigente:'ok', por_vencer:'warn', vencido:'bad', rescindido:'bad' };
     const statusText = { vigente:'Vigente', por_vencer:'Por vencer', vencido:'Vencido', rescindido:'Rescindido' };
     tbody.innerHTML = list.length ? list.map(t => {
       const prop = ALL_PROPERTIES.find(p=>p.id===t.property_id);
       const status = computeTenantStatus(t);
       const missing = getMissingPayments(t);
+      const semaforoEmoji = semaforoIcon(semaforos[normalizeDniClient(t.dni)]);
       const detailObj = { ...t, property_name: prop?prop.title:'-',
         rent_display: `${t.currency} ${Number(getCurrentRentAmount(t)).toLocaleString('es-AR')}`,
         contract_total_display: t.contract_total_amount ? t.currency+' '+Number(t.contract_total_amount).toLocaleString('es-AR') : '-',
         end_date_display: new Date(t.end_date).toLocaleDateString('es-AR'),
         status_display: statusText[status],
         payment_status: missing.length ? `${missing.length} mes(es) sin pagar` : 'Al día' };
-      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="openReputationModal('${t.dni||''}','${(t.name||'').replace(/'/g,"&#39;")}')">Reputación</button><button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick="sendPaymentDetail(${t.id})">Enviar detalle de pago</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
+      const finalizarBtn = status !== 'rescindido' ? `<button onclick="finalizeContract(${t.id}, '${t.dni||''}')">Finalizar contrato</button>` : '';
+      const actionsHtml = `<button onclick="openPaymentsModal(${t.id})">Pagos</button><button onclick="openReputationModal('${t.dni||''}','${(t.name||'').replace(/'/g,"&#39;")}')">Reputación</button>${finalizarBtn}<button onclick="downloadContract(${t.id})">Generar contrato</button><button onclick="sendPaymentDetail(${t.id})">Enviar detalle de pago</button><button onclick='openTenantModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteTenant(${t.id})">Borrar</button>`;
       return `
       <tr data-branch-id="${branchIdForProperty(t.property_id)}">
         <td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",rent_display:"Monto actual",contract_total_display:"Monto total contrato",end_date_display:"Fin",status_display:"Estado",payment_status:"Pagos",dni:"DNI",phone:"Teléfono",email:"Email",start_date:"Inicio",payday:"Día de pago",deposit:"Depósito",update_freq:"Frecuencia de actualización",update_index:"Índice",rent_type:"Tipo de alquiler",owner_name:"Propietario",owner_phone:"Tel. propietario",owner_dni:"DNI propietario",owner_address:"Domicilio propietario",guarantee:"Garantía"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
-        <td>${t.name}</td>
+        <td>${semaforoEmoji}${t.name}</td>
       </tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:30px">Sin contratos cargados.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+// Saca solo el emoji del semaforo (para mostrarlo chiquito al lado del
+// nombre en las listas, sin el texto completo).
+function semaforoIcon(semaforoText){
+  if(!semaforoText) return '';
+  const match = semaforoText.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})+/u);
+  return match ? match[0] + ' ' : '';
+}
+function normalizeDniClient(dni){ return (dni||'').replace(/\D/g,''); }
+// Al cargar un contrato nuevo, si esa persona (por DNI) ya tiene historial
+// con nosotros, avisa automáticamente si viene con mal historial de pago.
+async function checkReputationWarning(dni){
+  const box = document.getElementById('t-dni-warning');
+  box.innerHTML = '';
+  const clean = normalizeDniClient(dni);
+  if(clean.length < 6) return;
+  try{
+    const data = await api(`/reputation/${clean}`);
+    const sem = data.puntualidad.semaforo;
+    if(sem.startsWith('🔴')){
+      box.innerHTML = `<div style="background:#fdeaea;color:var(--red);padding:10px;font-size:12px;font-weight:700;margin-top:6px">⚠️ Esta persona ya tiene historial con nosotros: ${sem}. Revisá su reputación antes de continuar (${data.puntualidad.tercerVencimiento} pago(s) en 3er vencimiento, ${data.puntualidad.mesesPendientesActuales} mes(es) que debe actualmente).</div>`;
+    } else if(sem.startsWith('🟡')){
+      box.innerHTML = `<div style="background:#fff8e1;color:#8a6d00;padding:10px;font-size:12px;margin-top:6px">🟡 Esta persona tiene historial de pagador irregular con nosotros. Puede ser útil revisar su reputación.</div>`;
+    } else if(sem.startsWith('🟢')){
+      box.innerHTML = `<div style="background:#e8f5e9;color:var(--green);padding:10px;font-size:12px;margin-top:6px">🟢 Buen historial con nosotros.</div>`;
+    }
+  }catch(e){}
 }
 
 // Al elegir una propiedad en el contrato del inquilino, completa solo el
@@ -2039,11 +2072,15 @@ async function loadGuarantors(){
   const tbody = document.getElementById('guarantor-tbody');
   try{
     ALL_GUARANTORS = await api('/guarantors');
+    const dnis = [...new Set(ALL_GUARANTORS.map(g=>g.dni).filter(Boolean))];
+    let semaforos = {};
+    if(dnis.length){ try{ semaforos = await api('/reputation/bulk-semaforo', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({dnis})}); }catch(e){} }
     tbody.innerHTML = ALL_GUARANTORS.length ? ALL_GUARANTORS.map(g => {
+      const semaforoEmoji = semaforoIcon(semaforos[normalizeDniClient(g.dni)]);
       const actionsHtml = `<button onclick="openReputationModal('${g.dni||''}','${(g.name||'').replace(/'/g,"&#39;")}')">Reputación</button><button onclick='openGuarantorModal(${JSON.stringify(g).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteGuarantor(${g.id})">Borrar</button>`;
       return `
       <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(g).replace(/'/g,"&#39;")}, {dni:"DNI",phone:"Teléfono",email:"Email",address:"Domicilio",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
-      <td>${g.name}</td></tr>`;
+      <td>${semaforoEmoji}${g.name}</td></tr>`;
     }).join('')
       : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin garantes cargados todavía. Se completan solos cuando cargás un garante en "Nuevo contrato".</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
@@ -2176,6 +2213,27 @@ async function deleteReputationNote(id, dni){
     await api(`/reputation/note/${id}`, {method:'DELETE'});
     const data = await api(`/reputation/${dni}`);
     renderReputationContent(data);
+  }catch(err){ toast(err.message); }
+}
+// Al finalizar un contrato, pide una calificación de cierre sobre cómo
+// dejó la propiedad, y la deja guardada en su reputación para el futuro
+// (útil si vuelve a alquilar con nosotros más adelante).
+async function finalizeContract(tenantId, dni){
+  if(!confirm('¿Marcar este contrato como finalizado? El inquilino ya no va a figurar como vigente.')) return;
+  try{
+    await api(`/tenants/${tenantId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status_override:'rescindido'})});
+    toast('Contrato marcado como finalizado.');
+    loadTenants();
+    if(dni){
+      const scoreStr = prompt('¿Cómo dejó la propiedad al irse? Puntaje del 1 (con daños importantes) al 5 (excelente):', '5');
+      if(scoreStr !== null && scoreStr.trim()){
+        const note = prompt('¿Algún detalle para dejar anotado? (opcional)', '') || '';
+        await api(`/reputation/${dni}/note`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+          category:'cuidado_propiedad', score: scoreStr, note: `Cierre de contrato — ${note}`.trim(),
+        })});
+        toast('Calificación de cierre guardada en su reputación.');
+      }
+    }
   }catch(err){ toast(err.message); }
 }
 
