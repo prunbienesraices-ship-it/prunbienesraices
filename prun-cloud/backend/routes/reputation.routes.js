@@ -72,6 +72,22 @@ async function computeReputation(dni) {
   };
 }
 
+// Devuelve el semáforo de varias personas de una sola vez (para pintar la
+// lista de Inquilinos/Garantes sin tener que pedir uno por uno).
+router.post('/bulk-semaforo', requireAuth, async (req, res) => {
+  try {
+    const dnis = [...new Set((req.body.dnis || []).map(normalizeDni).filter(Boolean))];
+    const results = await Promise.all(dnis.map(async dni => {
+      const data = await computeReputation(dni);
+      return [dni, data ? data.puntualidad.semaforo : null];
+    }));
+    res.json(Object.fromEntries(results));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al calcular los semáforos.' });
+  }
+});
+
 router.get('/:dni', requireAuth, async (req, res) => {
   try {
     const data = await computeReputation(req.params.dni);
