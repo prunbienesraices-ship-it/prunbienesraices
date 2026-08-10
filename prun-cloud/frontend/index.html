@@ -300,8 +300,11 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Subí acá los comprobantes de los pagos que hacés por tu cuenta (servicios u otros gastos), para tener un registro ordenado vinculado a tu propiedad.</p>
     <div class="msg" id="payment-msg"></div>
     <form id="payment-form" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <select id="pay-property" style="display:none"></select>
       <select id="pay-concept" required>
         <option value="">¿De qué es el pago?</option>
+        <option value="Alquiler">Alquiler</option>
+        <option value="Expensas">Expensas</option>
         <option value="Luz">Luz</option>
         <option value="Gas">Gas</option>
         <option value="Agua">Agua</option>
@@ -355,7 +358,7 @@ function refreshUserNav(){
     document.getElementById('nav-tenant-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
     document.getElementById('nav-expensas-btn').style.display = (SITE_USER.role === 'owner' || SITE_USER.role === 'tenant') ? 'inline-block' : 'none';
     document.getElementById('nav-detail-btn').style.display = (SITE_USER.role === 'tenant' || SITE_USER.role === 'owner') ? 'inline-block' : 'none';
-    document.getElementById('nav-payments-btn').style.display = SITE_USER.role === 'tenant' ? 'inline-block' : 'none';
+    document.getElementById('nav-payments-btn').style.display = (SITE_USER.role === 'tenant' || SITE_USER.role === 'owner' || SITE_USER.role === 'guarantor') ? 'inline-block' : 'none';
   } else {
     document.getElementById('nav-guest').style.display = 'inline';
     document.getElementById('nav-user').style.display = 'none';
@@ -611,15 +614,21 @@ async function openMyExpensas(){
     `;}).join('');
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
+// Según el rol logueado, devuelve el prefijo de API correcto para "Mis pagos".
+function paymentsApiPrefix(){
+  if(SITE_USER.role === 'owner') return 'owner-portal';
+  if(SITE_USER.role === 'guarantor') return 'guarantor-portal';
+  return 'tenant-portal';
+}
 async function loadPaymentsList(){
   const box = document.getElementById('payments-list');
   box.innerHTML = '<p style="color:var(--gray);font-size:13px">Cargando tus comprobantes...</p>';
   try{
-    const res = await fetch(`${API}/tenant-portal/payments`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const res = await fetch(`${API}/${paymentsApiPrefix()}/payments`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'No pudimos cargar tus comprobantes.');
-    if(!data.hasContract){
-      box.innerHTML = '<p style="color:var(--gray);font-size:13px">Todavía no encontramos un contrato de alquiler asociado a tu cuenta.</p>';
+    if(data.hasContract === false || data.isOwner === false || data.isGuarantor === false){
+      box.innerHTML = '<p style="color:var(--gray);font-size:13px">Todavía no encontramos tu ficha asociada a tu cuenta.</p>';
       return;
     }
     box.innerHTML = data.payments.length ? `<h4 style="font-size:13px;margin-bottom:8px">Tus comprobantes cargados</h4>` + data.payments.map(p => `
@@ -631,8 +640,21 @@ async function loadPaymentsList(){
     `).join('') : '<p style="color:var(--gray);font-size:13px">Todavía no subiste ningún comprobante.</p>';
   }catch(err){ box.innerHTML = `<p style="color:var(--red);font-size:13px">${err.message}</p>`; }
 }
-function openMyPayments(){
+async function openMyPayments(){
   openModal('payments-modal');
+  const propSelect = document.getElementById('pay-property');
+  // Inquilino tiene una sola propiedad (no necesita elegir); propietario y
+  // garante pueden tener más de una, así que se les muestra el selector.
+  if(SITE_USER.role === 'owner' || SITE_USER.role === 'guarantor'){
+    try{
+      const res = await fetch(`${API}/${paymentsApiPrefix()}/dashboard`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+      const data = await res.json();
+      propSelect.innerHTML = (data.properties||[]).map(p=>`<option value="${p.id}">${p.title}</option>`).join('');
+      propSelect.style.display = (data.properties||[]).length > 1 ? 'block' : 'none';
+    }catch(e){}
+  } else {
+    propSelect.style.display = 'none';
+  }
   loadPaymentsList();
 }
 document.getElementById('payment-form').addEventListener('submit', async e=>{
@@ -644,8 +666,9 @@ document.getElementById('payment-form').addEventListener('submit', async e=>{
   fd.append('period', document.getElementById('pay-period').value);
   fd.append('notes', document.getElementById('pay-notes').value);
   fd.append('file', document.getElementById('pay-file').files[0]);
+  if(document.getElementById('pay-property').value) fd.append('property_id', document.getElementById('pay-property').value);
   try{
-    const res = await fetch(`${API}/tenant-portal/payments`, { method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` }, body: fd });
+    const res = await fetch(`${API}/${paymentsApiPrefix()}/payments`, { method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` }, body: fd });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'No pudimos subir el comprobante.');
     msg.textContent = '¡Listo! Comprobante subido.'; msg.className = 'msg success';
