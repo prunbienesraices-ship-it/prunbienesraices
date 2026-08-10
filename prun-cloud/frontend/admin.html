@@ -1717,7 +1717,35 @@ async function quickPay(tenantId, period, amount){
     const updated = await api(`/tenants/${tenantId}`);
     renderMissingPayments(updated);
     loadTenants();
+    await autoCreateSettlement(updated, period, amount);
   }catch(err){ toast(err.message); }
+}
+// Cuando un inquilino paga, le arma automáticamente la liquidación
+// correspondiente al propietario (con la comisión ya calculada según lo
+// que tenga cargado en su ficha), lista para revisar y marcar como pagada
+// cuando se le haga la transferencia. Si ya existía una liquidación para
+// ese inquilino y ese período, no la duplica.
+async function autoCreateSettlement(tenant, period, rentAmount){
+  try{
+    const existing = await api('/settlements');
+    if(existing.some(s => s.tenant_id === tenant.id && s.period === period)) return;
+
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    if(!ALL_OWNERS.length){ try{ ALL_OWNERS = await api('/owners'); }catch(e){} }
+    const prop = ALL_PROPERTIES.find(p=>p.id===tenant.property_id);
+    const owner = prop ? ALL_OWNERS.find(o=>o.id===prop.owner_id) : null;
+
+    let commission = 0;
+    if(owner){
+      commission = owner.commission_type === 'fixed'
+        ? (Number(owner.commission_withholding)||0)
+        : rentAmount * ((Number(owner.commission_withholding)||0) / 100);
+    }
+    const body = { tenant_id: tenant.id, period, rent: Math.round(rentAmount), commission: Math.round(commission), expensas: 0, repairs: 0, fees: 0 };
+    await api('/settlements', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast(`Liquidación de ${period} lista para el propietario.`);
+    loadSettlements();
+  }catch(err){ console.error('No se pudo armar la liquidación automática ->', err.message); }
 }
 
 // =====================================================================
@@ -2334,9 +2362,9 @@ async function loadSettlements(){
     SETTLEMENTS_CACHE = list;
     tbody.innerHTML = list.length ? list.map(s => {
       const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
-      const detailObj = { net_display: `$${Number(s.net).toLocaleString('es-AR')}`, status_display: s.transferred?'Transferido':'Pendiente' };
-      const actionsHtml = `${!s.transferred?`<button onclick="markTransferred(${s.id})">Transferir</button>`:''}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {net_display:"Neto",status_display:"Estado"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      const detailObj = { net_display: `$${Number(s.net).toLocaleString('es-AR')}`, status_display: s.transferred?'Transferido':'Pendiente', transfer_date_display: s.transfer_date || 'Sin fecha cargada' };
+      const actionsHtml = `${!s.transferred?`<button onclick="markTransferred(${s.id})">Marcar como pagado</button>`:`<button onclick="markTransferred(${s.id})">Editar fecha de pago</button>`}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {net_display:"Neto",status_display:"Estado",transfer_date_display:"Fecha de pago"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${t?t.name:'-'} — ${s.period}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
@@ -2388,7 +2416,12 @@ document.getElementById('settlement-form').addEventListener('submit', async e=>{
   }catch(err){ toast(err.message); }
 });
 async function markTransferred(id){
-  try{ await api(`/settlements/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({transferred:true, transfer_date:new Date().toISOString().slice(0,10)})}); loadSettlements(); }
+  const s = SETTLEMENTS_CACHE.find(x=>x.id===id);
+  const today = new Date().toISOString().slice(0,10);
+  const dateStr = prompt('¿Qué día se hizo (o se va a hacer) el pago al propietario?\n\nFormato: AAAA-MM-DD', (s && s.transfer_date) || today);
+  if(dateStr === null) return; // canceló
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ toast('La fecha tiene que tener el formato AAAA-MM-DD, por ejemplo 2026-08-15.'); return; }
+  try{ await api(`/settlements/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({transferred:true, transfer_date:dateStr})}); loadSettlements(); }
   catch(err){ toast(err.message); }
 }
 async function deleteSettlement(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/settlements/${id}`,{method:'DELETE'}); loadSettlements(); }catch(err){ toast(err.message); } }
