@@ -2362,9 +2362,17 @@ async function loadSettlements(){
     SETTLEMENTS_CACHE = list;
     tbody.innerHTML = list.length ? list.map(s => {
       const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
-      const detailObj = { net_display: `$${Number(s.net).toLocaleString('es-AR')}`, status_display: s.transferred?'Transferido':'Pendiente', transfer_date_display: s.transfer_date || 'Sin fecha cargada' };
+      const prop = t ? ALL_PROPERTIES.find(p=>p.id===t.property_id) : null;
+      const fmt = n => `$${Number(n||0).toLocaleString('es-AR')}`;
+      const detailObj = {
+        property_display: prop ? prop.title : '-',
+        rent_display: fmt(s.rent), commission_display: `-${fmt(s.commission)}`,
+        expensas_display: `-${fmt(s.expensas)}`, repairs_display: `-${fmt(s.repairs)}`, fees_display: `-${fmt(s.fees)}`,
+        net_display: fmt(s.net), status_display: s.transferred?'Transferido':'Pendiente',
+        transfer_date_display: s.transfer_date || 'Sin fecha cargada', notes: s.notes || '',
+      };
       const actionsHtml = `${!s.transferred?`<button onclick="markTransferred(${s.id})">Marcar como pagado</button>`:`<button onclick="markTransferred(${s.id})">Editar fecha de pago</button>`}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {net_display:"Neto",status_display:"Estado",transfer_date_display:"Fecha de pago"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_display:"Propiedad",rent_display:"Alquiler cobrado",commission_display:"Comisión",expensas_display:"Expensas",repairs_display:"Reparaciones",fees_display:"Honorarios",net_display:"Neto a transferir",status_display:"Estado",transfer_date_display:"Fecha de pago",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${t?t.name:'-'} — ${s.period}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
