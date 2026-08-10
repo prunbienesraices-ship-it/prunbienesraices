@@ -60,7 +60,7 @@ router.post('/report', requireAuth, upload.array('images', 5), async (req, res) 
     const { data, error } = await supabase.from('repairs').insert([{
       property_id: tenant.property_id, type: 'incidencia', status: 'reportado',
       title, notes: notes || '', date_reported: new Date().toISOString().slice(0, 10),
-      payer: 'a definir', images,
+      payer: 'a definir', images, reporter_email: email,
     }]).select().single();
     if (error) throw error;
     res.status(201).json({ ok: true, repair: data });
