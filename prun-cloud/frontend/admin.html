@@ -1668,7 +1668,7 @@ async function sendPaymentDetail(tenantId){
 async function sendOwnerPaymentDetail(ownerId){
   try{
     const preview = await api(`/payment-detail/owners/${ownerId}`);
-    if(!preview.items.length){ toast('Este propietario no tiene propiedades con inquilino activo.'); return; }
+    if(!preview.items.length){ toast('Este propietario no tiene nada para cobrar este mes todavía (el inquilino no pagó el mes actual).'); return; }
     const lines = preview.items.map(i => `• ${i.propertyLabel}: cobrado ${i.rent.toLocaleString('es-AR')}, ${i.commissionLabel} -${i.commission.toLocaleString('es-AR')}, neto ${i.net.toLocaleString('es-AR')}`).join('\n');
     const ok = confirm(`Se va a enviar este detalle a ${preview.ownerEmail}:\n\n${lines}\n\nTOTAL NETO: ${preview.total.toLocaleString('es-AR')}\n\n¿Confirmás el envío?`);
     if(!ok) return;

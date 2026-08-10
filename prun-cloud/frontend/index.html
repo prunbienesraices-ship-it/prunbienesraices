@@ -562,7 +562,7 @@ async function openMyPaymentDetail(){
     if(!res.ok) throw new Error(data.error || 'Error al buscar tu detalle de pago.');
     if(isOwner){
       if(!data.isOwner){ box.innerHTML = '<p style="color:var(--gray)">No encontramos tu ficha de propietario.</p>'; return; }
-      if(!data.items.length){ box.innerHTML = '<p style="color:var(--gray)">Todavía no hay nada para mostrar (sin propiedades con inquilino activo).</p>'; return; }
+      if(!data.items.length){ box.innerHTML = '<p style="color:var(--gray)">Todavía no hay nada para mostrar este mes — en cuanto el inquilino abone el alquiler, va a aparecer acá.</p>'; return; }
     } else {
       if(!data.hasContract){ box.innerHTML = '<p style="color:var(--gray)">No encontramos un contrato de alquiler asociado a tu cuenta.</p>'; return; }
       if(!data.items.length){ box.innerHTML = '<p style="color:var(--green)">✅ No tenés nada pendiente de pago. ¡Estás al día!</p>'; return; }
