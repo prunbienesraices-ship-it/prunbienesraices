@@ -65,15 +65,15 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <span id="nav-guest">
       <button class="btn btn-outline" style="margin-right:8px;padding:9px 16px" onclick="openModal('login-modal')">Ingresar</button>
     </span>
-    <span id="nav-user" style="display:none;color:#fff;font-size:13px">
-      Hola, <strong id="nav-user-name"></strong>
-      <button class="btn btn-outline" id="nav-owner-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
-      <button class="btn btn-outline" id="nav-guarantor-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openGuarantorPortal()">🔧 Mis reclamos</button>
-      <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openTenantReclamos()">🔧 Mis reclamos</button>
-      <button class="btn btn-outline" id="nav-expensas-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openMyExpensas()">🧾 Expensas de mi edificio</button>
-      <button class="btn btn-outline" id="nav-detail-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openMyPaymentDetail()">📋 Mi detalle de pago</button>
-      <button class="btn btn-outline" id="nav-payments-btn" style="display:none;margin-left:10px;padding:9px 16px" onclick="openMyPayments()">💳 Mis pagos</button>
-      <button class="btn btn-outline" style="margin-left:10px;padding:9px 16px" onclick="userLogout()">Salir</button>
+    <span id="nav-user" style="display:none;color:#fff;font-size:13px;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>Hola, <strong id="nav-user-name"></strong></span>
+      <button class="btn btn-outline" id="nav-owner-btn" style="display:none;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
+      <button class="btn btn-outline" id="nav-guarantor-btn" style="display:none;padding:9px 16px" onclick="openGuarantorPortal()">🔧 Mis reclamos</button>
+      <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;padding:9px 16px" onclick="openTenantReclamos()">🔧 Mis reclamos</button>
+      <button class="btn btn-outline" id="nav-expensas-btn" style="display:none;padding:9px 16px" onclick="openMyExpensas()">🧾 Expensas de mi edificio</button>
+      <button class="btn btn-outline" id="nav-detail-btn" style="display:none;padding:9px 16px" onclick="openMyPaymentDetail()">📋 Mi detalle de pago</button>
+      <button class="btn btn-outline" id="nav-payments-btn" style="display:none;padding:9px 16px" onclick="openMyPayments()">💳 Mis pagos</button>
+      <button class="btn btn-outline" style="padding:9px 16px" onclick="userLogout()">Salir</button>
     </span>
     <a href="admin.html" style="opacity:.6;font-size:11px">Panel admin →</a>
   </div>
@@ -348,7 +348,7 @@ document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('cli
 function refreshUserNav(){
   if(SITE_USER){
     document.getElementById('nav-guest').style.display = 'none';
-    document.getElementById('nav-user').style.display = 'inline';
+    document.getElementById('nav-user').style.display = 'flex';
     document.getElementById('nav-user-name').textContent = SITE_USER.name.split(' ')[0];
     document.getElementById('nav-owner-btn').style.display = SITE_USER.role === 'owner' ? 'inline-block' : 'none';
     document.getElementById('nav-guarantor-btn').style.display = SITE_USER.role === 'guarantor' ? 'inline-block' : 'none';
