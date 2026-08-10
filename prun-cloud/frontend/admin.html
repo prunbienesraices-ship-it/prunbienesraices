@@ -1685,35 +1685,76 @@ async function openPaymentsModal(tenantId){
   renderMissingPayments(t);
   document.getElementById('payments-modal').classList.add('active');
 }
+// Calcula el monto y el tramo (a tiempo / 2do vencimiento / 3er vencimiento)
+// en base a la fecha REAL en la que pagó el inquilino -- no a la fecha en
+// la que vos cargás el pago en el sistema, para no calificarlo mal a
+// alguien puntual solo porque lo cargaste unos días después.
+function getPaymentInfoForDate(t, period, paymentDateStr){
+  const base = getRentAmountForPeriod(t, period);
+  const [y, m] = period.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const coef = t.late_coefficient || 0;
+  const pd = new Date(paymentDateStr + 'T00:00:00');
+  const isSameMonth = pd.getFullYear() === y && (pd.getMonth()+1) === m;
+  let dayOfPayment;
+  if(isSameMonth) dayOfPayment = pd.getDate();
+  else if(pd > new Date(y, m-1, 1)) dayOfPayment = daysInMonth + 1; // pagó en un mes posterior: el peor tramo
+  else dayOfPayment = 1; // pagó antes de que arranque el período (raro, pero se toma como a tiempo)
+  let tramo, tierDays;
+  if(dayOfPayment <= 10){ tramo = 'a_tiempo'; tierDays = 0; }
+  else if(dayOfPayment <= 20){ tramo = '2do_vencimiento'; tierDays = 20; }
+  else { tramo = '3er_vencimiento'; tierDays = daysInMonth; }
+  const amount = base * (1 + (coef/100) * tierDays);
+  return { base, amount, tramo };
+}
+const TRAMO_LABELS = { a_tiempo: '✅ A tiempo (hasta el día 10)', '2do_vencimiento': '🟡 2do vencimiento (11-20)', '3er_vencimiento': '🔴 3er vencimiento / atrasado' };
 function renderMissingPayments(t){
   const box = document.getElementById('payments-missing');
   const missing = getMissingPayments(t);
   if(!missing.length){ box.innerHTML = '<p style="color:var(--green);font-weight:700;font-size:13px">✔ Está al día, no hay meses pendientes.</p>'; return; }
-  const coef = t.late_coefficient || 0;
-  box.innerHTML = missing.map(period => {
-    const info = getLivePaymentInfo(t, period);
-    return `
-    <div style="border-bottom:1px solid var(--line);padding:10px 0;font-size:13px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span><strong>${period}</strong> — ${t.currency} ${Number(info.base).toLocaleString('es-AR')}</span>
-        <button class="btn btn-sm" onclick="quickPay(${t.id}, '${period}', ${info.base})">Pagar sin recargo</button>
+  const today = new Date().toISOString().slice(0,10);
+  box.innerHTML = missing.map(period => `
+    <div style="border-bottom:1px solid var(--line);padding:10px 0;font-size:13px" id="pay-row-${period}">
+      <div style="font-weight:700;margin-bottom:6px">${period}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:11px;color:var(--gray)">Fecha real en que pagó:
+          <input type="date" id="pay-date-${period}" value="${today}" onchange="updatePaymentPreview('${t.id}','${period}')" style="padding:6px">
+        </label>
+        <label style="font-size:11px;color:var(--gray)">¿Quién pagó?
+          <select id="pay-who-${period}" style="padding:6px">
+            <option value="inquilino">Inquilino</option>
+            <option value="garante">Garante (el inquilino no pagó)</option>
+          </select>
+        </label>
       </div>
-      ${coef>0 && info.daysLate>0 ? `
-      <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;background:#fdeaea;padding:6px 8px">
-        <span style="font-size:12px;color:var(--red)">Con ${info.daysLate} días de atraso: ${t.currency} ${Math.round(info.amountToday).toLocaleString('es-AR')}</span>
-        <button class="btn btn-sm" onclick="quickPay(${t.id}, '${period}', ${info.amountToday})">Usar</button>
-      </div>` : ''}
-    </div>`;
-  }).join('');
+      <div id="pay-preview-${period}" style="margin-top:6px;font-size:12px"></div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="quickPay(${t.id}, '${period}')">Registrar pago</button>
+    </div>`).join('');
+  missing.forEach(period => updatePaymentPreview(t.id, period, t));
 }
-async function quickPay(tenantId, period, amount){
+function updatePaymentPreview(tenantId, period, tenantObj){
+  const t = tenantObj || TENANT_PAYMENTS_CACHE;
+  if(!t) return;
+  const dateInput = document.getElementById(`pay-date-${period}`);
+  if(!dateInput) return;
+  const info = getPaymentInfoForDate(t, period, dateInput.value);
+  document.getElementById(`pay-preview-${period}`).innerHTML =
+    `Tramo: <strong>${TRAMO_LABELS[info.tramo]}</strong> — Monto: <strong>${t.currency} ${Math.round(info.amount).toLocaleString('es-AR')}</strong>`;
+  TENANT_PAYMENTS_CACHE = t; // guarda referencia para que los onchange de otras filas la puedan reusar
+}
+let TENANT_PAYMENTS_CACHE = null;
+async function quickPay(tenantId, period){
   try{
     const t = await api(`/tenants/${tenantId}`);
+    const dateStr = document.getElementById(`pay-date-${period}`).value;
+    const who = document.getElementById(`pay-who-${period}`).value;
+    const info = getPaymentInfoForDate(t, period, dateStr);
+    const amount = Math.round(info.amount);
     const payments = t.payments || [];
-    const mora = Math.max(0, amount - getRentAmountForPeriod(t, period));
-    payments.push({ period, date: new Date().toISOString().slice(0,10), amount, currency:t.currency, method:'transferencia', mora });
+    const mora = Math.max(0, amount - info.base);
+    payments.push({ period, date: dateStr, amount, currency:t.currency, method:'transferencia', mora, tramo: info.tramo, paid_by: who });
     await api(`/tenants/${tenantId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
-    toast(`Pago de ${period} registrado.`);
+    toast(`Pago de ${period} registrado (${TRAMO_LABELS[info.tramo]}${who==='garante'?' — pagó el garante':''}).`);
     const updated = await api(`/tenants/${tenantId}`);
     renderMissingPayments(updated);
     loadTenants();
