@@ -494,4 +494,4 @@ async function buildTenantCollectionsReport(tenant, property) {
   return { rentPending, rentPaid, expensasPending, expensasPaid, otherPending, otherPaid };
 }
 
-module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, buildTenantCollectionsReport };
+module.exports = { buildTenantDetailItems, buildDetailHtml, buildOwnerDetailItems, buildOwnerDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, buildTenantCollectionsReport, getMissingPayments };
