@@ -35,6 +35,7 @@ const paymentDetailRoutes = require('./routes/payment-detail.routes');
 const paymentDetailTemplateRoutes = require('./routes/payment-detail-template.routes');
 const guarantorsRoutes = require('./routes/guarantors.routes');
 const reputationRoutes = require('./routes/reputation.routes');
+const obrasRoutes = require('./routes/obras.routes');
 const contractTemplateRoutes = require('./routes/contract-template.routes');
 const { DEFAULT_CONTRACT_TEMPLATE } = require('./default-contract-template');
 
@@ -118,6 +119,7 @@ app.use('/api/payment-detail', paymentDetailRoutes);
 app.use('/api/payment-detail-template', paymentDetailTemplateRoutes);
 app.use('/api/guarantors', guarantorsRoutes);
 app.use('/api/reputation', reputationRoutes);
+app.use('/api/obras', obrasRoutes);
 app.use('/api/contract-template', contractTemplateRoutes);
 
 app.get('/api/health', (req, res) => {
