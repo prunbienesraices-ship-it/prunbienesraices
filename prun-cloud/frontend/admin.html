@@ -2294,10 +2294,25 @@ function switchRentCollectionTab(tab){
   }[tab];
   tbody.innerHTML = map.list.length ? map.list.map(row => {
     const detailObj = { property_name: row.propertyName, edificio: row.developmentName || '-', periodo: row.periodLabel, monto: money(row) };
-    const actionsHtml = `<button onclick="openPaymentsModal(${row.tenantId})">Ver pagos</button><button onclick="sendPaymentDetail(${row.tenantId})">Enviar detalle de pago</button>`;
+    let actionsHtml = `<button onclick="openPaymentsModal(${row.tenantId})">Ver pagos</button><button onclick="sendPaymentDetail(${row.tenantId})">Enviar detalle de pago</button>`;
+    if(tab === 'rentPaid' && USER.role === 'superadmin'){
+      actionsHtml += `<button style="color:var(--red)" onclick="revertRentPayment(${row.tenantId}, '${row.period}')">Eliminar pago (volver a pendiente)</button>`;
+    }
     return `<tr data-branch-id="${row.branchId||''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",edificio:"Edificio",periodo:"Período",monto:"Monto"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${row.tenantName} — ${map.concept} ${row.periodLabel} <span style="color:${map.color};font-weight:700">(${map.estado})</span></td></tr>`;
   }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin registros en esta vista.</td></tr>';
+}
+// Solo el Administrador puede deshacer un pago de alquiler ya registrado,
+// por si se cargó mal o hay que corregirlo. Vuelve a aparecer como pendiente.
+async function revertRentPayment(tenantId, period){
+  if(!confirm(`¿Eliminar el pago de ${period}? Ese mes va a volver a figurar como pendiente para el inquilino.`)) return;
+  try{
+    const t = await api(`/tenants/${tenantId}`);
+    const payments = (t.payments || []).filter(p => p.period !== period);
+    await api(`/tenants/${tenantId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
+    toast(`Pago de ${period} eliminado — vuelve a estar pendiente.`);
+    loadRentCollection();
+  }catch(err){ toast(err.message); }
 }
 async function loadCharges(){
   const tbody = document.getElementById('charge-tbody');
