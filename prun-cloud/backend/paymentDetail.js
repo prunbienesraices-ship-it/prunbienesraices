@@ -324,13 +324,21 @@ function buildDetailHtml({ tenantName, propertyLabel, items, config, currency, f
 async function buildOwnerDetailItems(owner) {
   const items = [];
   const { data: properties } = await supabase.from('properties').select('*').eq('owner_id', owner.id);
+  const currentPeriod = new Date().toISOString().slice(0, 7); // "YYYY-MM"
   for (const prop of properties || []) {
     const { data: tenant } = await supabase.from('tenants').select('*').eq('property_id', prop.id)
       .order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (!tenant) continue;
     const status = computeTenantStatus(tenant);
     if (status === 'rescindido') continue;
-    const rent = getCurrentRentAmount(tenant);
+
+    // Solo se muestra si el inquilino YA pagó el mes actual — si todavía no
+    // pagó, no aparece nada para esa propiedad (nada que transferirle al
+    // propietario todavía).
+    const paymentThisMonth = (tenant.payments || []).find(p => p.period === currentPeriod);
+    if (!paymentThisMonth) continue;
+
+    const rent = Number(paymentThisMonth.amount) || getCurrentRentAmount(tenant);
     if (!rent) continue;
     const commission = owner.commission_type === 'fixed'
       ? (Number(owner.commission_withholding) || 0)
