@@ -411,13 +411,23 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   <section class="panel" id="co-panel-impuestos"></section>
   <section class="panel" id="co-panel-luis">
     <h2 class="section-title"><span class="stamp">L</span> Luis</h2>
-    <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 18px;">Los pagos a Luis se llevan en dos monedas separadas, sin mezclarse con el resto de la obra.</p>
+    <p style="font-size:12px; color:var(--co-ink-soft); margin:-6px 0 18px;">Los pagos a Luis se llevan en dos monedas separadas, sin mezclarse con el resto de la obra.</p>
 
     <h2 class="section-title"><span class="stamp">US$</span> Dólares (USD)</h2>
     <div class="budget-line">
-      <label>Presupuesto en USD</label>
+      <label>Presupuesto en USD (monto inicial)</label>
       <input type="number" step="0.01" min="0" id="co-presupuesto-luis-usd" placeholder="0.00">
-      <span style="font-size:12px; color:var(--ink-soft);">Monto total presupuestado para Luis, en dólares.</span>
+      <span style="font-size:12px; color:var(--co-ink-soft);">Monto total presupuestado para Luis, en dólares.</span>
+    </div>
+    <div style="background:var(--co-surface-alt); border:1px solid var(--co-line); padding:12px 16px; margin-bottom:20px;">
+      <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Actualizaciones de este presupuesto (USD)</div>
+      <div id="co-ajustes-luis_usd"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <input type="number" step="0.01" id="co-ajuste-monto-luis_usd" placeholder="Monto a sumar" style="width:150px;">
+        <input type="date" id="co-ajuste-fecha-luis_usd">
+        <input type="text" id="co-ajuste-nota-luis_usd" placeholder="Motivo (opcional)" style="flex:1; min-width:150px;">
+        <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('luis_usd')">+ Agregar actualización</button>
+      </div>
     </div>
     <div class="kpi-row">
       <div class="kpi"><div class="lbl">Presupuesto</div><div class="val mono" id="co-luis-usd-kpi-presupuesto">US$ 0</div></div>
@@ -435,9 +445,19 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 
     <h2 class="section-title"><span class="stamp">€</span> Euros (EUR)</h2>
     <div class="budget-line">
-      <label>Presupuesto en EUR</label>
+      <label>Presupuesto en EUR (monto inicial)</label>
       <input type="number" step="0.01" min="0" id="co-presupuesto-luis-eur" placeholder="0.00">
-      <span style="font-size:12px; color:var(--ink-soft);">Monto total presupuestado para Luis, en euros.</span>
+      <span style="font-size:12px; color:var(--co-ink-soft);">Monto total presupuestado para Luis, en euros.</span>
+    </div>
+    <div style="background:var(--co-surface-alt); border:1px solid var(--co-line); padding:12px 16px; margin-bottom:20px;">
+      <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Actualizaciones de este presupuesto (EUR)</div>
+      <div id="co-ajustes-luis_eur"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <input type="number" step="0.01" id="co-ajuste-monto-luis_eur" placeholder="Monto a sumar" style="width:150px;">
+        <input type="date" id="co-ajuste-fecha-luis_eur">
+        <input type="text" id="co-ajuste-nota-luis_eur" placeholder="Motivo (opcional)" style="flex:1; min-width:150px;">
+        <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('luis_eur')">+ Agregar actualización</button>
+      </div>
     </div>
     <div class="kpi-row">
       <div class="kpi"><div class="lbl">Presupuesto</div><div class="val mono" id="co-luis-eur-kpi-presupuesto">€ 0</div></div>
@@ -453,7 +473,7 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
       <tbody id="co-luis-eur-tabla-pagos"></tbody>
     </table>
 
-    <p style="font-size:12px; color:var(--ink-soft);">Los pagos se registran desde la pestaña <strong>Pagos</strong>, eligiendo "Luis" como destino y la moneda correspondiente.</p>
+    <p style="font-size:12px; color:var(--co-ink-soft);">Los pagos se registran desde la pestaña <strong>Pagos</strong>, eligiendo "Luis" como destino y la moneda correspondiente.</p>
   </section>
 
   <!-- MATERIALES -->
@@ -474,20 +494,20 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     </div>
 
     <h2 class="section-title" style="margin-top:0;"><span class="stamp">IA</span> Cargar desde texto de factura</h2>
-    <p style="font-size:12px; color:var(--ink-soft); margin-top:-6px;">
+    <p style="font-size:12px; color:var(--co-ink-soft); margin-top:-6px;">
       Mandale la foto de la factura a Claude y pedile que la lea para esta app. Te va a devolver un bloque de texto — pegalo acá abajo y apretá "Cargar materiales".
     </p>
     <textarea id="co-texto-factura" rows="6" placeholder="PROVEEDOR: Nombre del proveedor
 FECHA: 2026-04-22
 Cemento portland 25kg|50|bolsas|6500
-Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:10px; border:1px solid var(--line); border-radius:3px; background:var(--surface-alt); resize:vertical; margin-bottom:10px;"></textarea>
+Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:10px; border:1px solid var(--co-line); border-radius:3px; background:var(--co-surface-alt); resize:vertical; margin-bottom:10px;"></textarea>
     <div style="display:flex; gap:10px; align-items:center; margin-bottom:24px;">
       <button class="btn" id="co-btn-cargar-texto" style="font-size:12px;">Cargar materiales</button>
-      <span id="co-texto-factura-status" style="font-size:12px; color:var(--ink-soft);"></span>
+      <span id="co-texto-factura-status" style="font-size:12px; color:var(--co-ink-soft);"></span>
     </div>
     <div class="field" style="max-width:280px; margin-bottom:12px;">
-      <label style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft);">Filtrar por proveedor</label>
-      <select id="co-filtro-proveedor" style="font-family:'IBM Plex Sans',sans-serif; font-size:13px; padding:8px; border:1px solid var(--line); background:var(--surface); border-radius:3px; width:100%;">
+      <label style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--co-ink-soft);">Filtrar por proveedor</label>
+      <select id="co-filtro-proveedor" style="font-family:'IBM Plex Sans',sans-serif; font-size:13px; padding:8px; border:1px solid var(--co-line); background:var(--co-surface); border-radius:3px; width:100%;">
         <option value="">Todos los proveedores</option>
       </select>
     </div>
@@ -3388,14 +3408,31 @@ window.openObraApp = null; // se define mas abajo
     statusEl.textContent = 'Cargando...';
     try{
       const data = await api(`/obras/${OBRA_ID}/data`);
+      const ajustes = (data.ajustes||[]).map(a => ({ id:a.id, categoria:a.categoria, monto:Number(a.monto), fecha:a.fecha, nota:a.nota }));
+      const sumAjustes = cat => ajustes.filter(a=>a.categoria===cat).reduce((s,a)=>s+a.monto, 0);
+      // presupuestosBase = lo que se cargo directo en la ficha (editable en el campo de arriba).
+      // presupuestos = el total efectivo (base + todas las actualizaciones), que es el que se usa en los medidores y el resumen.
+      const presupuestosBase = {
+        albanil: Number(data.obra.presupuesto_albanil)||0, electricista: Number(data.obra.presupuesto_electricista)||0,
+        gasista: Number(data.obra.presupuesto_gasista)||0, arquitecto: Number(data.obra.presupuesto_arquitecto)||0,
+        impuestos: Number(data.obra.presupuesto_impuestos)||0,
+      };
       state = {
         proyecto: { nombre: data.obra.nombre },
+        presupuestosBase,
         presupuestos: {
-          albanil: data.obra.presupuesto_albanil, electricista: data.obra.presupuesto_electricista,
-          gasista: data.obra.presupuesto_gasista, arquitecto: data.obra.presupuesto_arquitecto,
-          impuestos: data.obra.presupuesto_impuestos,
+          albanil: presupuestosBase.albanil + sumAjustes('albanil'),
+          electricista: presupuestosBase.electricista + sumAjustes('electricista'),
+          gasista: presupuestosBase.gasista + sumAjustes('gasista'),
+          arquitecto: presupuestosBase.arquitecto + sumAjustes('arquitecto'),
+          impuestos: presupuestosBase.impuestos + sumAjustes('impuestos'),
         },
-        luis: { presupuestoUSD: data.obra.presupuesto_luis_usd, presupuestoEUR: data.obra.presupuesto_luis_eur },
+        luisBase: { presupuestoUSD: Number(data.obra.presupuesto_luis_usd)||0, presupuestoEUR: Number(data.obra.presupuesto_luis_eur)||0 },
+        luis: {
+          presupuestoUSD: (Number(data.obra.presupuesto_luis_usd)||0) + sumAjustes('luis_usd'),
+          presupuestoEUR: (Number(data.obra.presupuesto_luis_eur)||0) + sumAjustes('luis_eur'),
+        },
+        ajustes,
         compras: data.compras.map(c => ({ id:c.id, nombre:c.nombre, cantidad:Number(c.cantidad), unidad:c.unidad, costoUnit:Number(c.costo_unit), proveedor:c.proveedor, fecha:c.fecha })),
         retiros: data.retiros.map(r => ({ id:r.id, materialNombre:r.material_nombre, cantidad:Number(r.cantidad), destino:r.destino, fecha:r.fecha })),
         pagos: data.pagos.map(p => ({ id:p.id, destino:p.destino, concepto:p.concepto, monto:Number(p.monto), metodo:p.metodo, fecha:p.fecha, moneda:p.moneda })),
@@ -3406,6 +3443,30 @@ window.openObraApp = null; // se define mas abajo
       statusEl.textContent = 'No se pudieron cargar los datos de esta obra.';
       console.error(e);
     }
+  }
+  // Agrega una actualizacion de presupuesto (con su propia fecha y motivo)
+  // que se SUMA al presupuesto base de esa categoria, sin pisarlo. Sirve
+  // tanto para "agregar un importe" como para dejar registrado el historial
+  // de cuando se actualizo el presupuesto y por que.
+  async function agregarAjustePresupuesto(categoria){
+    const monto = parseFloat(document.getElementById(`co-ajuste-monto-${categoria}`).value);
+    const fecha = document.getElementById(`co-ajuste-fecha-${categoria}`).value;
+    const nota = document.getElementById(`co-ajuste-nota-${categoria}`).value;
+    if(!monto){ toast('Cargá un monto para la actualización.'); return; }
+    try{
+      await api(`/obras/${OBRA_ID}/ajustes`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ categoria, monto, fecha, nota })});
+      await loadObraState();
+    }catch(err){ toast(err.message); }
+  }
+  function renderAjustesBox(categoria){
+    const box = document.getElementById(`co-ajustes-${categoria}`);
+    if(!box) return;
+    const items = state.ajustes.filter(a=>a.categoria===categoria).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    box.innerHTML = items.length ? items.map(a=>`
+      <div style="padding:4px 0;border-bottom:1px solid var(--co-line);display:flex;justify-content:space-between;gap:8px">
+        <span>${a.fecha||'—'} — +${fmt(a.monto)}${a.nota?' — '+a.nota:''}</span>
+        <button class="btn-del" data-del="ajustes" data-id="${a.id}">Borrar</button>
+      </div>`).join('') : '<p style="color:var(--co-ink-soft);font-size:12px">Sin actualizaciones cargadas todavía — el presupuesto es el monto inicial de arriba.</p>';
   }
   // Actualiza un presupuesto puntual (gremio o Luis) en el servidor.
   async function guardarPresupuesto(campo, valor){
@@ -3439,9 +3500,19 @@ window.openObraApp = null; // se define mas abajo
     panel.innerHTML = `
       <h2 class="section-title"><span class="stamp">${GREMIO_LABEL[key][0]}</span> ${GREMIO_LABEL[key]}</h2>
       <div class="budget-line">
-        <label>Presupuesto acordado</label>
+        <label>Presupuesto acordado (monto inicial)</label>
         <input type="number" step="0.01" min="0" id="co-presupuesto-${key}" placeholder="0.00">
-        <span style="font-size:12px; color:var(--ink-soft);">Monto total presupuestado para ${GREMIO_LABEL[key]} en toda la obra.</span>
+        <span style="font-size:12px; color:var(--co-ink-soft);">Monto total presupuestado para ${GREMIO_LABEL[key]} en toda la obra.</span>
+      </div>
+      <div style="background:var(--co-surface-alt); border:1px solid var(--co-line); padding:12px 16px; margin-bottom:20px;">
+        <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Actualizaciones de este presupuesto</div>
+        <div id="co-ajustes-${key}"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <input type="number" step="0.01" id="co-ajuste-monto-${key}" placeholder="Monto a sumar" style="width:150px;">
+          <input type="date" id="co-ajuste-fecha-${key}">
+          <input type="text" id="co-ajuste-nota-${key}" placeholder="Motivo (opcional)" style="flex:1; min-width:150px;">
+          <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('${key}')">+ Agregar actualización</button>
+        </div>
       </div>
       <div class="kpi-row">
         <div class="kpi"><div class="lbl">Presupuesto</div><div class="val mono" id="co-${key}-kpi-presupuesto">$0</div></div>
@@ -3457,7 +3528,7 @@ window.openObraApp = null; // se define mas abajo
         <thead><tr><th>Fecha</th><th>Concepto</th><th>Método</th><th class="num">Monto</th></tr></thead>
         <tbody id="co-${key}-tabla-pagos"></tbody>
       </table>
-      <p style="font-size:12px; color:var(--ink-soft);">Los pagos se registran desde la pestaña <strong>Pagos</strong>, eligiendo "${GREMIO_LABEL[key]}" como destino.</p>
+      <p style="font-size:12px; color:var(--co-ink-soft);">Los pagos se registran desde la pestaña <strong>Pagos</strong>, eligiendo "${GREMIO_LABEL[key]}" como destino.</p>
     `;
     const input = document.getElementById(`co-presupuesto-${key}`);
     input.addEventListener('change', ()=>{
@@ -3817,7 +3888,8 @@ window.openObraApp = null; // se define mas abajo
 
     // Paneles de gremio
     GREMIOS.forEach(k=>{
-      document.getElementById(`co-presupuesto-${k}`).value = state.presupuestos[k] || '';
+      document.getElementById(`co-presupuesto-${k}`).value = state.presupuestosBase[k] || '';
+      renderAjustesBox(k);
       const presu = state.presupuestos[k]||0;
       const pag = totalPagadoGremio(k);
       const sal = presu - pag;
@@ -3840,7 +3912,8 @@ window.openObraApp = null; // se define mas abajo
     });
 
     // Panel Luis — USD
-    document.getElementById('co-presupuesto-luis-usd').value = state.luis.presupuestoUSD || '';
+    document.getElementById('co-presupuesto-luis-usd').value = state.luisBase.presupuestoUSD || '';
+    renderAjustesBox('luis_usd');
     const presuLU = state.luis.presupuestoUSD||0;
     const pagLU = totalPagadoLuis('USD');
     const salLU = presuLU - pagLU;
@@ -3860,7 +3933,8 @@ window.openObraApp = null; // se define mas abajo
     `).join('') : `<tr class="empty-row"><td colspan="4">Sin pagos en dólares todavía.</td></tr>`;
 
     // Panel Luis — EUR
-    document.getElementById('co-presupuesto-luis-eur').value = state.luis.presupuestoEUR || '';
+    document.getElementById('co-presupuesto-luis-eur').value = state.luisBase.presupuestoEUR || '';
+    renderAjustesBox('luis_eur');
     const presuLE = state.luis.presupuestoEUR||0;
     const pagLE = totalPagadoLuis('EUR');
     const salLE = presuLE - pagLE;
