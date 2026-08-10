@@ -137,4 +137,55 @@ router.get('/payment-detail', requireAuth, async (req, res) => {
   }
 });
 
+// El propietario ve los comprobantes que subió, de todas sus propiedades.
+router.get('/payments', requireAuth, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { data: owner } = await supabase.from('owners').select('id').eq('email', email).maybeSingle();
+    if (!owner) return res.json({ isOwner: false, payments: [] });
+    const { data: properties } = await supabase.from('properties').select('id').eq('owner_id', owner.id);
+    const propertyIds = (properties || []).map(p => p.id);
+    let payments = [];
+    if (propertyIds.length) {
+      const { data } = await supabase.from('payment_receipts').select('*').in('property_id', propertyIds).eq('tenant_email', email).order('created_at', { ascending: false });
+      payments = data || [];
+    }
+    res.json({ isOwner: true, payments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al buscar tus comprobantes.' });
+  }
+});
+
+// Subir un comprobante de pago (alquiler, expensas, servicios, etc.),
+// eligiendo a cuál de sus propiedades corresponde.
+router.post('/payments', requireAuth, upload.single('file'), async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { property_id, concept, amount, period, notes } = req.body;
+    if (!concept) return res.status(400).json({ error: 'Contanos de qué es el pago.' });
+    if (!req.file) return res.status(400).json({ error: 'Adjuntá el comprobante de pago.' });
+
+    const { data: owner } = await supabase.from('owners').select('id, name').eq('email', email).maybeSingle();
+    if (!owner) return res.status(404).json({ error: 'No encontramos tu ficha de propietario.' });
+    const { data: prop } = await supabase.from('properties').select('id').eq('id', property_id).eq('owner_id', owner.id).maybeSingle();
+    if (!prop) return res.status(403).json({ error: 'Esa propiedad no te pertenece.' });
+
+    const fileName = `comprobante-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${req.file.originalname.split('.').pop()}`;
+    const { error: uploadErr } = await supabase.storage.from('property-photos').upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
+    if (uploadErr) throw uploadErr;
+    const { data: pub } = supabase.storage.from('property-photos').getPublicUrl(fileName);
+
+    const { data, error } = await supabase.from('payment_receipts').insert([{
+      property_id: prop.id, tenant_email: email, tenant_name: owner.name || '',
+      concept, amount: Number(amount) || 0, period: period || '', file_url: pub.publicUrl, notes: notes || '',
+    }]).select().single();
+    if (error) throw error;
+    res.status(201).json({ ok: true, payment: data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al subir el comprobante. Probá de nuevo en un momento.' });
+  }
+});
+
 module.exports = router;
