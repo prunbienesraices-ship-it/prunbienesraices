@@ -80,7 +80,7 @@ router.post('/owners/:id/send', requireAuth, async (req, res) => {
     if (!owner.email) return res.status(400).json({ error: 'Este propietario no tiene un email cargado.' });
 
     const items = await buildOwnerDetailItems(owner);
-    if (!items.length) return res.status(400).json({ error: 'Este propietario no tiene propiedades con inquilino activo — no hay nada para enviar.' });
+    if (!items.length) return res.status(400).json({ error: 'Este propietario no tiene nada para cobrar este mes todavía (el inquilino no pagó el mes actual) — no hay nada para enviar.' });
 
     const config = await getSiteConfig();
     const footerNotes = await getPaymentDetailNotes();
