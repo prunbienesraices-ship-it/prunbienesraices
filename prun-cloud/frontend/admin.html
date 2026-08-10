@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Administración | Prun Bienes Raíces</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{ --black:#111; --yellow:#F4C300; --cream:#F7F5F0; --gray:#6b6b66; --line:#e4e1d8; --red:#c0392b; --green:#1a7a44; }
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Archivo',sans-serif;}
@@ -47,6 +48,185 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
 .btn-sm{padding:6px 12px;font-size:11px;}
 .checkbox-row{display:flex;align-items:center;gap:6px;}
 .checkbox-row input{width:auto;}
+
+/* ---- Control de Obra (estilos encapsulados bajo #obra-app) ---- */
+#obra-app {
+    --co-bg: #e7e2d6;
+    --co-surface: #fffdf8;
+    --co-surface-alt: #f1ede1;
+    --co-ink: #1e1b16;
+    --co-ink-soft: #57524a;
+    --co-navy: #1f2e3d;
+    --co-navy-soft: #2c4256;
+    --co-yellow: #c9962b;
+    --co-yellow-soft: #e8c878;
+    --co-green-ok: #3b6e4e;
+    --co-red-over: #a13d2e;
+    --co-line: #c9c2af;
+    --co-radius: 3px;
+    background:var(--co-bg);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 32px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 32px);
+    color:var(--co-ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding-bottom:60px;
+  display:block;
+}
+#obra-app *{box-sizing:border-box;}
+#obra-app h1, #obra-app h2, #obra-app h3, #obra-app .display{
+    font-family:'Oswald', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+#obra-app .mono{font-family:'IBM Plex Mono', monospace;}
+#obra-app header.ficha{
+    background:var(--co-navy);
+    color:#f3efe4;
+    padding:22px 20px 26px;
+    position:relative;
+    border-bottom:6px solid var(--co-yellow);
+  }
+#obra-app .ficha-tape{
+    position:absolute; top:0; left:24px;
+    background:var(--co-yellow);
+    color:var(--co-navy);
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    padding:4px 12px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.25);
+  }
+#obra-app .ficha-inner{
+    max-width:980px; margin:0 auto; padding-top:14px;
+    display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap;
+  }
+#obra-app .ficha-title{
+    font-size:28px; font-weight:600; margin:0 0 4px;
+  }
+#obra-app .ficha-sub{
+    font-family:'IBM Plex Sans',sans-serif;
+    text-transform:none; letter-spacing:0; font-size:13px; color:#c7cdd4;
+  }
+#obra-app #co-proyectoNombre{
+    background:transparent; border:none; border-bottom:1px dashed rgba(255,255,255,0.35);
+    color:#f3efe4; font-family:'Oswald',sans-serif; font-size:28px; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.04em; padding:2px 0; width:340px; max-width:60vw;
+  }
+#obra-app #co-proyectoNombre:focus{outline:none; border-bottom-color:var(--co-yellow);}
+#obra-app .ficha-stat{ text-align:right; }
+#obra-app .ficha-stat .num{font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; color:var(--co-yellow-soft);}
+#obra-app .ficha-stat .lbl{font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#c7cdd4;}
+#obra-app nav.tabs{
+    max-width:980px; margin:18px auto 0; padding:0 20px;
+    display:flex; gap:6px; flex-wrap:wrap;
+  }
+#obra-app nav.tabs button{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em;
+    font-size:13px; font-weight:600; color:var(--co-ink-soft);
+    background:var(--co-surface-alt); border:1px solid var(--co-line); border-bottom:none;
+    padding:10px 16px; cursor:pointer; border-radius:var(--co-radius) var(--co-radius) 0 0;
+    position:relative; top:1px;
+  }
+#obra-app nav.tabs button.active{
+    background:var(--co-surface); color:var(--co-ink); border-color:var(--co-ink);
+    border-bottom:1px solid var(--co-surface);
+  }
+#obra-app nav.tabs button:hover:not(.active){ color:var(--co-ink); }
+#obra-app main{
+    max-width:980px; margin:0 auto; padding:20px;
+    background:var(--co-surface); border:1px solid var(--co-ink); border-top:none;
+    min-height:420px;
+  }
+#obra-app section.panel{ display:none; }
+#obra-app section.panel.active{ display:block; animation:obraFade .18s ease; }
+@keyframes obraFade{ from{opacity:0;} to{opacity:1;} }
+#obra-app .gauges{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-bottom:24px; }
+#obra-app .gauge-card{
+    background:var(--co-surface-alt); border:1px solid var(--co-line); padding:14px 16px;
+  }
+#obra-app .gauge-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+#obra-app .gauge-top .name{ font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase; font-size:13px; letter-spacing:0.04em;}
+#obra-app .gauge-top .pct{ font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600;}
+#obra-app .gauge-track{
+    height:14px; background:#dfd8c4; border:1px solid var(--co-line); position:relative; overflow:hidden;
+  }
+#obra-app .gauge-track::after{
+    content:''; position:absolute; inset:0;
+    background-image:repeating-linear-gradient(90deg, transparent 0 9px, rgba(0,0,0,0.08) 9px 10px);
+  }
+#obra-app .gauge-fill{ height:100%; background:var(--co-green-ok); transition:width .3s ease; }
+#obra-app .gauge-fill.over{ background:var(--co-red-over); }
+#obra-app .gauge-fill.warn{ background:var(--co-yellow); }
+#obra-app .gauge-nums{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--co-ink-soft); margin-top:6px;}
+#obra-app .kpi-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:22px; }
+#obra-app .kpi{ border:1px solid var(--co-line); background:var(--co-surface-alt); padding:12px 14px; }
+#obra-app .kpi .lbl{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--co-ink-soft); }
+#obra-app .kpi .val{ font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600; margin-top:2px; }
+#obra-app .kpi .val.red{ color:var(--co-red-over); }
+#obra-app .kpi .val.green{ color:var(--co-green-ok); }
+#obra-app h2.section-title{
+    font-size:16px; border-bottom:2px solid var(--co-ink); padding-bottom:6px; margin:28px 0 14px;
+    display:flex; align-items:center; gap:8px;
+  }
+#obra-app h2.section-title:first-child{ margin-top:0; }
+#obra-app h2.section-title .stamp{
+    background:var(--co-yellow); color:var(--co-navy); font-size:10px; padding:2px 7px; letter-spacing:0.08em;
+  }
+#obra-app table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:10px; }
+#obra-app thead th{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:11px; letter-spacing:0.05em;
+    text-align:left; color:var(--co-ink-soft); border-bottom:2px solid var(--co-ink); padding:6px 8px;
+  }
+#obra-app tbody td{ padding:8px; border-bottom:1px solid var(--co-line); vertical-align:top; }
+#obra-app tbody tr:hover{ background:var(--co-surface-alt); }
+#obra-app td.num, #obra-app th.num{ text-align:right; font-family:'IBM Plex Mono',monospace; }
+#obra-app .empty-row td{ text-align:center; color:var(--co-ink-soft); font-style:italic; padding:20px; }
+#obra-app .btn{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.05em; font-weight:600;
+    font-size:12px; padding:9px 16px; border:1px solid var(--co-ink); background:var(--co-ink); color:#f3efe4;
+    cursor:pointer; border-radius:var(--co-radius);
+  }
+#obra-app .btn:hover{ background:#000; }
+#obra-app .btn.secondary{ background:transparent; color:var(--co-ink); }
+#obra-app .btn.secondary:hover{ background:var(--co-surface-alt); }
+#obra-app .btn-del{
+    background:transparent; border:1px solid var(--co-red-over); color:var(--co-red-over);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; padding:3px 8px; cursor:pointer; border-radius:var(--co-radius);
+  }
+#obra-app .btn-del:hover{ background:var(--co-red-over); color:#fff; }
+#obra-app form.entry-form{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; align-items:end;
+    background:var(--co-surface-alt); border:1px solid var(--co-line); padding:16px; margin-bottom:20px;
+  }
+#obra-app form.entry-form .field{ display:flex; flex-direction:column; gap:4px; }
+#obra-app form.entry-form label{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--co-ink-soft); }
+#obra-app form.entry-form input, #obra-app form.entry-form select{
+    font-family:'IBM Plex Sans',sans-serif; font-size:13px; padding:8px; border:1px solid var(--co-line);
+    background:var(--co-surface); border-radius:var(--co-radius);
+  }
+#obra-app form.entry-form input:focus, #obra-app form.entry-form select:focus{ outline:2px solid var(--co-yellow); outline-offset:0; border-color:var(--co-ink);}
+#obra-app form.entry-form .field.wide{ grid-column: span 2; }
+#obra-app form.entry-form .submit-cell{ align-self:end; }
+#obra-app .budget-line{
+    display:flex; align-items:center; gap:12px; background:var(--co-surface-alt); border:1px solid var(--co-line);
+    padding:12px 16px; margin-bottom:20px; flex-wrap:wrap;
+  }
+#obra-app .budget-line label{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--co-ink-soft); }
+#obra-app .budget-line input{ font-family:'IBM Plex Mono',monospace; font-size:16px; padding:7px 10px; border:1px solid var(--co-line); width:160px; border-radius:var(--co-radius);}
+#obra-app .stock-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; padding:2px 6px; border-radius:2px;
+  }
+#obra-app .stock-tag.ok{ background:#e2ede4; color:var(--co-green-ok); }
+#obra-app .stock-tag.low{ background:#f6e6d8; color:#8a5a1e; }
+#obra-app .stock-tag.none{ background:#f3dedb; color:var(--co-red-over); }
+#obra-app footer.savebar{
+    max-width:980px; margin:0 auto; padding:10px 20px; font-size:11px; color:var(--co-ink-soft);
+    display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono',monospace;
+  }
+@media (max-width:640px){#obra-app .ficha-inner{ flex-direction:column; align-items:flex-start; }#obra-app #co-proyectoNombre{ width:100%; max-width:100%; font-size:22px; }#obra-app nav.tabs{ overflow-x:auto; flex-wrap:nowrap; padding-bottom:2px; }#obra-app nav.tabs button{ flex:0 0 auto; }#obra-app form.entry-form{ grid-template-columns:1fr 1fr; }#obra-app form.entry-form .field.wide{ grid-column: span 2; }}
 </style>
 </head>
 <body>
@@ -161,6 +341,236 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <thead><tr><th></th><th>Título</th></tr></thead>
     <tbody id="repair-tbody"></tbody>
   </table></div>
+
+  <div id="obras-lista-wrap">
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Control de Obra</h2>
+      <button class="btn" onclick="openObraFormModal()">+ Nueva obra</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:10px">Presupuesto y gastos de obras en curso — por gremio, materiales y pagos. Podés tener varias obras a la vez.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Obra</th></tr></thead>
+      <tbody id="obras-tbody"></tbody>
+    </table></div>
+  </div>
+  <div id="obra-app" style="display:none;margin-top:20px">
+    <button class="btn" style="background:#fff;color:var(--black);margin-bottom:14px" onclick="closeObraApp()">← Volver a la lista de obras</button>
+    <header class="ficha">
+  <div class="ficha-tape">Ficha de obra</div>
+  <div class="ficha-inner">
+    <div>
+      <input id="co-proyectoNombre" value="Complejo de Departamentos" />
+      <div class="ficha-sub">Control de presupuesto · materiales · pagos</div>
+    </div>
+    <div class="ficha-stat">
+      <div class="num mono" id="co-ficha-total-pagado">$0</div>
+      <div class="lbl">Total pagado a la fecha</div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" id="co-tabs">
+  <button data-tab="resumen" class="active">Resumen</button>
+  <button data-tab="albanil">Albañil</button>
+  <button data-tab="electricista">Electricista</button>
+  <button data-tab="gasista">Gasista</button>
+  <button data-tab="arquitecto">Arquitecto</button>
+  <button data-tab="impuestos">Impuestos</button>
+  <button data-tab="luis">Luis</button>
+  <button data-tab="materiales">Materiales</button>
+  <button data-tab="pagos">Pagos</button>
+</nav>
+
+<main id="co-main">
+
+  <!-- RESUMEN -->
+  <section class="panel active" id="co-panel-resumen">
+    <h2 class="section-title"><span class="stamp">01</span> Estado general</h2>
+    <div class="kpi-row">
+      <div class="kpi"><div class="lbl">Presupuesto total obra</div><div class="val mono" id="co-kpi-presupuesto">$0</div></div>
+      <div class="kpi"><div class="lbl">Pagado a la fecha</div><div class="val mono" id="co-kpi-pagado">$0</div></div>
+      <div class="kpi"><div class="lbl">Invertido en materiales</div><div class="val mono" id="co-kpi-materiales">$0</div></div>
+      <div class="kpi"><div class="lbl">Saldo disponible</div><div class="val mono" id="co-kpi-saldo">$0</div></div>
+    </div>
+
+    <h2 class="section-title"><span class="stamp">02</span> Avance por gremio</h2>
+    <div class="gauges" id="co-gauges"></div>
+
+    <h2 class="section-title"><span class="stamp">03</span> Actividad reciente</h2>
+    <table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th class="num">Monto</th></tr></thead>
+      <tbody id="co-tabla-actividad"></tbody>
+    </table>
+  </section>
+
+  <!-- GREMIOS -->
+  <section class="panel" id="co-panel-albanil"></section>
+  <section class="panel" id="co-panel-electricista"></section>
+  <section class="panel" id="co-panel-gasista"></section>
+  <section class="panel" id="co-panel-arquitecto"></section>
+  <section class="panel" id="co-panel-impuestos"></section>
+  <section class="panel" id="co-panel-luis">
+    <h2 class="section-title"><span class="stamp">L</span> Luis</h2>
+    <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 18px;">Los pagos a Luis se llevan en dos monedas separadas, sin mezclarse con el resto de la obra.</p>
+
+    <h2 class="section-title"><span class="stamp">US$</span> Dólares (USD)</h2>
+    <div class="budget-line">
+      <label>Presupuesto en USD</label>
+      <input type="number" step="0.01" min="0" id="co-presupuesto-luis-usd" placeholder="0.00">
+      <span style="font-size:12px; color:var(--ink-soft);">Monto total presupuestado para Luis, en dólares.</span>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="lbl">Presupuesto</div><div class="val mono" id="co-luis-usd-kpi-presupuesto">US$ 0</div></div>
+      <div class="kpi"><div class="lbl">Pagado</div><div class="val mono" id="co-luis-usd-kpi-pagado">US$ 0</div></div>
+      <div class="kpi"><div class="lbl">Saldo restante</div><div class="val mono" id="co-luis-usd-kpi-saldo">US$ 0</div></div>
+    </div>
+    <div class="gauge-card" style="margin-bottom:20px;">
+      <div class="gauge-top"><span class="name">Avance de pago (USD)</span><span class="pct" id="co-luis-usd-pct">0%</span></div>
+      <div class="gauge-track"><div class="gauge-fill" id="co-luis-usd-fill" style="width:0%"></div></div>
+    </div>
+    <table>
+      <thead><tr><th>Fecha</th><th>Concepto</th><th>Método</th><th class="num">Monto</th></tr></thead>
+      <tbody id="co-luis-usd-tabla-pagos"></tbody>
+    </table>
+
+    <h2 class="section-title"><span class="stamp">€</span> Euros (EUR)</h2>
+    <div class="budget-line">
+      <label>Presupuesto en EUR</label>
+      <input type="number" step="0.01" min="0" id="co-presupuesto-luis-eur" placeholder="0.00">
+      <span style="font-size:12px; color:var(--ink-soft);">Monto total presupuestado para Luis, en euros.</span>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="lbl">Presupuesto</div><div class="val mono" id="co-luis-eur-kpi-presupuesto">€ 0</div></div>
+      <div class="kpi"><div class="lbl">Pagado</div><div class="val mono" id="co-luis-eur-kpi-pagado">€ 0</div></div>
+      <div class="kpi"><div class="lbl">Saldo restante</div><div class="val mono" id="co-luis-eur-kpi-saldo">€ 0</div></div>
+    </div>
+    <div class="gauge-card" style="margin-bottom:20px;">
+      <div class="gauge-top"><span class="name">Avance de pago (EUR)</span><span class="pct" id="co-luis-eur-pct">0%</span></div>
+      <div class="gauge-track"><div class="gauge-fill" id="co-luis-eur-fill" style="width:0%"></div></div>
+    </div>
+    <table>
+      <thead><tr><th>Fecha</th><th>Concepto</th><th>Método</th><th class="num">Monto</th></tr></thead>
+      <tbody id="co-luis-eur-tabla-pagos"></tbody>
+    </table>
+
+    <p style="font-size:12px; color:var(--ink-soft);">Los pagos se registran desde la pestaña <strong>Pagos</strong>, eligiendo "Luis" como destino y la moneda correspondiente.</p>
+  </section>
+
+  <!-- MATERIALES -->
+  <section class="panel" id="co-panel-materiales">
+    <h2 class="section-title"><span class="stamp">A</span> Materiales comprados</h2>
+    <form class="entry-form" id="co-form-compra">
+      <div class="field wide"><label>Material</label><input type="text" name="nombre" placeholder="Ej: Cemento portland" required></div>
+      <div class="field"><label>Cantidad</label><input type="number" name="cantidad" step="0.01" min="0" required></div>
+      <div class="field"><label>Unidad</label><input type="text" name="unidad" placeholder="bolsas / kg / m³" required></div>
+      <div class="field"><label>Costo unitario</label><input type="number" name="costoUnit" step="0.01" min="0" required></div>
+      <div class="field"><label>Proveedor</label><input type="text" name="proveedor" placeholder="Opcional" list="co-lista-proveedores"></div>
+      <datalist id="co-lista-proveedores"></datalist>
+      <div class="field"><label>Fecha</label><input type="date" name="fecha" required></div>
+      <div class="submit-cell"><button type="submit" class="btn">Agregar compra</button></div>
+    </form>
+    <div style="margin-bottom:20px;">
+      <button class="btn secondary" id="co-btn-cargar-buenpalo" style="font-size:11px;">Cargar presupuesto DeBuenPalo S.R.L. (22/04/2026 · 28 ítems)</button>
+    </div>
+
+    <h2 class="section-title" style="margin-top:0;"><span class="stamp">IA</span> Cargar desde texto de factura</h2>
+    <p style="font-size:12px; color:var(--ink-soft); margin-top:-6px;">
+      Mandale la foto de la factura a Claude y pedile que la lea para esta app. Te va a devolver un bloque de texto — pegalo acá abajo y apretá "Cargar materiales".
+    </p>
+    <textarea id="co-texto-factura" rows="6" placeholder="PROVEEDOR: Nombre del proveedor
+FECHA: 2026-04-22
+Cemento portland 25kg|50|bolsas|6500
+Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:10px; border:1px solid var(--line); border-radius:3px; background:var(--surface-alt); resize:vertical; margin-bottom:10px;"></textarea>
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:24px;">
+      <button class="btn" id="co-btn-cargar-texto" style="font-size:12px;">Cargar materiales</button>
+      <span id="co-texto-factura-status" style="font-size:12px; color:var(--ink-soft);"></span>
+    </div>
+    <div class="field" style="max-width:280px; margin-bottom:12px;">
+      <label style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft);">Filtrar por proveedor</label>
+      <select id="co-filtro-proveedor" style="font-family:'IBM Plex Sans',sans-serif; font-size:13px; padding:8px; border:1px solid var(--line); background:var(--surface); border-radius:3px; width:100%;">
+        <option value="">Todos los proveedores</option>
+      </select>
+    </div>
+    <table>
+      <thead><tr><th>Fecha</th><th>Material</th><th class="num">Cant.</th><th>Unidad</th><th class="num">Costo unit.</th><th class="num">Total</th><th>Proveedor</th><th></th></tr></thead>
+      <tbody id="co-tabla-compras"></tbody>
+    </table>
+
+    <h2 class="section-title"><span class="stamp">D</span> Gasto por proveedor</h2>
+    <table>
+      <thead><tr><th>Proveedor</th><th class="num">Compras</th><th class="num">Total gastado</th></tr></thead>
+      <tbody id="co-tabla-proveedores"></tbody>
+    </table>
+
+    <h2 class="section-title"><span class="stamp">B</span> Materiales retirados</h2>
+    <form class="entry-form" id="co-form-retiro">
+      <div class="field wide"><label>Material</label>
+        <select name="materialNombre" id="co-select-material" required></select>
+      </div>
+      <div class="field"><label>Cantidad retirada</label><input type="number" name="cantidad" step="0.01" min="0" required></div>
+      <div class="field"><label>Destino / uso</label><input type="text" name="destino" placeholder="Ej: 2do piso"></div>
+      <div class="field"><label>Fecha</label><input type="date" name="fecha" required></div>
+      <div class="submit-cell"><button type="submit" class="btn">Registrar retiro</button></div>
+    </form>
+    <table>
+      <thead><tr><th>Fecha</th><th>Material</th><th class="num">Cant. retirada</th><th>Destino / uso</th><th></th></tr></thead>
+      <tbody id="co-tabla-retiros"></tbody>
+    </table>
+
+    <h2 class="section-title"><span class="stamp">C</span> Stock disponible por material</h2>
+    <table>
+      <thead><tr><th>Material</th><th class="num">Comprado</th><th class="num">Retirado</th><th class="num">Saldo</th><th>Estado</th></tr></thead>
+      <tbody id="co-tabla-stock"></tbody>
+    </table>
+  </section>
+
+  <!-- PAGOS -->
+  <section class="panel" id="co-panel-pagos">
+    <h2 class="section-title"><span class="stamp">$</span> Registro de pagos</h2>
+    <form class="entry-form" id="co-form-pago">
+      <div class="field"><label>Destino</label>
+        <select name="destino" id="co-select-destino" required>
+          <option value="Albañil">Albañil</option>
+          <option value="Electricista">Electricista</option>
+          <option value="Gasista">Gasista</option>
+          <option value="Arquitecto">Arquitecto</option>
+          <option value="Impuestos">Impuestos</option>
+          <option value="Luis">Luis</option>
+          <option value="Materiales">Materiales</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="field" id="co-campo-moneda" style="display:none;">
+        <label>Moneda</label>
+        <select name="moneda">
+          <option value="USD">Dólares (USD)</option>
+          <option value="EUR">Euros (EUR)</option>
+        </select>
+      </div>
+      <div class="field wide"><label>Concepto</label><input type="text" name="concepto" placeholder="Ej: Anticipo semana 3" required></div>
+      <div class="field"><label>Monto</label><input type="number" name="monto" step="0.01" min="0" required></div>
+      <div class="field"><label>Método</label><input type="text" name="metodo" placeholder="Efectivo / transferencia"></div>
+      <div class="field"><label>Fecha</label><input type="date" name="fecha" required></div>
+      <div class="submit-cell"><button type="submit" class="btn">Registrar pago</button></div>
+    </form>
+    <table>
+      <thead><tr><th>Fecha</th><th>Destino</th><th>Concepto</th><th>Método</th><th class="num">Monto</th><th></th></tr></thead>
+      <tbody id="co-tabla-pagos"></tbody>
+    </table>
+  </section>
+
+</main>
+
+<footer class="savebar">
+  <span id="co-save-status">Datos guardados automáticamente en este navegador</span>
+  <div style="display:flex; gap:8px;">
+    <button class="btn secondary" id="co-btn-exportar" style="font-size:10px; padding:6px 10px;">Exportar respaldo (.json)</button>
+    <label class="btn secondary" for="co-input-importar" style="font-size:10px; padding:6px 10px; margin:0; cursor:pointer;">Importar respaldo</label>
+    <input type="file" id="co-input-importar" accept="application/json" style="display:none;">
+    <button class="btn secondary" id="co-btn-reset" style="font-size:10px; padding:6px 10px;">Borrar todos los datos</button>
+  </div>
+</footer>
+  </div>
 
   <div class="page-head" style="margin-top:36px">
     <h2 style="font-size:20px">Proveedores</h2>
@@ -697,6 +1107,18 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
   </div>
 </div>
 
+<div class="modal-overlay" id="obra-form-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px" id="obra-form-modal-title">Nueva obra</h3>
+    <form id="obra-form">
+      <input type="hidden" id="ob-id">
+      <div class="form-row"><label>Nombre de la obra</label><input type="text" id="ob-nombre" required placeholder="Ej: Complejo de Departamentos"></div>
+      <div class="form-row"><label>Propiedad vinculada (opcional)</label><select id="ob-property"><option value="">Sin vincular</option></select></div>
+      <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('obra-form-modal')">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
 <!-- Proveedores -->
 <div class="modal-overlay" id="provider-modal">
   <div class="modal-box">
@@ -1013,7 +1435,7 @@ async function startApp(){
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
-  loadDevelopments(); loadOwners(); loadGuarantors(); loadRepairs(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
+  loadDevelopments(); loadOwners(); loadGuarantors(); loadRepairs(); loadObrasList(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
     loadRentCollection(); loadCharges(); loadSettlements();
@@ -2325,6 +2747,48 @@ document.getElementById('repair-form').addEventListener('submit', async e=>{
 async function deleteRepair(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/repairs/${id}`,{method:'DELETE'}); loadRepairs(); }catch(err){ toast(err.message); } }
 
 // =====================================================================
+// CONTROL DE OBRA — lista de obras (el detalle de cada una lo maneja
+// el modulo aparte, mas abajo, que conecta con #obra-app).
+// =====================================================================
+async function loadObrasList(){
+  const tbody = document.getElementById('obras-tbody');
+  try{
+    if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
+    const list = await api('/obras');
+    tbody.innerHTML = list.length ? list.map(o => {
+      const prop = o.property_id ? ALL_PROPERTIES.find(p=>p.id===o.property_id) : null;
+      const detailObj = { propiedad: prop ? prop.title : 'Sin vincular a una propiedad' };
+      const actionsHtml = `<button onclick="openObraApp(${o.id})">Abrir</button><button onclick='openObraFormModal(${JSON.stringify(o).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteObra(${o.id})">Borrar</button>`;
+      return `<tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {propiedad:"Propiedad vinculada"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${o.nombre}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin obras cargadas todavía.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+function openObraFormModal(o){
+  document.getElementById('obra-form-modal-title').textContent = o ? 'Editar obra' : 'Nueva obra';
+  document.getElementById('ob-id').value = o ? o.id : '';
+  document.getElementById('ob-nombre').value = o ? o.nombre : '';
+  const sel = document.getElementById('ob-property');
+  sel.innerHTML = '<option value="">Sin vincular</option>' + ALL_PROPERTIES.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+  sel.value = o && o.property_id ? o.property_id : '';
+  document.getElementById('obra-form-modal').classList.add('active');
+}
+document.getElementById('obra-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('ob-id').value;
+  const body = { nombre: document.getElementById('ob-nombre').value, property_id: document.getElementById('ob-property').value || null };
+  try{
+    if(id) await api(`/obras/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/obras', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Guardado'); closeModal('obra-form-modal'); loadObrasList();
+  }catch(err){ toast(err.message); }
+});
+async function deleteObra(id){
+  if(!confirm('¿Borrar esta obra? Se van a borrar también TODAS sus compras, retiros y pagos cargados. Esta acción no se puede deshacer.')) return;
+  try{ await api(`/obras/${id}`,{method:'DELETE'}); loadObrasList(); }catch(err){ toast(err.message); }
+}
+
+// =====================================================================
 // PROVEEDORES
 // =====================================================================
 async function loadProviders(){
@@ -2889,6 +3353,642 @@ document.getElementById('site-config-form').addEventListener('submit', async e=>
     document.getElementById('sc-logo-image').value = '';
   }catch(err){ toast(err.message); }
 });
+
+// ---- Control de Obra (JS adaptado, conectado a la base de datos) ----
+
+window.openObraApp = null; // se define mas abajo
+(function(){
+  let OBRA_ID = null;
+  const GREMIOS = ['albanil','electricista','gasista','arquitecto','impuestos'];
+  const GREMIO_LABEL = { albanil:'Albañil', electricista:'Electricista', gasista:'Gasista', arquitecto:'Arquitecto', impuestos:'Impuestos' };
+
+  let state = {
+    proyecto: { nombre: 'Complejo de Departamentos' },
+    presupuestos: { albanil: 0, electricista: 0, gasista: 0, arquitecto: 0, impuestos: 0 },
+    luis: { presupuestoUSD: 0, presupuestoEUR: 0 },
+    compras: [],
+    retiros: [],
+    pagos: []
+  };
+
+  const MONEDA_SIMBOLO = { ARS:'$', USD:'US$', EUR:'€' };
+  function fmt(n, moneda){
+    n = Number(n)||0;
+    const simbolo = MONEDA_SIMBOLO[moneda] || '$';
+    return simbolo + ' ' + n.toLocaleString('es-AR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // Trae todos los datos de la obra desde el servidor (ficha + compras +
+  // retiros + pagos) y vuelve a dibujar todo. Se llama despues de CUALQUIER
+  // cambio, para que los datos siempre reflejen lo que hay realmente
+  // guardado en la base de datos (compartida entre todo el equipo).
+  async function loadObraState(){
+    const statusEl = document.getElementById('co-save-status');
+    statusEl.textContent = 'Cargando...';
+    try{
+      const data = await api(`/obras/${OBRA_ID}/data`);
+      state = {
+        proyecto: { nombre: data.obra.nombre },
+        presupuestos: {
+          albanil: data.obra.presupuesto_albanil, electricista: data.obra.presupuesto_electricista,
+          gasista: data.obra.presupuesto_gasista, arquitecto: data.obra.presupuesto_arquitecto,
+          impuestos: data.obra.presupuesto_impuestos,
+        },
+        luis: { presupuestoUSD: data.obra.presupuesto_luis_usd, presupuestoEUR: data.obra.presupuesto_luis_eur },
+        compras: data.compras.map(c => ({ id:c.id, nombre:c.nombre, cantidad:Number(c.cantidad), unidad:c.unidad, costoUnit:Number(c.costo_unit), proveedor:c.proveedor, fecha:c.fecha })),
+        retiros: data.retiros.map(r => ({ id:r.id, materialNombre:r.material_nombre, cantidad:Number(r.cantidad), destino:r.destino, fecha:r.fecha })),
+        pagos: data.pagos.map(p => ({ id:p.id, destino:p.destino, concepto:p.concepto, monto:Number(p.monto), metodo:p.metodo, fecha:p.fecha, moneda:p.moneda })),
+      };
+      statusEl.textContent = 'Guardado en la base de datos — visible para todo el equipo';
+      render();
+    }catch(e){
+      statusEl.textContent = 'No se pudieron cargar los datos de esta obra.';
+      console.error(e);
+    }
+  }
+  // Actualiza un presupuesto puntual (gremio o Luis) en el servidor.
+  async function guardarPresupuesto(campo, valor){
+    const statusEl = document.getElementById('co-save-status');
+    statusEl.textContent = 'Guardando...';
+    try{
+      await api(`/obras/${OBRA_ID}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({[campo]: valor})});
+      await loadObraState();
+    }catch(e){ statusEl.textContent = 'No se pudo guardar.'; }
+  }
+
+  // ---------- TABS ----------
+  document.getElementById('co-tabs').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-tab]');
+    if(!btn) return;
+    document.querySelectorAll('#co-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#obra-app .panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('co-panel-'+btn.dataset.tab).classList.add('active');
+  });
+
+  // ---------- PROJECT NAME ----------
+  const nombreInput = document.getElementById('co-proyectoNombre');
+  nombreInput.addEventListener('change', ()=>{
+    guardarPresupuesto('nombre', nombreInput.value);
+  });
+
+  // ---------- GREMIO PANELS (build once) ----------
+  function buildGremioPanel(key){
+    const panel = document.getElementById('co-panel-'+key);
+    panel.innerHTML = `
+      <h2 class="section-title"><span class="stamp">${GREMIO_LABEL[key][0]}</span> ${GREMIO_LABEL[key]}</h2>
+      <div class="budget-line">
+        <label>Presupuesto acordado</label>
+        <input type="number" step="0.01" min="0" id="co-presupuesto-${key}" placeholder="0.00">
+        <span style="font-size:12px; color:var(--ink-soft);">Monto total presupuestado para ${GREMIO_LABEL[key]} en toda la obra.</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="lbl">Presupuesto</div><div class="val mono" id="co-${key}-kpi-presupuesto">$0</div></div>
+        <div class="kpi"><div class="lbl">Pagado</div><div class="val mono" id="co-${key}-kpi-pagado">$0</div></div>
+        <div class="kpi"><div class="lbl">Saldo restante</div><div class="val mono" id="co-${key}-kpi-saldo">$0</div></div>
+      </div>
+      <div class="gauge-card" style="margin-bottom:24px;">
+        <div class="gauge-top"><span class="name">Avance de pago</span><span class="pct" id="co-${key}-pct">0%</span></div>
+        <div class="gauge-track"><div class="gauge-fill" id="co-${key}-fill" style="width:0%"></div></div>
+      </div>
+      <h2 class="section-title" style="margin-top:0;">Pagos registrados a ${GREMIO_LABEL[key]}</h2>
+      <table>
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Método</th><th class="num">Monto</th></tr></thead>
+        <tbody id="co-${key}-tabla-pagos"></tbody>
+      </table>
+      <p style="font-size:12px; color:var(--ink-soft);">Los pagos se registran desde la pestaña <strong>Pagos</strong>, eligiendo "${GREMIO_LABEL[key]}" como destino.</p>
+    `;
+    const input = document.getElementById(`co-presupuesto-${key}`);
+    input.addEventListener('change', ()=>{
+      guardarPresupuesto(`presupuesto_${key}`, parseFloat(input.value) || 0);
+    });
+  }
+  GREMIOS.forEach(buildGremioPanel);
+
+  // ---------- LUIS (USD / EUR) ----------
+  const inputLuisUSD = document.getElementById('co-presupuesto-luis-usd');
+  const inputLuisEUR = document.getElementById('co-presupuesto-luis-eur');
+  inputLuisUSD.addEventListener('change', ()=>{
+    guardarPresupuesto('presupuesto_luis_usd', parseFloat(inputLuisUSD.value) || 0);
+  });
+  inputLuisEUR.addEventListener('change', ()=>{
+    guardarPresupuesto('presupuesto_luis_eur', parseFloat(inputLuisEUR.value) || 0);
+  });
+
+  // ---------- TOGGLE MONEDA SEGÚN DESTINO ----------
+  const selectDestino = document.getElementById('co-select-destino');
+  const campoMoneda = document.getElementById('co-campo-moneda');
+  selectDestino.addEventListener('change', ()=>{
+    campoMoneda.style.display = selectDestino.value === 'Luis' ? 'flex' : 'none';
+  });
+
+  let filtroProveedorActual = '';
+  document.getElementById('co-filtro-proveedor').addEventListener('change', (e)=>{
+    filtroProveedorActual = e.target.value;
+    render();
+  });
+
+  // ---------- FORMS ----------
+  document.getElementById('co-form-compra').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const entry = {
+      nombre: f.nombre.value.trim(),
+      cantidad: parseFloat(f.cantidad.value)||0,
+      unidad: f.unidad.value.trim(),
+      costoUnit: parseFloat(f.costoUnit.value)||0,
+      proveedor: f.proveedor.value.trim(),
+      fecha: f.fecha.value
+    };
+    try{
+      await api(`/obras/${OBRA_ID}/compras`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry)});
+      f.reset();
+      document.querySelectorAll('#obra-app input[type=date]').forEach(inp=>{ if(!inp.value) inp.value = new Date().toISOString().slice(0,10); });
+      await loadObraState();
+    }catch(err){ toast(err.message); }
+  });
+
+  document.getElementById('co-form-retiro').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const entry = {
+      materialNombre: f.materialNombre.value,
+      cantidad: parseFloat(f.cantidad.value)||0,
+      destino: f.destino.value.trim(),
+      fecha: f.fecha.value
+    };
+    try{
+      await api(`/obras/${OBRA_ID}/retiros`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry)});
+      f.reset();
+      document.querySelectorAll('#obra-app input[type=date]').forEach(inp=>{ if(!inp.value) inp.value = new Date().toISOString().slice(0,10); });
+      await loadObraState();
+    }catch(err){ toast(err.message); }
+  });
+
+  document.getElementById('co-form-pago').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const f = e.target;
+    const entry = {
+      destino: f.destino.value,
+      concepto: f.concepto.value.trim(),
+      monto: parseFloat(f.monto.value)||0,
+      metodo: f.metodo.value.trim(),
+      fecha: f.fecha.value,
+      moneda: f.destino.value === 'Luis' ? f.moneda.value : 'ARS'
+    };
+    try{
+      await api(`/obras/${OBRA_ID}/pagos`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry)});
+      f.reset();
+      campoMoneda.style.display = 'none';
+      document.querySelectorAll('#obra-app input[type=date]').forEach(inp=>{ if(!inp.value) inp.value = new Date().toISOString().slice(0,10); });
+      await loadObraState();
+    }catch(err){ toast(err.message); }
+  });
+
+  // ---------- CARGA RÁPIDA: PRESUPUESTO DEBUENPALO S.R.L. (22/04/2026) ----------
+  const PRESUPUESTO_BUENPALO = [
+    { nombre:'Tanque polietileno impacto 350 lts x un', cantidad:3, unidad:'unidades', costoUnit:104545.63 },
+    { nombre:'Bolsa cal hidratada Andina x 25 kg', cantidad:160, unidad:'bolsas', costoUnit:6971.88 },
+    { nombre:'Bolsa cemento 25 kgs', cantidad:250, unidad:'bolsas', costoUnit:6918.68 },
+    { nombre:'Bolsa cemento albañilería 25 kgs', cantidad:100, unidad:'bolsas', costoUnit:6187.51 },
+    { nombre:'Claraboya acrílica 40x40 c/base galvanizada', cantidad:3, unidad:'unidades', costoUnit:60382.00 },
+    { nombre:'Ladrillo cerámico portante 12.19.33 Palmar (15/M2)', cantidad:2800, unidad:'unidades', costoUnit:1191.28 },
+    { nombre:'Ladrillo cerámico portante 18.19.33 Palmar (15/M2)', cantidad:2650, unidad:'unidades', costoUnit:1419.52 },
+    { nombre:'Ladrillo cerámico p/techo 11.25.38 Palmar (8/M2)', cantidad:1400, unidad:'unidades', costoUnit:1633.11 },
+    { nombre:'Vigueta 1.20 mt.', cantidad:4, unidad:'unidades', costoUnit:4293.95 },
+    { nombre:'Vigueta 1.80 mt.', cantidad:12, unidad:'unidades', costoUnit:6440.95 },
+    { nombre:'Vigueta 2.60 mt.', cantidad:7, unidad:'unidades', costoUnit:9303.55 },
+    { nombre:'Vigueta 3.00 mt.', cantidad:21, unidad:'unidades', costoUnit:10734.78 },
+    { nombre:'Vigueta 3.20 mt.', cantidad:40, unidad:'unidades', costoUnit:11493.02 },
+    { nombre:'Vigueta 3.60 mt.', cantidad:14, unidad:'unidades', costoUnit:13232.85 },
+    { nombre:'Vigueta 4.20 mt.', cantidad:14, unidad:'unidades', costoUnit:16013.75 },
+    { nombre:'Arena fina del Paraná', cantidad:6, unidad:'m³', costoUnit:48836.77 },
+    { nombre:'Piedra 1-2', cantidad:13, unidad:'m³', costoUnit:73046.44 },
+    { nombre:'Chasis arena entrefina granel 6 mts', cantidad:8, unidad:'m³', costoUnit:149724.34 },
+    { nombre:'Pintura asfáltica x 18lts secado rápido', cantidad:6, unidad:'bidones', costoUnit:52017.15 },
+    { nombre:'Barra hierro Tors 6 mm (2.66 kg x bs)', cantidad:120, unidad:'barras', costoUnit:5090.98 },
+    { nombre:'Barra hierro Tors 8 mm (4.74 kg x bs)', cantidad:170, unidad:'barras', costoUnit:8696.18 },
+    { nombre:'Malla construcción mini Q158 150x150x5.5mm (2x3)', cantidad:75, unidad:'unidades', costoUnit:28360.90 },
+    { nombre:'Sika 1 x 5 lt. - Hidrófugo líquido', cantidad:5, unidad:'bidones', costoUnit:7101.39 },
+    { nombre:'Alambre negro num 14 x kg (2.03mm)', cantidad:10, unidad:'kg', costoUnit:3334.95 },
+    { nombre:'Alambre negro num 17 x kg (1.42mm)', cantidad:10, unidad:'kg', costoUnit:3518.95 },
+    { nombre:'Rollo membrana Ormiflex profesional 40kg c/alum amarillo', cantidad:25, unidad:'rollos', costoUnit:89426.95 },
+    { nombre:'Rollo film polietileno p/capa aisladora 0.15 x 25 mts', cantidad:4, unidad:'rollos', costoUnit:2343.13 },
+    { nombre:'Rollo film polietileno p/capa aisladora 0.20 x 25 mts', cantidad:4, unidad:'rollos', costoUnit:3124.16 }
+  ];
+
+  document.getElementById('co-btn-cargar-buenpalo').addEventListener('click', async ()=>{
+    if(!confirm(`Esto va a agregar ${PRESUPUESTO_BUENPALO.length} materiales del presupuesto de DeBuenPalo S.R.L. (22/04/2026) a tu lista de compras. ¿Confirmás?`)) return;
+    const items = PRESUPUESTO_BUENPALO.map(item => ({
+      nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad,
+      costoUnit: item.costoUnit, proveedor: 'DeBuenPalo S.R.L.', fecha: '2026-04-22',
+    }));
+    try{
+      await api(`/obras/${OBRA_ID}/compras/bulk`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})});
+      await loadObraState();
+      alert(`Se cargaron ${PRESUPUESTO_BUENPALO.length} materiales de DeBuenPalo S.R.L.`);
+    }catch(err){ toast(err.message); }
+  });
+
+  // ---------- CARGAR DESDE TEXTO DE FACTURA (formato generado por Claude) ----------
+  document.getElementById('co-btn-cargar-texto').addEventListener('click', async ()=>{
+    const statusEl = document.getElementById('co-texto-factura-status');
+    const raw = document.getElementById('co-texto-factura').value.trim();
+    if(!raw){
+      statusEl.textContent = 'Pegá primero el texto que te pasó Claude.';
+      statusEl.style.color = 'var(--co-red-over)';
+      return;
+    }
+    const lineas = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    let proveedor = '';
+    let fecha = new Date().toISOString().slice(0,10);
+    const nuevasCompras = [];
+    let errores = 0;
+
+    lineas.forEach(linea=>{
+      const proveedorMatch = linea.match(/^PROVEEDOR:\s*(.+)$/i);
+      const fechaMatch = linea.match(/^FECHA:\s*(\d{4}-\d{2}-\d{2})$/i);
+      if(proveedorMatch){ proveedor = proveedorMatch[1].trim(); return; }
+      if(fechaMatch){ fecha = fechaMatch[1]; return; }
+      if(!linea.includes('|')) return;
+
+      const partes = linea.split('|').map(p=>p.trim());
+      if(partes.length < 4){ errores++; return; }
+      const [nombre, cantidadStr, unidad, costoStr] = partes;
+      const cantidad = parseFloat(cantidadStr.replace(',', '.'));
+      const costoUnit = parseFloat(costoStr.replace(',', '.'));
+      if(!nombre || isNaN(cantidad) || isNaN(costoUnit)){ errores++; return; }
+
+      nuevasCompras.push({
+        nombre, cantidad, unidad: unidad || '',
+        costoUnit, proveedor, fecha
+      });
+    });
+
+    if(nuevasCompras.length === 0){
+      statusEl.textContent = 'No se pudo interpretar ningún material. Revisá el formato del texto.';
+      statusEl.style.color = 'var(--co-red-over)';
+      return;
+    }
+
+    try{
+      await api(`/obras/${OBRA_ID}/compras/bulk`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items: nuevasCompras})});
+      await loadObraState();
+      document.getElementById('co-texto-factura').value = '';
+      statusEl.textContent = `Se cargaron ${nuevasCompras.length} materiales${errores ? ` (${errores} línea(s) no se pudieron leer)` : ''}.`;
+      statusEl.style.color = errores ? '#8a5a1e' : 'var(--co-green-ok)';
+    }catch(err){ statusEl.textContent = err.message; statusEl.style.color = 'var(--co-red-over)'; }
+  });
+
+  // ---------- DELETE HANDLERS (event delegation) ----------
+  document.getElementById('co-main').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button[data-del]');
+    if(!btn) return;
+    if(!confirm('¿Borrar este registro?')) return;
+    const [coll, id] = [btn.dataset.del, btn.dataset.id];
+    try{
+      await api(`/obras/${coll}/${id}`, {method:'DELETE'});
+      await loadObraState();
+    }catch(err){ toast(err.message); }
+  });
+
+  // ---------- EXPORTAR / IMPORTAR RESPALDO ----------
+  document.getElementById('co-btn-exportar').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fechaHoy = new Date().toISOString().slice(0,10);
+    const nombreProyecto = (state.proyecto.nombre||'obra').trim().replace(/[^a-zA-Z0-9\-_ ]/g,'').replace(/\s+/g,'-').toLowerCase() || 'obra';
+    a.href = url;
+    a.download = `respaldo-${nombreProyecto}-${fechaHoy}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('co-input-importar').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt)=>{
+      try{
+        const parsed = JSON.parse(evt.target.result);
+        if(!confirm('Esto va a AGREGAR los datos del archivo importado a esta obra (no borra lo que ya hay). ¿Continuar?')) return;
+        const p = parsed.presupuestos || {};
+        const l = parsed.luis || {};
+        await api(`/obras/${OBRA_ID}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+          nombre: (parsed.proyecto && parsed.proyecto.nombre) || undefined,
+          presupuesto_albanil: p.albanil, presupuesto_electricista: p.electricista, presupuesto_gasista: p.gasista,
+          presupuesto_arquitecto: p.arquitecto, presupuesto_impuestos: p.impuestos,
+          presupuesto_luis_usd: l.presupuestoUSD, presupuesto_luis_eur: l.presupuestoEUR,
+        })});
+        if((parsed.compras||[]).length){
+          await api(`/obras/${OBRA_ID}/compras/bulk`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items: parsed.compras})});
+        }
+        for(const r of (parsed.retiros||[])){
+          await api(`/obras/${OBRA_ID}/retiros`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(r)});
+        }
+        for(const pg of (parsed.pagos||[])){
+          await api(`/obras/${OBRA_ID}/pagos`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(pg)});
+        }
+        await loadObraState();
+        alert('Datos importados correctamente.');
+      }catch(err){
+        alert('El archivo no tiene un formato válido. Asegurate de usar un respaldo exportado desde esta misma aplicación.');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- RESET ----------
+  document.getElementById('co-btn-reset').addEventListener('click', async ()=>{
+    if(!confirm('¿Seguro que querés borrar TODOS los datos de esta obra (presupuestos, compras, retiros y pagos)? Esta acción no se puede deshacer.')) return;
+    if(!confirm('Confirmá una vez más: esto borra todo, para siempre. ¿Seguimos?')) return;
+    const statusEl = document.getElementById('co-save-status');
+    statusEl.textContent = 'Borrando...';
+    try{
+      await Promise.all([
+        ...state.compras.map(c => api(`/obras/compras/${c.id}`, {method:'DELETE'})),
+        ...state.retiros.map(r => api(`/obras/retiros/${r.id}`, {method:'DELETE'})),
+        ...state.pagos.map(p => api(`/obras/pagos/${p.id}`, {method:'DELETE'})),
+      ]);
+      await api(`/obras/${OBRA_ID}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        presupuesto_albanil:0, presupuesto_electricista:0, presupuesto_gasista:0, presupuesto_arquitecto:0,
+        presupuesto_impuestos:0, presupuesto_luis_usd:0, presupuesto_luis_eur:0,
+      })});
+      await loadObraState();
+    }catch(err){ statusEl.textContent = 'Error al borrar los datos.'; toast(err.message); }
+  });
+
+  // ---------- COMPUTATIONS ----------
+  function totalCompras(){
+    return state.compras.reduce((s,c)=> s + c.cantidad * c.costoUnit, 0);
+  }
+  function totalPagos(){
+    return state.pagos.filter(p=>p.destino!=='Luis').reduce((s,p)=> s + p.monto, 0);
+  }
+  function totalPagadoGremio(key){
+    const label = GREMIO_LABEL[key];
+    return state.pagos.filter(p=>p.destino===label).reduce((s,p)=>s+p.monto,0);
+  }
+  function totalPagadoLuis(moneda){
+    return state.pagos.filter(p=>p.destino==='Luis' && p.moneda===moneda).reduce((s,p)=>s+p.monto,0);
+  }
+  function stockPorMaterial(){
+    const map = {};
+    state.compras.forEach(c=>{
+      const k = c.nombre.trim().toLowerCase();
+      if(!map[k]) map[k] = { nombre:c.nombre, unidad:c.unidad, comprado:0, retirado:0 };
+      map[k].comprado += c.cantidad;
+    });
+    state.retiros.forEach(r=>{
+      const k = r.materialNombre.trim().toLowerCase();
+      if(!map[k]) map[k] = { nombre:r.materialNombre, unidad:'', comprado:0, retirado:0 };
+      map[k].retirado += r.cantidad;
+    });
+    return Object.values(map);
+  }
+
+  // ---------- RENDER ----------
+  function render(){
+    nombreInput.value = state.proyecto.nombre;
+
+    const presupuestoGremios = GREMIOS.reduce((s,k)=> s + (state.presupuestos[k]||0), 0);
+    const compras = totalCompras();
+    const presupuestoTotal = presupuestoGremios + compras;
+    const pagado = totalPagos();
+    const saldo = presupuestoTotal - pagado;
+
+    document.getElementById('co-ficha-total-pagado').textContent = fmt(pagado);
+    document.getElementById('co-kpi-presupuesto').textContent = fmt(presupuestoTotal);
+    document.getElementById('co-kpi-pagado').textContent = fmt(pagado);
+    document.getElementById('co-kpi-materiales').textContent = fmt(compras);
+    const saldoEl = document.getElementById('co-kpi-saldo');
+    saldoEl.textContent = fmt(saldo);
+    saldoEl.className = 'val mono ' + (saldo < 0 ? 'red' : 'green');
+
+    // Gauges resumen
+    const gaugesEl = document.getElementById('co-gauges');
+    gaugesEl.innerHTML = GREMIOS.map(k=>{
+      const presu = state.presupuestos[k]||0;
+      const pag = totalPagadoGremio(k);
+      const pct = presu > 0 ? Math.round((pag/presu)*100) : 0;
+      const cls = pct > 100 ? 'over' : (pct >= 85 ? 'warn' : '');
+      return `<div class="gauge-card">
+        <div class="gauge-top"><span class="name">${GREMIO_LABEL[k]}</span><span class="pct">${pct}%</span></div>
+        <div class="gauge-track"><div class="gauge-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div class="gauge-nums"><span>${fmt(pag)} pagado</span><span>${fmt(presu)} presup.</span></div>
+      </div>`;
+    }).join('') + (function(){
+      const presuU = state.luis.presupuestoUSD||0;
+      const pagU = totalPagadoLuis('USD');
+      const pctU = presuU > 0 ? Math.round((pagU/presuU)*100) : 0;
+      const clsU = pctU > 100 ? 'over' : (pctU >= 85 ? 'warn' : '');
+      const presuE = state.luis.presupuestoEUR||0;
+      const pagE = totalPagadoLuis('EUR');
+      const pctE = presuE > 0 ? Math.round((pagE/presuE)*100) : 0;
+      const clsE = pctE > 100 ? 'over' : (pctE >= 85 ? 'warn' : '');
+      return `<div class="gauge-card">
+        <div class="gauge-top"><span class="name">Luis (USD)</span><span class="pct">${pctU}%</span></div>
+        <div class="gauge-track"><div class="gauge-fill ${clsU}" style="width:${Math.min(pctU,100)}%"></div></div>
+        <div class="gauge-nums"><span>${fmt(pagU,'USD')} pagado</span><span>${fmt(presuU,'USD')} presup.</span></div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-top"><span class="name">Luis (EUR)</span><span class="pct">${pctE}%</span></div>
+        <div class="gauge-track"><div class="gauge-fill ${clsE}" style="width:${Math.min(pctE,100)}%"></div></div>
+        <div class="gauge-nums"><span>${fmt(pagE,'EUR')} pagado</span><span>${fmt(presuE,'EUR')} presup.</span></div>
+      </div>`;
+    })();
+
+    // Actividad reciente
+    const actividad = [
+      ...state.compras.map(c=>({fecha:c.fecha, tipo:'Compra', detalle:c.nombre, monto:c.cantidad*c.costoUnit})),
+      ...state.retiros.map(r=>({fecha:r.fecha, tipo:'Retiro', detalle:r.materialNombre + (r.destino? ' → '+r.destino:''), monto:null})),
+      ...state.pagos.map(p=>({fecha:p.fecha, tipo:'Pago · '+p.destino, detalle:p.concepto, monto:p.monto, moneda:p.moneda||'ARS'}))
+    ].sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'')).slice(0,10);
+
+    const actEl = document.getElementById('co-tabla-actividad');
+    actEl.innerHTML = actividad.length ? actividad.map(a=>`
+      <tr><td>${a.fecha||'—'}</td><td>${a.tipo}</td><td>${a.detalle}</td><td class="num">${a.monto!==null? fmt(a.monto, a.moneda) : '—'}</td></tr>
+    `).join('') : `<tr class="empty-row"><td colspan="4">Todavía no hay movimientos registrados. Empezá cargando un presupuesto, una compra o un pago.</td></tr>`;
+
+    // Paneles de gremio
+    GREMIOS.forEach(k=>{
+      document.getElementById(`co-presupuesto-${k}`).value = state.presupuestos[k] || '';
+      const presu = state.presupuestos[k]||0;
+      const pag = totalPagadoGremio(k);
+      const sal = presu - pag;
+      document.getElementById(`co-${k}-kpi-presupuesto`).textContent = fmt(presu);
+      document.getElementById(`co-${k}-kpi-pagado`).textContent = fmt(pag);
+      const salEl = document.getElementById(`co-${k}-kpi-saldo`);
+      salEl.textContent = fmt(sal);
+      salEl.className = 'val mono ' + (sal < 0 ? 'red' : 'green');
+      const pct = presu > 0 ? Math.round((pag/presu)*100) : 0;
+      document.getElementById(`co-${k}-pct`).textContent = pct+'%';
+      const fillEl = document.getElementById(`co-${k}-fill`);
+      fillEl.style.width = Math.min(pct,100)+'%';
+      fillEl.className = 'gauge-fill ' + (pct>100?'over':(pct>=85?'warn':''));
+
+      const pagosGremio = state.pagos.filter(p=>p.destino===GREMIO_LABEL[k]).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+      const tbody = document.getElementById(`co-${k}-tabla-pagos`);
+      tbody.innerHTML = pagosGremio.length ? pagosGremio.map(p=>`
+        <tr><td>${p.fecha||'—'}</td><td>${p.concepto}</td><td>${p.metodo||'—'}</td><td class="num">${fmt(p.monto)}</td></tr>
+      `).join('') : `<tr class="empty-row"><td colspan="4">Sin pagos registrados todavía.</td></tr>`;
+    });
+
+    // Panel Luis — USD
+    document.getElementById('co-presupuesto-luis-usd').value = state.luis.presupuestoUSD || '';
+    const presuLU = state.luis.presupuestoUSD||0;
+    const pagLU = totalPagadoLuis('USD');
+    const salLU = presuLU - pagLU;
+    document.getElementById('co-luis-usd-kpi-presupuesto').textContent = fmt(presuLU,'USD');
+    document.getElementById('co-luis-usd-kpi-pagado').textContent = fmt(pagLU,'USD');
+    const salLUEl = document.getElementById('co-luis-usd-kpi-saldo');
+    salLUEl.textContent = fmt(salLU,'USD');
+    salLUEl.className = 'val mono ' + (salLU < 0 ? 'red' : 'green');
+    const pctLU = presuLU > 0 ? Math.round((pagLU/presuLU)*100) : 0;
+    document.getElementById('co-luis-usd-pct').textContent = pctLU+'%';
+    const fillLU = document.getElementById('co-luis-usd-fill');
+    fillLU.style.width = Math.min(pctLU,100)+'%';
+    fillLU.className = 'gauge-fill ' + (pctLU>100?'over':(pctLU>=85?'warn':''));
+    const pagosLuisUSD = state.pagos.filter(p=>p.destino==='Luis' && p.moneda==='USD').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+    document.getElementById('co-luis-usd-tabla-pagos').innerHTML = pagosLuisUSD.length ? pagosLuisUSD.map(p=>`
+      <tr><td>${p.fecha||'—'}</td><td>${p.concepto}</td><td>${p.metodo||'—'}</td><td class="num">${fmt(p.monto,'USD')}</td></tr>
+    `).join('') : `<tr class="empty-row"><td colspan="4">Sin pagos en dólares todavía.</td></tr>`;
+
+    // Panel Luis — EUR
+    document.getElementById('co-presupuesto-luis-eur').value = state.luis.presupuestoEUR || '';
+    const presuLE = state.luis.presupuestoEUR||0;
+    const pagLE = totalPagadoLuis('EUR');
+    const salLE = presuLE - pagLE;
+    document.getElementById('co-luis-eur-kpi-presupuesto').textContent = fmt(presuLE,'EUR');
+    document.getElementById('co-luis-eur-kpi-pagado').textContent = fmt(pagLE,'EUR');
+    const salLEEl = document.getElementById('co-luis-eur-kpi-saldo');
+    salLEEl.textContent = fmt(salLE,'EUR');
+    salLEEl.className = 'val mono ' + (salLE < 0 ? 'red' : 'green');
+    const pctLE = presuLE > 0 ? Math.round((pagLE/presuLE)*100) : 0;
+    document.getElementById('co-luis-eur-pct').textContent = pctLE+'%';
+    const fillLE = document.getElementById('co-luis-eur-fill');
+    fillLE.style.width = Math.min(pctLE,100)+'%';
+    fillLE.className = 'gauge-fill ' + (pctLE>100?'over':(pctLE>=85?'warn':''));
+    const pagosLuisEUR = state.pagos.filter(p=>p.destino==='Luis' && p.moneda==='EUR').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+    document.getElementById('co-luis-eur-tabla-pagos').innerHTML = pagosLuisEUR.length ? pagosLuisEUR.map(p=>`
+      <tr><td>${p.fecha||'—'}</td><td>${p.concepto}</td><td>${p.metodo||'—'}</td><td class="num">${fmt(p.monto,'EUR')}</td></tr>
+    `).join('') : `<tr class="empty-row"><td colspan="4">Sin pagos en euros todavía.</td></tr>`;
+
+    // Materiales — compras
+    const nombresProveedores = [...new Set(state.compras.map(c=>(c.proveedor||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+
+    const datalist = document.getElementById('co-lista-proveedores');
+    datalist.innerHTML = nombresProveedores.map(p=>`<option value="${p}">`).join('');
+
+    const filtroSel = document.getElementById('co-filtro-proveedor');
+    const prevFiltro = filtroProveedorActual;
+    filtroSel.innerHTML = '<option value="">Todos los proveedores</option>' +
+      nombresProveedores.map(p=>`<option value="${p}">${p}</option>`).join('') +
+      (state.compras.some(c=>!c.proveedor||!c.proveedor.trim()) ? '<option value="__sin__">Sin proveedor asignado</option>' : '');
+    filtroSel.value = prevFiltro;
+
+    const comprasFiltradas = state.compras.filter(c=>{
+      if(!filtroProveedorActual) return true;
+      if(filtroProveedorActual === '__sin__') return !c.proveedor || !c.proveedor.trim();
+      return (c.proveedor||'').trim() === filtroProveedorActual;
+    });
+    const comprasOrdenadas = [...comprasFiltradas].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+    const tbodyCompras = document.getElementById('co-tabla-compras');
+    tbodyCompras.innerHTML = comprasOrdenadas.length ? comprasOrdenadas.map(c=>`
+      <tr>
+        <td>${c.fecha||'—'}</td><td>${c.nombre}</td><td class="num">${c.cantidad}</td><td>${c.unidad}</td>
+        <td class="num">${fmt(c.costoUnit)}</td><td class="num">${fmt(c.cantidad*c.costoUnit)}</td><td>${c.proveedor||'—'}</td>
+        <td><button class="btn-del" data-del="compras" data-id="${c.id}">Borrar</button></td>
+      </tr>
+    `).join('') : `<tr class="empty-row"><td colspan="8">${filtroProveedorActual ? 'Ningún material de este proveedor todavía.' : 'Sin compras registradas todavía.'}</td></tr>`;
+
+    // Gasto por proveedor
+    const gastoProveedor = {};
+    state.compras.forEach(c=>{
+      const key = (c.proveedor||'').trim() || 'Sin proveedor asignado';
+      if(!gastoProveedor[key]) gastoProveedor[key] = { count:0, total:0 };
+      gastoProveedor[key].count += 1;
+      gastoProveedor[key].total += c.cantidad * c.costoUnit;
+    });
+    const filasProveedor = Object.entries(gastoProveedor).sort((a,b)=> b[1].total - a[1].total);
+    const tbodyProveedores = document.getElementById('co-tabla-proveedores');
+    tbodyProveedores.innerHTML = filasProveedor.length ? filasProveedor.map(([nombre, d])=>`
+      <tr><td>${nombre}</td><td class="num">${d.count}</td><td class="num">${fmt(d.total)}</td></tr>
+    `).join('') : `<tr class="empty-row"><td colspan="3">Todavía no hay compras cargadas.</td></tr>`;
+
+    // Select de materiales para retiro
+    const nombresUnicos = [...new Set(state.compras.map(c=>c.nombre.trim()))];
+    const select = document.getElementById('co-select-material');
+    const prevValue = select.value;
+    select.innerHTML = nombresUnicos.length ? nombresUnicos.map(n=>`<option value="${n}">${n}</option>`).join('')
+      : `<option value="" disabled selected>Cargá primero una compra</option>`;
+    if(nombresUnicos.includes(prevValue)) select.value = prevValue;
+
+    // Materiales — retiros
+    const retirosOrdenados = [...state.retiros].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+    const tbodyRetiros = document.getElementById('co-tabla-retiros');
+    tbodyRetiros.innerHTML = retirosOrdenados.length ? retirosOrdenados.map(r=>`
+      <tr>
+        <td>${r.fecha||'—'}</td><td>${r.materialNombre}</td><td class="num">${r.cantidad}</td><td>${r.destino||'—'}</td>
+        <td><button class="btn-del" data-del="retiros" data-id="${r.id}">Borrar</button></td>
+      </tr>
+    `).join('') : `<tr class="empty-row"><td colspan="5">Sin retiros registrados todavía.</td></tr>`;
+
+    // Stock
+    const stock = stockPorMaterial().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    const tbodyStock = document.getElementById('co-tabla-stock');
+    tbodyStock.innerHTML = stock.length ? stock.map(s=>{
+      const saldo = s.comprado - s.retirado;
+      const pct = s.comprado>0 ? saldo/s.comprado : 0;
+      const tagClass = saldo<=0 ? 'none' : (pct<0.15 ? 'low' : 'ok');
+      const tagText = saldo<=0 ? 'Agotado' : (pct<0.15 ? 'Quedan pocas unidades' : 'Disponible');
+      return `<tr>
+        <td>${s.nombre}</td>
+        <td class="num">${s.comprado} ${s.unidad||''}</td>
+        <td class="num">${s.retirado} ${s.unidad||''}</td>
+        <td class="num">${saldo} ${s.unidad||''}</td>
+        <td><span class="stock-tag ${tagClass}">${tagText}</span></td>
+      </tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="5">Todavía no hay materiales cargados.</td></tr>`;
+
+    // Pagos
+    const pagosOrdenados = [...state.pagos].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+    const tbodyPagos = document.getElementById('co-tabla-pagos');
+    tbodyPagos.innerHTML = pagosOrdenados.length ? pagosOrdenados.map(p=>`
+      <tr>
+        <td>${p.fecha||'—'}</td><td>${p.destino}</td><td>${p.concepto}</td><td>${p.metodo||'—'}</td>
+        <td class="num">${fmt(p.monto, p.moneda||'ARS')}</td>
+        <td><button class="btn-del" data-del="pagos" data-id="${p.id}">Borrar</button></td>
+      </tr>
+    `).join('') : `<tr class="empty-row"><td colspan="6">Sin pagos registrados todavía.</td></tr>`;
+  }
+
+  // set today's date as default in date inputs
+  document.querySelectorAll('#obra-app input[type=date]').forEach(inp=>{
+    if(!inp.value) inp.value = new Date().toISOString().slice(0,10);
+  });
+
+  // Punto de entrada: se llama desde la lista de obras cuando el usuario
+  // toca "Abrir". Muestra el panel completo y carga los datos de esa obra
+  // puntual desde el servidor.
+  window.openObraApp = async function(obraId){
+    OBRA_ID = obraId;
+    document.getElementById('obra-app').style.display = 'block';
+    document.getElementById('obras-lista-wrap').style.display = 'none';
+    await loadObraState();
+  };
+  window.closeObraApp = function(){
+    document.getElementById('obra-app').style.display = 'none';
+    document.getElementById('obras-lista-wrap').style.display = 'block';
+    if(typeof loadObrasList === 'function') loadObrasList();
+  };
+})();
+
 </script>
 
 </body>
