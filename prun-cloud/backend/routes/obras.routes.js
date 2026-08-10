@@ -46,11 +46,32 @@ router.get('/:id/data', requireAuth, async (req, res) => {
     const { data: compras } = await supabase.from('obra_compras').select('*').eq('obra_id', req.params.id).order('fecha', { ascending: false });
     const { data: retiros } = await supabase.from('obra_retiros').select('*').eq('obra_id', req.params.id).order('fecha', { ascending: false });
     const { data: pagos } = await supabase.from('obra_pagos').select('*').eq('obra_id', req.params.id).order('fecha', { ascending: false });
-    res.json({ obra, compras: compras || [], retiros: retiros || [], pagos: pagos || [] });
+    const { data: ajustes } = await supabase.from('obra_presupuesto_ajustes').select('*').eq('obra_id', req.params.id).order('fecha', { ascending: true });
+    res.json({ obra, compras: compras || [], retiros: retiros || [], pagos: pagos || [], ajustes: ajustes || [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al buscar los datos de la obra.' });
   }
+});
+
+// ---------- AJUSTES DE PRESUPUESTO (historial de actualizaciones) ----------
+// Cada categoria (gremio o Luis USD/EUR) puede tener varios ajustes cargados
+// con su propia fecha, y el presupuesto total de esa categoria es la suma
+// del monto inicial (cargado en la ficha) mas todos sus ajustes.
+router.post('/:id/ajustes', requireAuth, async (req, res) => {
+  const b = req.body;
+  if (!b.categoria) return res.status(400).json({ error: 'Falta indicar a qué categoría corresponde el ajuste.' });
+  const { data, error } = await supabase.from('obra_presupuesto_ajustes').insert([{
+    obra_id: req.params.id, categoria: b.categoria, monto: Number(b.monto) || 0,
+    fecha: b.fecha || null, nota: b.nota || '',
+  }]).select().single();
+  if (error) return res.status(500).json({ error: 'Error al agregar el ajuste de presupuesto.' });
+  res.status(201).json(data);
+});
+router.delete('/ajustes/:id', requireAuth, async (req, res) => {
+  const { error } = await supabase.from('obra_presupuesto_ajustes').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: 'Error al borrar el ajuste.' });
+  res.json({ ok: true });
 });
 
 // ---------- COMPRAS ----------
