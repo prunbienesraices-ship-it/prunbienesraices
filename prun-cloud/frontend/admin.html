@@ -426,7 +426,16 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <input type="number" step="0.01" id="co-ajuste-monto-luis_usd" placeholder="Monto a sumar" style="width:150px;">
         <input type="date" id="co-ajuste-fecha-luis_usd">
         <input type="text" id="co-ajuste-nota-luis_usd" placeholder="Motivo (opcional)" style="flex:1; min-width:150px;">
-        <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('luis_usd')">+ Agregar actualización</button>
+        <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('luis_usd')">+ Agregar actualización (monto fijo)</button>
+      </div>
+      <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--co-line);">
+        <div style="font-size:11px; color:var(--co-ink-soft); margin-bottom:6px;">O calcular por el aumento de precio de un producto (se aplica sobre el saldo disponible, no sobre el total histórico):</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="co-ref-producto-luis_usd" placeholder="Producto (opcional)" style="width:140px;">
+          <input type="number" step="0.01" id="co-precio-anterior-luis_usd" placeholder="Precio anterior" style="width:120px;">
+          <input type="number" step="0.01" id="co-precio-nuevo-luis_usd" placeholder="Precio actual" style="width:120px;">
+          <button class="btn" style="font-size:11px; padding:8px 14px; background:#fff; color:var(--co-navy);" onclick="aplicarAumentoPorPrecio('luis_usd')">Calcular y aplicar al saldo</button>
+        </div>
       </div>
     </div>
     <div class="kpi-row">
@@ -456,7 +465,16 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
         <input type="number" step="0.01" id="co-ajuste-monto-luis_eur" placeholder="Monto a sumar" style="width:150px;">
         <input type="date" id="co-ajuste-fecha-luis_eur">
         <input type="text" id="co-ajuste-nota-luis_eur" placeholder="Motivo (opcional)" style="flex:1; min-width:150px;">
-        <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('luis_eur')">+ Agregar actualización</button>
+        <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('luis_eur')">+ Agregar actualización (monto fijo)</button>
+      </div>
+      <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--co-line);">
+        <div style="font-size:11px; color:var(--co-ink-soft); margin-bottom:6px;">O calcular por el aumento de precio de un producto (se aplica sobre el saldo disponible, no sobre el total histórico):</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="co-ref-producto-luis_eur" placeholder="Producto (opcional)" style="width:140px;">
+          <input type="number" step="0.01" id="co-precio-anterior-luis_eur" placeholder="Precio anterior" style="width:120px;">
+          <input type="number" step="0.01" id="co-precio-nuevo-luis_eur" placeholder="Precio actual" style="width:120px;">
+          <button class="btn" style="font-size:11px; padding:8px 14px; background:#fff; color:var(--co-navy);" onclick="aplicarAumentoPorPrecio('luis_eur')">Calcular y aplicar al saldo</button>
+        </div>
       </div>
     </div>
     <div class="kpi-row">
@@ -3459,6 +3477,42 @@ window.openObraApp = null; // se define mas abajo
     }catch(err){ toast(err.message); }
   }
   window.agregarAjustePresupuesto = agregarAjustePresupuesto; // el boton "+ Agregar actualización" lo llama desde afuera de este bloque
+
+  // Calcula el saldo disponible (presupuesto efectivo menos lo ya pagado)
+  // de una categoria puntual, para aplicarle el aumento por precio.
+  function saldoActualCategoria(categoria){
+    if(GREMIOS.includes(categoria)) return (state.presupuestos[categoria]||0) - totalPagadoGremio(categoria);
+    if(categoria === 'luis_usd') return (state.luis.presupuestoUSD||0) - totalPagadoLuis('USD');
+    if(categoria === 'luis_eur') return (state.luis.presupuestoEUR||0) - totalPagadoLuis('EUR');
+    return 0;
+  }
+  // Segunda forma de actualizar el presupuesto: en vez de poner un monto
+  // fijo, se cargan 2 precios de un producto (antes y ahora), se calcula el
+  // % de aumento, y ESE % se le aplica al SALDO actual (lo que todavía no
+  // se gastó) de esa categoría — no al presupuesto inicial ni al total
+  // historico. Queda registrado en el historial con el detalle del cálculo.
+  async function aplicarAumentoPorPrecio(categoria){
+    const producto = document.getElementById(`co-ref-producto-${categoria}`).value.trim();
+    const anterior = parseFloat(document.getElementById(`co-precio-anterior-${categoria}`).value);
+    const nuevo = parseFloat(document.getElementById(`co-precio-nuevo-${categoria}`).value);
+    if(!anterior || !nuevo){ toast('Cargá el precio anterior y el precio actual del producto.'); return; }
+    const pct = ((nuevo - anterior) / anterior) * 100;
+    const saldo = saldoActualCategoria(categoria);
+    const aumento = saldo * (pct/100);
+    const moneda = categoria === 'luis_usd' ? 'USD' : categoria === 'luis_eur' ? 'EUR' : 'ARS';
+    if(!confirm(`El precio subió ${pct.toFixed(1)}%.\n\nSaldo actual: ${fmt(saldo, moneda)}\nAumento a aplicar: ${fmt(aumento, moneda)}\n\n¿Confirmás la actualización?`)) return;
+    const nota = `Aumento de precio${producto?' de '+producto:''}: ${fmt(anterior, moneda)} → ${fmt(nuevo, moneda)} (+${pct.toFixed(1)}%)`;
+    try{
+      await api(`/obras/${OBRA_ID}/ajustes`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        categoria, monto: aumento, fecha: new Date().toISOString().slice(0,10), nota,
+      })});
+      document.getElementById(`co-ref-producto-${categoria}`).value = '';
+      document.getElementById(`co-precio-anterior-${categoria}`).value = '';
+      document.getElementById(`co-precio-nuevo-${categoria}`).value = '';
+      await loadObraState();
+    }catch(err){ toast(err.message); }
+  }
+  window.aplicarAumentoPorPrecio = aplicarAumentoPorPrecio;
   function renderAjustesBox(categoria){
     const box = document.getElementById(`co-ajustes-${categoria}`);
     if(!box) return;
@@ -3512,7 +3566,16 @@ window.openObraApp = null; // se define mas abajo
           <input type="number" step="0.01" id="co-ajuste-monto-${key}" placeholder="Monto a sumar" style="width:150px;">
           <input type="date" id="co-ajuste-fecha-${key}">
           <input type="text" id="co-ajuste-nota-${key}" placeholder="Motivo (opcional)" style="flex:1; min-width:150px;">
-          <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('${key}')">+ Agregar actualización</button>
+          <button class="btn" style="font-size:11px; padding:8px 14px;" onclick="agregarAjustePresupuesto('${key}')">+ Agregar actualización (monto fijo)</button>
+        </div>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--co-line);">
+          <div style="font-size:11px; color:var(--co-ink-soft); margin-bottom:6px;">O calcular por el aumento de precio de un producto (se aplica sobre el saldo disponible, no sobre el total histórico):</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="co-ref-producto-${key}" placeholder="Producto (opcional)" style="width:140px;">
+            <input type="number" step="0.01" id="co-precio-anterior-${key}" placeholder="Precio anterior" style="width:120px;">
+            <input type="number" step="0.01" id="co-precio-nuevo-${key}" placeholder="Precio actual" style="width:120px;">
+            <button class="btn" style="font-size:11px; padding:8px 14px; background:#fff; color:var(--co-navy);" onclick="aplicarAumentoPorPrecio('${key}')">Calcular y aplicar al saldo</button>
+          </div>
         </div>
       </div>
       <div class="kpi-row">
