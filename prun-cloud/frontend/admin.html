@@ -3458,6 +3458,7 @@ window.openObraApp = null; // se define mas abajo
       await loadObraState();
     }catch(err){ toast(err.message); }
   }
+  window.agregarAjustePresupuesto = agregarAjustePresupuesto; // el boton "+ Agregar actualización" lo llama desde afuera de este bloque
   function renderAjustesBox(categoria){
     const box = document.getElementById(`co-ajustes-${categoria}`);
     if(!box) return;
