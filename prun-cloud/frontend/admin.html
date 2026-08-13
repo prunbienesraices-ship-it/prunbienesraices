@@ -1170,10 +1170,21 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
         </datalist>
       </div>
       <div class="form-row"><label>Nombre</label><input type="text" id="pv-name" required></div>
+      <div class="form-row"><label>Teléfonos</label>
+        <div id="pv-phones-list"></div>
+        <button class="btn" type="button" style="background:#fff;color:var(--black);font-size:12px;padding:6px 12px;margin-top:6px" onclick="addProviderPhoneRow('')">+ Agregar teléfono</button>
+      </div>
       <div class="form-grid">
-        <div class="form-row"><label>Teléfono</label><input type="tel" id="pv-phone"></div>
         <div class="form-row"><label>Email</label><input type="email" id="pv-email"></div>
       </div>
+      <div class="form-row"><label>Dirección</label><input type="text" id="pv-address"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Banco</label><input type="text" id="pv-bank"></div>
+        <div class="form-row"><label>Alias</label><input type="text" id="pv-alias"></div>
+        <div class="form-row"><label>CBU</label><input type="text" id="pv-cbu"></div>
+      </div>
+      <div class="form-row"><label>Notas</label><textarea id="pv-notes" rows="2"></textarea></div>
+      <div class="form-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="pv-favorite" style="width:auto"> Marcar como favorito ⭐</label></div>
       <div style="display:flex;gap:10px"><button class="btn" type="submit">Guardar</button><button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('provider-modal')">Cancelar</button></div>
     </form>
   </div>
@@ -2840,27 +2851,51 @@ async function loadProviders(){
     const list = await api('/providers');
     tbody.innerHTML = list.length ? list.map(p => {
       const actionsHtml = `<button onclick='openProviderModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteProvider(${p.id})">Borrar</button>`;
+      const detailObj = { ...p, phones_display: (p.phones && p.phones.length ? p.phones.join(', ') : (p.phone || '-')) };
       return `
-      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(p).replace(/'/g,"&#39;")}, {category:"Categoría",phone:"Teléfono",email:"Email",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {category:"Categoría",phones_display:"Teléfonos",email:"Email",address:"Dirección",bank:"Banco",alias:"Alias",cbu:"CBU",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${p.favorite?'⭐ ':''}${p.name}</td></tr>`;
     }).join('')
       : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin proveedores cargados.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+function addProviderPhoneRow(value){
+  const c = document.getElementById('pv-phones-list');
+  const div = document.createElement('div');
+  div.className = 'dyn-row';
+  div.innerHTML = `<input type="tel" class="pv-phone-item" placeholder="Ej: 351-8128099" value="${(value||'').replace(/"/g,'&quot;')}">
+    <button type="button" onclick="this.closest('.dyn-row').remove()">✕</button>`;
+  c.appendChild(div);
+}
+function collectProviderPhones(){
+  return Array.from(document.querySelectorAll('#pv-phones-list .pv-phone-item')).map(i=>i.value.trim()).filter(Boolean);
 }
 function openProviderModal(p){
   document.getElementById('provider-modal-title').textContent = p ? 'Editar proveedor' : 'Nuevo proveedor';
   document.getElementById('pv-id').value = p ? p.id : '';
   document.getElementById('pv-category').value = p ? p.category : '';
   document.getElementById('pv-name').value = p ? p.name : '';
-  document.getElementById('pv-phone').value = p ? (p.phone||'') : '';
+  document.getElementById('pv-phones-list').innerHTML = '';
+  const existingPhones = p && Array.isArray(p.phones) && p.phones.length ? p.phones : (p && p.phone ? [p.phone] : []);
+  if(existingPhones.length) existingPhones.forEach(ph => addProviderPhoneRow(ph));
+  else addProviderPhoneRow('');
   document.getElementById('pv-email').value = p ? (p.email||'') : '';
+  document.getElementById('pv-address').value = p ? (p.address||'') : '';
+  document.getElementById('pv-bank').value = p ? (p.bank||'') : '';
+  document.getElementById('pv-alias').value = p ? (p.alias||'') : '';
+  document.getElementById('pv-cbu').value = p ? (p.cbu||'') : '';
+  document.getElementById('pv-notes').value = p ? (p.notes||'') : '';
+  document.getElementById('pv-favorite').checked = p ? !!p.favorite : false;
   document.getElementById('provider-modal').classList.add('active');
 }
 document.getElementById('provider-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const id = document.getElementById('pv-id').value;
   const body = { category: document.getElementById('pv-category').value, name: document.getElementById('pv-name').value,
-    phone: document.getElementById('pv-phone').value, email: document.getElementById('pv-email').value };
+    phones: collectProviderPhones(), email: document.getElementById('pv-email').value,
+    address: document.getElementById('pv-address').value, bank: document.getElementById('pv-bank').value,
+    alias: document.getElementById('pv-alias').value, cbu: document.getElementById('pv-cbu').value,
+    notes: document.getElementById('pv-notes').value, favorite: document.getElementById('pv-favorite').checked };
   try{
     if(id) await api(`/providers/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     else await api('/providers', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
