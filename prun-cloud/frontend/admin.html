@@ -1163,7 +1163,12 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
     <h3 style="font-size:17px;margin-bottom:16px" id="provider-modal-title">Nuevo proveedor</h3>
     <form id="provider-form">
       <input type="hidden" id="pv-id">
-      <div class="form-row"><label>Categoría</label><select id="pv-category"><option value="electricista">Electricista</option><option value="gasista">Gasista</option><option value="plomero">Plomero</option><option value="arquitecto">Arquitecto</option><option value="cerrajero">Cerrajero</option><option value="pintor">Pintor</option><option value="seguro">Seguro</option><option value="escribania">Escribanía</option><option value="tasador">Tasador</option></select></div>
+      <div class="form-row"><label>Categoría</label><input type="text" id="pv-category" list="pv-category-datalist" placeholder="Elegí una de la lista o escribí una nueva">
+        <datalist id="pv-category-datalist">
+          <option value="Electricista"><option value="Gasista"><option value="Plomero"><option value="Arquitecto">
+          <option value="Cerrajero"><option value="Pintor"><option value="Seguro"><option value="Escribanía"><option value="Tasador">
+        </datalist>
+      </div>
       <div class="form-row"><label>Nombre</label><input type="text" id="pv-name" required></div>
       <div class="form-grid">
         <div class="form-row"><label>Teléfono</label><input type="tel" id="pv-phone"></div>
@@ -2845,7 +2850,7 @@ async function loadProviders(){
 function openProviderModal(p){
   document.getElementById('provider-modal-title').textContent = p ? 'Editar proveedor' : 'Nuevo proveedor';
   document.getElementById('pv-id').value = p ? p.id : '';
-  document.getElementById('pv-category').value = p ? p.category : 'electricista';
+  document.getElementById('pv-category').value = p ? p.category : '';
   document.getElementById('pv-name').value = p ? p.name : '';
   document.getElementById('pv-phone').value = p ? (p.phone||'') : '';
   document.getElementById('pv-email').value = p ? (p.email||'') : '';
