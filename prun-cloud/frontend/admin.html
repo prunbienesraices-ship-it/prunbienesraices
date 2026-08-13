@@ -671,6 +671,14 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
       <h2 style="font-size:20px">Cobranzas (otros conceptos)</h2>
       <button class="btn" onclick="openChargeModal()">+ Nuevo cargo</button>
     </div>
+    <div style="display:flex;gap:24px;margin-bottom:14px;flex-wrap:wrap">
+      <div><div style="font-size:20px;font-weight:900;color:var(--red)" id="charges-pending-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Total pendiente</div></div>
+      <div><div style="font-size:20px;font-weight:900;color:var(--green)" id="charges-paid-total">-</div><div style="font-size:11px;color:var(--gray);text-transform:uppercase">Total abonado</div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn charges-tab-btn" data-tab="pending" onclick="switchChargesTab('pending')" style="padding:8px 14px">Cobros pendientes</button>
+      <button class="btn charges-tab-btn" data-tab="paid" onclick="switchChargesTab('paid')" style="padding:8px 14px;background:#fff;color:var(--black)">Cobros abonados</button>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="charge-tbody-search" placeholder="🔎 Buscar por inquilino, concepto..." oninput="filterTable(this.value,'charge-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="charge-tbody"></div>
     <div class="table-wrap"><table>
       <thead><tr><th></th><th>Inquilino / Concepto</th></tr></thead>
@@ -3053,24 +3061,45 @@ async function revertRentPayment(tenantId, period){
     loadRentCollection();
   }catch(err){ toast(err.message); }
 }
+let CHARGES_CACHE = [];
+let CHARGES_TAB = 'pending';
 async function loadCharges(){
   const tbody = document.getElementById('charge-tbody');
+  tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Cargando...</td></tr>';
   try{
     if(!ALL_PROPERTIES.length){ try{ ALL_PROPERTIES = await api('/properties/admin/all'); }catch(e){} }
     ALL_TENANTS_CACHE = await api('/tenants');
-    const list = await api('/collections');
-    const today = new Date().toISOString().slice(0,10);
-    tbody.innerHTML = list.length ? list.map(c => {
-      const t = ALL_TENANTS_CACHE.find(x=>x.id===c.tenant_id);
-      const paid = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
-      const isOverdue = c.due_date && c.due_date < today && paid < c.amount;
-      const dueLabel = c.due_date ? new Date(c.due_date+'T00:00:00').toLocaleDateString('es-AR') : '-';
-      const detailObj = { period: c.label||'-', amount_display: `$${Number(c.amount).toLocaleString('es-AR')}`, paid_display: `$${paid.toLocaleString('es-AR')}`, due_display: isOverdue?`Vencido (${dueLabel})`:dueLabel };
-      const actionsHtml = `<button onclick="chargeQuickPay(${c.id})">Pagar</button><button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForTenant(c.tenant_id)}" style="${isOverdue?'background:#fdeaea':''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {period:"Período",amount_display:"Adeudado",paid_display:"Pagado",due_display:"Vencimiento"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
-      <td>${t?t.name:'-'} — ${c.concept}</td></tr>`;
-    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin cargos cargados.</td></tr>';
+    CHARGES_CACHE = await api('/collections');
+    const pendingTotal = CHARGES_CACHE.reduce((s,c)=>{ const paid=(c.payments||[]).reduce((x,p)=>x+p.amount,0); return s + Math.max(0, Number(c.amount)-paid); }, 0);
+    const paidTotal = CHARGES_CACHE.reduce((s,c)=>{ const paid=(c.payments||[]).reduce((x,p)=>x+p.amount,0); return s + paid; }, 0);
+    document.getElementById('charges-pending-total').textContent = `$${Math.round(pendingTotal).toLocaleString('es-AR')}`;
+    document.getElementById('charges-paid-total').textContent = `$${Math.round(paidTotal).toLocaleString('es-AR')}`;
+    switchChargesTab(CHARGES_TAB);
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+function switchChargesTab(tab){
+  CHARGES_TAB = tab;
+  document.querySelectorAll('.charges-tab-btn').forEach(b=>{
+    const active = b.dataset.tab === tab;
+    b.style.background = active ? '' : '#fff';
+    b.style.color = active ? '' : 'var(--black)';
+  });
+  const tbody = document.getElementById('charge-tbody');
+  const today = new Date().toISOString().slice(0,10);
+  const list = CHARGES_CACHE.filter(c => {
+    const paid = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
+    return tab === 'pending' ? paid < Number(c.amount) : paid >= Number(c.amount) && paid > 0;
+  });
+  tbody.innerHTML = list.length ? list.map(c => {
+    const t = ALL_TENANTS_CACHE.find(x=>x.id===c.tenant_id);
+    const paid = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
+    const isOverdue = c.due_date && c.due_date < today && paid < c.amount;
+    const dueLabel = c.due_date ? new Date(c.due_date+'T00:00:00').toLocaleDateString('es-AR') : '-';
+    const detailObj = { period: c.label||'-', amount_display: `$${Number(c.amount).toLocaleString('es-AR')}`, paid_display: `$${paid.toLocaleString('es-AR')}`, due_display: isOverdue?`Vencido (${dueLabel})`:dueLabel };
+    const actionsHtml = tab==='pending' ? `<button onclick="chargeQuickPay(${c.id})">Pagar</button><button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button>` : `<button style="color:var(--red)" onclick="deleteCharge(${c.id})">Borrar</button>`;
+    return `<tr data-branch-id="${branchIdForTenant(c.tenant_id)}" style="${isOverdue?'background:#fdeaea':''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {period:"Período",amount_display:"Adeudado",paid_display:"Pagado",due_display:"Vencimiento"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+    <td>${t?t.name:'-'} — ${c.concept}${tab==='paid'?' ✅':''}</td></tr>`;
+  }).join('') : `<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">${tab==='pending'?'No hay cobros pendientes.':'No hay cobros abonados todavía.'}</td></tr>`;
 }
 async function openChargeModal(){
   if(!ALL_TENANTS_CACHE.length){ try{ ALL_TENANTS_CACHE = await api('/tenants'); }catch(e){} }
