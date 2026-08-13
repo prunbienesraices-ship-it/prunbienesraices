@@ -1122,6 +1122,20 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
 </div>
 
 <!-- Reparaciones -->
+<div class="modal-overlay" id="payment-methods-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:6px" id="pm-modal-title">Registrar pago</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px" id="pm-modal-subtitle"></p>
+    <div id="pm-rows-list"></div>
+    <button class="btn" type="button" style="background:#fff;color:var(--black);font-size:12px;padding:6px 12px;margin:10px 0" onclick="addPaymentMethodRow()">+ Agregar otra forma de pago</button>
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px" id="pm-total-display">Total: $0</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" type="button" onclick="confirmPaymentMethods()">Confirmar pago</button>
+      <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('payment-methods-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="repair-modal">
   <div class="modal-box">
     <h3 style="font-size:17px;margin-bottom:16px" id="repair-modal-title">Nueva reparación</h3>
@@ -2276,15 +2290,24 @@ async function quickPay(tenantId, period){
     const who = document.getElementById(`pay-who-${period}`).value;
     const info = getPaymentInfoForDate(t, period, dateStr);
     const amount = Math.round(info.amount);
-    const payments = t.payments || [];
-    const mora = Math.max(0, amount - info.base);
-    payments.push({ period, date: dateStr, amount, currency:t.currency, method:'transferencia', mora, tramo: info.tramo, paid_by: who });
-    await api(`/tenants/${tenantId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
-    toast(`Pago de ${period} registrado (${TRAMO_LABELS[info.tramo]}${who==='garante'?' — pagó el garante':''}).`);
-    const updated = await api(`/tenants/${tenantId}`);
-    renderMissingPayments(updated);
-    loadTenants();
-    await autoCreateSettlement(updated, period, amount);
+    openPaymentMethodsModal(`Pago de ${period}`, `Monto sugerido (${TRAMO_LABELS[info.tramo]}): $${amount.toLocaleString('es-AR')} — podés dividirlo en varias formas de pago.`, async (rows) => {
+      try{
+        const payments = t.payments || [];
+        const totalConfirmado = rows.reduce((s,r)=>s+r.amount,0);
+        const mora = Math.max(0, totalConfirmado - info.base);
+        rows.forEach((r, idx) => payments.push({
+          period, date: dateStr, amount: r.amount, currency: t.currency, method: r.method, detalle: r.detalle,
+          mora: idx===0 ? mora : 0, tramo: info.tramo, paid_by: who,
+        }));
+        await api(`/tenants/${tenantId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
+        toast(`Pago de ${period} registrado (${TRAMO_LABELS[info.tramo]}${who==='garante'?' — pagó el garante':''}).`);
+        const updated = await api(`/tenants/${tenantId}`);
+        renderMissingPayments(updated);
+        loadTenants();
+        await autoCreateSettlement(updated, period, totalConfirmado);
+      }catch(err){ toast(err.message); }
+    });
+    setTimeout(()=>{ const amtInput = document.querySelector('#pm-rows-list .pm-amount'); if(amtInput){ amtInput.value = amount; updatePaymentMethodsTotal(); } }, 0);
   }catch(err){ toast(err.message); }
 }
 // Cuando un inquilino paga, le arma automáticamente la liquidación
@@ -3121,16 +3144,73 @@ document.getElementById('charge-form').addEventListener('submit', async e=>{
     toast('Cargo creado'); closeModal('charge-modal'); loadCharges();
   }catch(err){ toast(err.message); }
 });
+// =====================================================================
+// FORMA DE PAGO COMBINADA (modal compartido) — se usa tanto para pagar
+// cargos de Cobranzas como para el pago de alquiler de inquilinos. Permite
+// dividir un mismo pago en varias formas (ej: mitad transferencia, mitad
+// tarjeta), cada una con su propio detalle.
+// =====================================================================
+let PM_CALLBACK = null;
+function openPaymentMethodsModal(title, subtitle, callback){
+  document.getElementById('pm-modal-title').textContent = title;
+  document.getElementById('pm-modal-subtitle').textContent = subtitle || '';
+  document.getElementById('pm-rows-list').innerHTML = '';
+  addPaymentMethodRow();
+  PM_CALLBACK = callback;
+  document.getElementById('payment-methods-modal').classList.add('active');
+}
+function addPaymentMethodRow(prefillAmount){
+  const c = document.getElementById('pm-rows-list');
+  const div = document.createElement('div');
+  div.className = 'dyn-row';
+  div.innerHTML = `
+    <select class="pm-method">
+      <option value="Transferencia">Transferencia</option>
+      <option value="Tarjeta">Tarjeta</option>
+      <option value="Cooperativa">Cooperativa</option>
+      <option value="Banco">Banco</option>
+      <option value="Efectivo">Efectivo</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <input type="number" step="0.01" class="pm-amount" placeholder="Monto" value="${prefillAmount||''}" oninput="updatePaymentMethodsTotal()">
+    <input type="text" class="pm-detail" placeholder="Detalle (opcional, ej: N° operación)">
+    <button type="button" onclick="this.closest('.dyn-row').remove(); updatePaymentMethodsTotal();">✕</button>`;
+  c.appendChild(div);
+  updatePaymentMethodsTotal();
+}
+function updatePaymentMethodsTotal(){
+  const total = Array.from(document.querySelectorAll('#pm-rows-list .pm-amount')).reduce((s,i)=>s+(parseFloat(i.value)||0),0);
+  document.getElementById('pm-total-display').textContent = `Total: $${total.toLocaleString('es-AR')}`;
+}
+function collectPaymentMethods(){
+  return Array.from(document.querySelectorAll('#pm-rows-list .dyn-row')).map(row => ({
+    method: row.querySelector('.pm-method').value,
+    amount: parseFloat(row.querySelector('.pm-amount').value) || 0,
+    detalle: row.querySelector('.pm-detail').value.trim(),
+  })).filter(r => r.amount > 0);
+}
+function confirmPaymentMethods(){
+  const rows = collectPaymentMethods();
+  if(!rows.length){ toast('Cargá al menos un monto.'); return; }
+  closeModal('payment-methods-modal');
+  if(PM_CALLBACK) PM_CALLBACK(rows);
+}
+
 async function chargeQuickPay(id){
-  const amount = prompt('¿Cuánto se pagó?');
-  if(!amount) return;
-  try{
-    const c = await api(`/collections`).then(list => list.find(x=>x.id===id));
-    const payments = c.payments || [];
-    payments.push({ date: new Date().toISOString().slice(0,10), amount: Number(amount), method:'transferencia' });
-    await api(`/collections/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
-    toast('Pago registrado'); loadCharges();
-  }catch(err){ toast(err.message); }
+  const c = await api(`/collections`).then(list => list.find(x=>x.id===id));
+  if(!c) return;
+  const paidSoFar = (c.payments||[]).reduce((s,p)=>s+p.amount,0);
+  const pending = Math.max(0, Number(c.amount) - paidSoFar);
+  openPaymentMethodsModal(`Registrar pago — ${c.concept}`, `Adeudado: $${pending.toLocaleString('es-AR')}`, async (rows) => {
+    try{
+      const payments = c.payments || [];
+      const today = new Date().toISOString().slice(0,10);
+      rows.forEach(r => payments.push({ date: today, amount: r.amount, method: r.method, detalle: r.detalle }));
+      await api(`/collections/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({payments})});
+      toast('Pago registrado'); loadCharges();
+    }catch(err){ toast(err.message); }
+  });
+  setTimeout(()=>{ const amtInput = document.querySelector('#pm-rows-list .pm-amount'); if(amtInput) { amtInput.value = pending; updatePaymentMethodsTotal(); } }, 0);
 }
 async function deleteCharge(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/collections/${id}`,{method:'DELETE'}); loadCharges(); }catch(err){ toast(err.message); } }
 
