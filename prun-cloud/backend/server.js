@@ -37,6 +37,7 @@ const guarantorsRoutes = require('./routes/guarantors.routes');
 const reputationRoutes = require('./routes/reputation.routes');
 const obrasRoutes = require('./routes/obras.routes');
 const classifiedsRoutes = require('./routes/classifieds.routes');
+const bankAccountsRoutes = require('./routes/bank-accounts.routes');
 const contractTemplateRoutes = require('./routes/contract-template.routes');
 const { DEFAULT_CONTRACT_TEMPLATE } = require('./default-contract-template');
 
@@ -122,6 +123,7 @@ app.use('/api/guarantors', guarantorsRoutes);
 app.use('/api/reputation', reputationRoutes);
 app.use('/api/obras', obrasRoutes);
 app.use('/api/classifieds', classifiedsRoutes);
+app.use('/api/bank-accounts', bankAccountsRoutes);
 app.use('/api/contract-template', contractTemplateRoutes);
 
 app.get('/api/health', (req, res) => {
