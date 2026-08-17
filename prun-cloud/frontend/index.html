@@ -75,7 +75,6 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
       <button class="btn btn-outline" id="nav-payments-btn" style="display:none;padding:9px 16px" onclick="openMyPayments()">💳 Mis pagos</button>
       <button class="btn btn-outline" style="padding:9px 16px" onclick="userLogout()">Salir</button>
     </span>
-    <a href="admin.html" style="opacity:.6;font-size:11px">Panel admin →</a>
   </div>
 </div></nav>
 
@@ -914,5 +913,6 @@ applySiteConfig();
 refreshUserNav();
 loadProperties();
 </script>
+<a href="admin.html" style="position:fixed;bottom:18px;right:18px;background:var(--black);color:#fff;opacity:.55;font-size:11px;padding:8px 14px;border-radius:20px;text-decoration:none;z-index:90;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">Panel admin →</a>
 </body>
 </html>
