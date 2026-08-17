@@ -26,7 +26,7 @@ async function uploadClassifiedPhotos(files) {
 
 // Lista las publicaciones activas. Cualquier persona logueada en el sitio
 // (o en el panel) las puede ver. Se puede filtrar por ciudad.
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     let query = supabase.from('classifieds').select('*').order('created_at', { ascending: false });
     if (req.query.city) query = query.ilike('city', `%${req.query.city}%`);
@@ -41,7 +41,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   const { data, error } = await supabase.from('classifieds').select('*').eq('id', req.params.id).maybeSingle();
   if (error || !data) return res.status(404).json({ error: 'No encontramos esa publicación.' });
   res.json(data);
