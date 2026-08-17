@@ -67,6 +67,7 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     </span>
     <span id="nav-user" style="display:none;color:#fff;font-size:13px;align-items:center;gap:10px;flex-wrap:wrap">
       <span>Hola, <strong id="nav-user-name"></strong></span>
+      <button class="btn btn-outline" style="padding:9px 16px" onclick="openClassifieds()">🛍️ Clasificados</button>
       <button class="btn btn-outline" id="nav-owner-btn" style="display:none;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
       <button class="btn btn-outline" id="nav-guarantor-btn" style="display:none;padding:9px 16px" onclick="openGuarantorPortal()">🔧 Mis reclamos</button>
       <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;padding:9px 16px" onclick="openTenantReclamos()">🔧 Mis reclamos</button>
@@ -256,6 +257,49 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
     <button class="modal-close" onclick="closeModal('guarantor-portal-modal')">✕</button>
     <h3 style="font-size:18px;margin-bottom:14px">Reclamos de la propiedad que garantizás</h3>
     <div id="guarantor-portal-content"><p style="color:var(--gray)">Cargando...</p></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="classifieds-modal">
+  <div class="modal-box" style="max-width:720px">
+    <button class="modal-close" onclick="closeModal('classifieds-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:6px">Clasificados</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Publicado por gente registrada en el sitio. Para consultar por algo, escribile en privado al que publicó — nadie más ve esa conversación.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <input type="text" id="cl-filter-city" placeholder="🔎 Filtrar por ciudad" style="flex:1;min-width:160px" oninput="loadClassifiedsList()">
+      <button class="btn" type="button" onclick="openPostClassifiedForm()">+ Publicar algo</button>
+    </div>
+    <div id="classifieds-list"><p style="color:var(--gray)">Cargando...</p></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="classified-post-modal">
+  <div class="modal-box" style="max-width:520px">
+    <button class="modal-close" onclick="closeModal('classified-post-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Publicar algo</h3>
+    <div class="msg" id="classified-post-msg"></div>
+    <form id="classified-post-form" style="display:flex;flex-direction:column;gap:10px">
+      <input type="text" id="cp-title" placeholder="¿Qué vendés? (título)" required maxlength="120">
+      <textarea id="cp-description" placeholder="Descripción" rows="3" maxlength="1500"></textarea>
+      <div style="display:flex;gap:8px">
+        <input type="number" step="0.01" id="cp-price" placeholder="Precio" style="flex:1">
+        <select id="cp-currency" style="width:90px"><option value="ARS">ARS</option><option value="USD">USD</option></select>
+      </div>
+      <div style="display:flex;gap:8px">
+        <select id="cp-condition" style="flex:1"><option value="usado">Usado</option><option value="nuevo">Nuevo</option></select>
+        <input type="text" id="cp-city" placeholder="Ciudad" style="flex:1">
+      </div>
+      <label style="font-size:12px;color:var(--gray)">Fotos (opcional, hasta 5)</label>
+      <input type="file" id="cp-photos" accept="image/*" multiple>
+      <button class="btn" type="submit">Publicar</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="classified-detail-modal">
+  <div class="modal-box" style="max-width:600px">
+    <button class="modal-close" onclick="closeModal('classified-detail-modal')">✕</button>
+    <div id="classified-detail-content"><p style="color:var(--gray)">Cargando...</p></div>
   </div>
 </div>
 
@@ -548,6 +592,176 @@ async function openGuarantorPortal(){
       }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
     });
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+// =====================================================================
+// CLASIFICADOS — cualquier persona logueada en el sitio puede publicar y
+// ver, pero solo puede escribirle en privado a quien publicó (nadie más
+// ve esa conversación).
+// =====================================================================
+// Aviso corto flotante (no existía en el sitio público hasta ahora).
+function toast(message){
+  let el = document.getElementById('site-toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'site-toast';
+    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--black);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .2s';
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.style.opacity = '0'; }, 2500);
+}
+function openClassifieds(){
+  openModal('classifieds-modal');
+  loadClassifiedsList();
+}
+async function loadClassifiedsList(){
+  const box = document.getElementById('classifieds-list');
+  const city = document.getElementById('cl-filter-city').value.trim();
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    const url = city ? `${API}/classifieds?city=${encodeURIComponent(city)}` : `${API}/classifieds`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const list = await res.json();
+    if(!res.ok) throw new Error(list.error || 'No pudimos cargar los clasificados.');
+    box.innerHTML = list.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">` + list.map(c => `
+      <div style="border:1px solid var(--line);cursor:pointer;background:#fff" onclick="openClassifiedDetail(${c.id})">
+        ${c.photos && c.photos.length ? `<img src="${c.photos[0]}" style="width:100%;height:110px;object-fit:cover;display:block">` : `<div style="width:100%;height:110px;background:var(--cream);display:flex;align-items:center;justify-content:center;color:var(--gray);font-size:11px">Sin foto</div>`}
+        <div style="padding:8px">
+          <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title}</div>
+          <div style="font-size:12px;color:var(--gray)">${c.price ? c.currency+' '+Number(c.price).toLocaleString('es-AR') : 'Consultar'}</div>
+          <div style="font-size:10px;color:var(--gray);text-transform:uppercase">${c.condition==='nuevo'?'Nuevo':'Usado'}${c.city?' · '+c.city:''}</div>
+        </div>
+      </div>
+    `).join('') + `</div>` : '<p style="color:var(--gray)">No hay publicaciones todavía.</p>';
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+function openPostClassifiedForm(){
+  document.getElementById('classified-post-form').reset();
+  document.getElementById('classified-post-msg').textContent = '';
+  openModal('classified-post-modal');
+}
+document.getElementById('classified-post-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const msg = document.getElementById('classified-post-msg');
+  try{
+    const fd = new FormData();
+    fd.append('title', document.getElementById('cp-title').value);
+    fd.append('description', document.getElementById('cp-description').value);
+    fd.append('price', document.getElementById('cp-price').value);
+    fd.append('currency', document.getElementById('cp-currency').value);
+    fd.append('condition', document.getElementById('cp-condition').value);
+    fd.append('city', document.getElementById('cp-city').value);
+    const files = document.getElementById('cp-photos').files;
+    for(let i=0;i<files.length;i++) fd.append('photos', files[i]);
+    const res = await fetch(`${API}/classifieds`, { method:'POST', headers:{ Authorization:`Bearer ${SITE_TOKEN}` }, body: fd });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos publicar.');
+    closeModal('classified-post-modal');
+    openClassifieds();
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
+let CURRENT_CLASSIFIED = null;
+async function openClassifiedDetail(id){
+  openModal('classified-detail-modal');
+  const box = document.getElementById('classified-detail-content');
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    const res = await fetch(`${API}/classifieds/${id}`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const c = await res.json();
+    if(!res.ok) throw new Error(c.error || 'No pudimos cargar la publicación.');
+    CURRENT_CLASSIFIED = c;
+    const isOwner = SITE_USER.email === c.user_email;
+    box.innerHTML = `
+      ${c.photos && c.photos.length ? `<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px">${c.photos.map(p=>`<img src="${p}" style="height:140px;border-radius:4px">`).join('')}</div>` : ''}
+      <h3 style="font-size:18px;margin-bottom:4px">${c.title}</h3>
+      <div style="font-size:16px;font-weight:800;margin-bottom:8px">${c.price ? c.currency+' '+Number(c.price).toLocaleString('es-AR') : 'Consultar precio'}</div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:10px">${c.condition==='nuevo'?'Nuevo':'Usado'}${c.city?' · '+c.city:''} · Publicado por ${c.user_name||c.user_email}${c.status==='vendido'?' · <strong style="color:var(--red)">VENDIDO</strong>':''}</div>
+      <p style="font-size:13px;margin-bottom:16px;white-space:pre-wrap">${c.description||''}</p>
+      ${isOwner ? `
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          ${c.status!=='vendido' ? `<button class="btn btn-outline" onclick="markClassifiedSold(${c.id})">Marcar como vendido</button>` : ''}
+          <button class="btn btn-outline" style="color:var(--red)" onclick="deleteClassified(${c.id})">Borrar publicación</button>
+        </div>
+        <h4 style="font-size:14px;margin-bottom:8px">Conversaciones con interesados</h4>
+        <div id="classified-threads-list"><p style="color:var(--gray);font-size:13px">Cargando...</p></div>
+      ` : `
+        <h4 style="font-size:14px;margin-bottom:8px">Tu conversación con quien publicó</h4>
+        <div id="classified-chat-messages" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="classified-chat-input" placeholder="Escribí tu mensaje..." style="flex:1">
+          <button class="btn" onclick="sendClassifiedMessage()">Enviar</button>
+        </div>
+      `}
+    `;
+    if(isOwner) loadClassifiedThreadsOwner(id);
+    else loadClassifiedChat(id, SITE_USER.email);
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+async function loadClassifiedThreadsOwner(id){
+  const box = document.getElementById('classified-threads-list');
+  try{
+    const res = await fetch(`${API}/classifieds/${id}/threads`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    if(!data.buyerEmails.length){ box.innerHTML = '<p style="color:var(--gray);font-size:13px">Todavía nadie te escribió por esta publicación.</p>'; return; }
+    box.innerHTML = data.buyerEmails.map(email => `
+      <div style="border:1px solid var(--line);padding:10px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px">${email}</div>
+        <div id="thread-${email.replace(/[^a-zA-Z0-9]/g,'_')}" style="max-height:150px;overflow-y:auto;margin-bottom:8px;font-size:12px"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="reply-input-${email.replace(/[^a-zA-Z0-9]/g,'_')}" placeholder="Responder..." style="flex:1;font-size:12px;padding:6px">
+          <button class="btn btn-sm" onclick="sendClassifiedMessage('${email}')">Enviar</button>
+        </div>
+      </div>
+    `).join('');
+    data.buyerEmails.forEach(email => {
+      const thread = data.messages.filter(m=>m.buyer_email===email);
+      const el = document.getElementById(`thread-${email.replace(/[^a-zA-Z0-9]/g,'_')}`);
+      el.innerHTML = thread.map(m => `<div style="margin-bottom:4px"><strong>${m.sender_email===SITE_USER.email?'Vos':email}:</strong> ${m.message}</div>`).join('');
+    });
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+async function loadClassifiedChat(id, buyerEmail){
+  const box = document.getElementById('classified-chat-messages');
+  try{
+    const res = await fetch(`${API}/classifieds/${id}/threads`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    box.innerHTML = data.messages.length ? data.messages.map(m => `<div style="margin-bottom:6px;font-size:13px"><strong>${m.sender_email===SITE_USER.email?'Vos':'Vendedor'}:</strong> ${m.message}</div>`).join('') : '<p style="color:var(--gray);font-size:13px">Todavía no escribiste nada — mandale un mensaje si te interesa.</p>';
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+async function sendClassifiedMessage(buyerEmailIfOwner){
+  const inputId = buyerEmailIfOwner ? `reply-input-${buyerEmailIfOwner.replace(/[^a-zA-Z0-9]/g,'_')}` : 'classified-chat-input';
+  const input = document.getElementById(inputId);
+  const message = input.value.trim();
+  if(!message) return;
+  try{
+    const res = await fetch(`${API}/classifieds/${CURRENT_CLASSIFIED.id}/messages`, {
+      method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
+      body: JSON.stringify({ message, buyer_email: buyerEmailIfOwner }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    input.value = '';
+    if(buyerEmailIfOwner) loadClassifiedThreadsOwner(CURRENT_CLASSIFIED.id);
+    else loadClassifiedChat(CURRENT_CLASSIFIED.id, SITE_USER.email);
+  }catch(err){ toast(err.message); }
+}
+async function markClassifiedSold(id){
+  try{
+    await fetch(`${API}/classifieds/${id}`, { method:'PUT', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`}, body: JSON.stringify({status:'vendido'}) });
+    openClassifiedDetail(id);
+  }catch(err){ toast(err.message); }
+}
+async function deleteClassified(id){
+  if(!confirm('¿Borrar esta publicación? No se puede deshacer.')) return;
+  try{
+    await fetch(`${API}/classifieds/${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${SITE_TOKEN}` } });
+    closeModal('classified-detail-modal');
+    loadClassifiedsList();
+  }catch(err){ toast(err.message); }
 }
 async function openMyPaymentDetail(){
   document.getElementById('payment-detail-modal').classList.add('active');

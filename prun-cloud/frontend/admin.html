@@ -711,6 +711,16 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
   </table></div>
 
   <div class="page-head" style="margin-top:36px">
+    <h2 style="font-size:20px">Clasificados</h2>
+  </div>
+  <p style="font-size:12px;color:var(--gray);margin-bottom:10px">Publicaciones de compra/venta entre usuarios registrados en el sitio. Solo para moderar — borrar cualquiera que sea inapropiada.</p>
+  <input type="text" placeholder="🔎 Buscar por título, publicado por..." oninput="filterTable(this.value,'classifieds-tbody')" style="max-width:340px;margin-bottom:10px">
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Publicación</th></tr></thead>
+    <tbody id="classifieds-tbody"></tbody>
+  </table></div>
+
+  <div class="page-head" style="margin-top:36px">
     <h2 style="font-size:20px">Auditoría</h2>
   </div>
   <div class="table-wrap"><table>
@@ -1516,7 +1526,7 @@ async function startApp(){
   document.getElementById('session-label').textContent = `${USER.name} (${USER.role})`;
   if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
-  loadDevelopments(); loadOwners(); loadGuarantors(); loadRepairs(); loadObrasList(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
+  loadDevelopments(); loadOwners(); loadGuarantors(); loadRepairs(); loadObrasList(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadClassifiedsAdmin(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
     loadRentCollection(); loadCharges(); loadSettlements();
@@ -3355,6 +3365,31 @@ async function deleteEvent(id){ if(!confirm('¿Borrar?')) return; try{ await api
 // =====================================================================
 // AUDITORÍA
 // =====================================================================
+async function loadClassifiedsAdmin(){
+  const tbody = document.getElementById('classifieds-tbody');
+  try{
+    const list = await api('/classifieds?status=activo');
+    const listVendidos = await api('/classifieds?status=vendido');
+    const all = [...list, ...listVendidos];
+    tbody.innerHTML = all.length ? all.map(c => {
+      const detailObj = {
+        publicado_por: `${c.user_name||'-'} (${c.user_email})`,
+        precio: c.price ? `${c.currency} ${Number(c.price).toLocaleString('es-AR')}` : 'Consultar',
+        condicion: c.condition === 'nuevo' ? 'Nuevo' : 'Usado',
+        ciudad: c.city || '-', estado: c.status === 'vendido' ? 'Vendido' : 'Activo',
+        descripcion: c.description || '-',
+        fotos_html: (c.photos||[]).map(p=>`<a href="${p}" target="_blank"><img src="${p}" style="width:60px;height:60px;object-fit:cover;margin-right:6px;border:1px solid var(--line)"></a>`).join(''),
+      };
+      const actionsHtml = `<button style="color:var(--red)" onclick="deleteClassifiedAdmin(${c.id})">Borrar</button>`;
+      return `<tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {publicado_por:"Publicado por",precio:"Precio",condicion:"Condición",ciudad:"Ciudad",estado:"Estado",descripcion:"Descripción",fotos_html:"Fotos"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${c.title}${c.status==='vendido'?' (vendido)':''}</td></tr>`;
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin publicaciones todavía.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+async function deleteClassifiedAdmin(id){
+  if(!confirm('¿Borrar esta publicación?')) return;
+  try{ await api(`/classifieds/${id}`, {method:'DELETE'}); loadClassifiedsAdmin(); }catch(err){ toast(err.message); }
+}
 async function loadAudit(){
   const tbody = document.getElementById('audit-tbody');
   try{
