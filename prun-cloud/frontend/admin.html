@@ -807,6 +807,27 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
       <thead><tr><th></th><th>Nombre</th></tr></thead>
       <tbody id="branch-tbody"></tbody>
     </table></div>
+
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Cuentas bancarias</h2>
+    </div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Cuentas propias (banco o cooperativa) desde donde salen los pagos — se eligen al registrar cualquier pago por transferencia, para saber siempre de dónde salió el dinero.</p>
+    <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px;margin-bottom:20px">
+      <form id="bankaccount-form" style="display:flex;flex-direction:column;gap:12px">
+        <input type="hidden" id="ba-id">
+        <input type="text" id="ba-name" placeholder="Nombre de la cuenta (ej: Cuenta corriente Banco Galicia)" required>
+        <select id="ba-type"><option value="banco">Banco</option><option value="cooperativa">Cooperativa</option></select>
+        <textarea id="ba-notes" placeholder="Notas (opcional, ej: N° de cuenta, CBU)" rows="2"></textarea>
+        <div style="display:flex;gap:10px">
+          <button class="btn" type="submit" style="flex:1">Guardar cuenta</button>
+          <button class="btn" type="button" id="bankaccount-cancel-btn" style="display:none;background:#fff;color:var(--black)" onclick="resetBankAccountForm()">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Nombre</th></tr></thead>
+      <tbody id="bankaccount-tbody"></tbody>
+    </table></div>
   </div>
 
   <div id="contract-template-section" style="display:none">
@@ -1314,6 +1335,7 @@ let ALL_DEVELOPMENTS = [];
 let ALL_EXPENSAS = [];
 let ALL_OWNERS = [];
 let ALL_GUARANTORS = [];
+let ALL_BANK_ACCOUNTS = [];
 let ALL_DEALS_CACHE = [];
 let ALL_TENANTS_CACHE = [];
 let ALL_SITE_USERS = [];
@@ -1527,6 +1549,7 @@ async function startApp(){
   if(!ALL_BRANCHES.length){ try{ ALL_BRANCHES = await api('/branches'); }catch(e){} }
   loadStats(); loadProperties(); loadInquiries(); loadTenants();
   loadDevelopments(); loadOwners(); loadGuarantors(); loadRepairs(); loadObrasList(); loadProviders(); loadDeals(); loadEvents(); loadAudit(); loadClassifiedsAdmin(); loadSiteUsers(); loadSurveys(); loadExpensas(); loadPayments();
+  api('/bank-accounts').then(list => ALL_BANK_ACCOUNTS = list).catch(()=>{}); // todo el personal necesita la lista para elegir cuenta al pagar, aunque solo el Administrador la edite
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
     loadRentCollection(); loadCharges(); loadSettlements();
@@ -1538,7 +1561,7 @@ async function startApp(){
     document.getElementById('staff-section').style.display = 'block';
     document.getElementById('contract-template-section').style.display = 'block';
     document.getElementById('payment-detail-template-section').style.display = 'block';
-    loadSiteConfig(); loadStaff(); loadBranches(); loadContractTemplate(); loadPaymentDetailTemplate();
+    loadSiteConfig(); loadStaff(); loadBranches(); loadBankAccounts(); loadContractTemplate(); loadPaymentDetailTemplate();
   }
   applyRolePermissions();
   addExportButtonsToAllTables();
@@ -1668,6 +1691,55 @@ document.getElementById('branch-form').addEventListener('submit', async e=>{
 async function deleteBranch(id){
   if(!confirm('¿Borrar esta sucursal? Las propiedades y cuentas de personal que la tengan asignada quedarán sin sucursal.')) return;
   try{ await api(`/branches/${id}`, {method:'DELETE'}); toast('Sucursal borrada'); loadBranches(); }
+  catch(err){ toast(err.message); }
+}
+
+// =====================================================================
+// CUENTAS BANCARIAS — se eligen al registrar un pago por transferencia,
+// para saber siempre de qué cuenta propia salió el dinero.
+// =====================================================================
+async function loadBankAccounts(){
+  const tbody = document.getElementById('bankaccount-tbody');
+  try{
+    ALL_BANK_ACCOUNTS = await api('/bank-accounts');
+    tbody.innerHTML = ALL_BANK_ACCOUNTS.length ? ALL_BANK_ACCOUNTS.map(a => {
+      const actionsHtml = `<button onclick='editBankAccount(${JSON.stringify(a).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteBankAccount(${a.id})">Borrar</button>`;
+      return `
+      <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(a).replace(/'/g,"&#39;")}, {account_type:"Tipo",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      <td>${a.name} — ${a.account_type==='cooperativa'?'Cooperativa':'Banco'}</td></tr>`;
+    }).join('')
+      : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no cargaste ninguna cuenta.</td></tr>';
+  }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+function editBankAccount(a){
+  document.getElementById('ba-id').value = a.id;
+  document.getElementById('ba-name').value = a.name;
+  document.getElementById('ba-type').value = a.account_type;
+  document.getElementById('ba-notes').value = a.notes || '';
+  document.getElementById('bankaccount-cancel-btn').style.display = 'inline-block';
+}
+function resetBankAccountForm(){
+  document.getElementById('bankaccount-form').reset();
+  document.getElementById('ba-id').value = '';
+  document.getElementById('bankaccount-cancel-btn').style.display = 'none';
+}
+document.getElementById('bankaccount-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = document.getElementById('ba-id').value;
+  const body = {
+    name: document.getElementById('ba-name').value,
+    account_type: document.getElementById('ba-type').value,
+    notes: document.getElementById('ba-notes').value,
+  };
+  try{
+    if(id) await api(`/bank-accounts/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    else await api('/bank-accounts', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    toast('Cuenta guardada'); resetBankAccountForm(); loadBankAccounts();
+  }catch(err){ toast(err.message); }
+});
+async function deleteBankAccount(id){
+  if(!confirm('¿Borrar esta cuenta?')) return;
+  try{ await api(`/bank-accounts/${id}`, {method:'DELETE'}); toast('Cuenta borrada'); loadBankAccounts(); }
   catch(err){ toast(err.message); }
 }
 
@@ -3198,31 +3270,47 @@ function addPaymentMethodRow(prefillAmount){
   const c = document.getElementById('pm-rows-list');
   const div = document.createElement('div');
   div.className = 'dyn-row';
+  const accountOptions = (ALL_BANK_ACCOUNTS||[]).map(a=>`<option value="${a.id}">${a.name} (${a.account_type==='cooperativa'?'Cooperativa':'Banco'})</option>`).join('');
   div.innerHTML = `
-    <select class="pm-method">
+    <select class="pm-method" onchange="togglePmAccountVisibility(this)">
       <option value="Transferencia">Transferencia</option>
       <option value="Tarjeta">Tarjeta</option>
-      <option value="Cooperativa">Cooperativa</option>
-      <option value="Banco">Banco</option>
       <option value="Efectivo">Efectivo</option>
       <option value="Otro">Otro</option>
     </select>
     <input type="number" step="0.01" class="pm-amount" placeholder="Monto" value="${prefillAmount||''}" oninput="updatePaymentMethodsTotal()">
+    <select class="pm-account" style="display:none">
+      <option value="">Sin cuenta específica</option>
+      ${accountOptions}
+    </select>
     <input type="text" class="pm-detail" placeholder="Detalle (opcional, ej: N° operación)">
     <button type="button" onclick="this.closest('.dyn-row').remove(); updatePaymentMethodsTotal();">✕</button>`;
   c.appendChild(div);
   updatePaymentMethodsTotal();
+}
+// La cuenta (banco/cooperativa) solo tiene sentido si la forma de pago es
+// transferencia — para tarjeta/efectivo no aplica, así que se esconde sola.
+function togglePmAccountVisibility(select){
+  const accountSelect = select.closest('.dyn-row').querySelector('.pm-account');
+  accountSelect.style.display = select.value === 'Transferencia' ? 'inline-block' : 'none';
 }
 function updatePaymentMethodsTotal(){
   const total = Array.from(document.querySelectorAll('#pm-rows-list .pm-amount')).reduce((s,i)=>s+(parseFloat(i.value)||0),0);
   document.getElementById('pm-total-display').textContent = `Total: $${total.toLocaleString('es-AR')}`;
 }
 function collectPaymentMethods(){
-  return Array.from(document.querySelectorAll('#pm-rows-list .dyn-row')).map(row => ({
-    method: row.querySelector('.pm-method').value,
-    amount: parseFloat(row.querySelector('.pm-amount').value) || 0,
-    detalle: row.querySelector('.pm-detail').value.trim(),
-  })).filter(r => r.amount > 0);
+  return Array.from(document.querySelectorAll('#pm-rows-list .dyn-row')).map(row => {
+    const accountId = row.querySelector('.pm-account').value;
+    const account = accountId ? (ALL_BANK_ACCOUNTS||[]).find(a=>String(a.id)===accountId) : null;
+    return {
+      method: row.querySelector('.pm-method').value,
+      amount: parseFloat(row.querySelector('.pm-amount').value) || 0,
+      detalle: row.querySelector('.pm-detail').value.trim(),
+      account_id: accountId || null,
+      account_name: account ? account.name : '',
+      account_type: account ? account.account_type : '',
+    };
+  }).filter(r => r.amount > 0);
 }
 function confirmPaymentMethods(){
   const rows = collectPaymentMethods();
@@ -3262,15 +3350,18 @@ async function loadSettlements(){
       const t = ALL_TENANTS_CACHE.find(x=>x.id===s.tenant_id);
       const prop = t ? ALL_PROPERTIES.find(p=>p.id===t.property_id) : null;
       const fmt = n => `$${Number(n||0).toLocaleString('es-AR')}`;
+      const paymentMethodsDisplay = (s.payment_methods && s.payment_methods.length)
+        ? s.payment_methods.map(pm => `${pm.method}${pm.account_name?' — '+pm.account_name+(pm.account_type?' ('+(pm.account_type==='cooperativa'?'Cooperativa':'Banco')+')':''):''}: ${fmt(pm.amount)}${pm.detalle?' — '+pm.detalle:''}`).join(' | ')
+        : '-';
       const detailObj = {
         property_display: prop ? prop.title : '-',
         rent_display: fmt(s.rent), commission_display: `-${fmt(s.commission)}`,
         expensas_display: `-${fmt(s.expensas)}`, repairs_display: `-${fmt(s.repairs)}`, fees_display: `-${fmt(s.fees)}`,
         net_display: fmt(s.net), status_display: s.transferred?'Transferido':'Pendiente',
-        transfer_date_display: s.transfer_date || 'Sin fecha cargada', notes: s.notes || '',
+        transfer_date_display: s.transfer_date || 'Sin fecha cargada', payment_methods_display: paymentMethodsDisplay, notes: s.notes || '',
       };
-      const actionsHtml = `${!s.transferred?`<button onclick="markTransferred(${s.id})">Marcar como pagado</button>`:`<button onclick="markTransferred(${s.id})">Editar fecha de pago</button>`}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_display:"Propiedad",rent_display:"Alquiler cobrado",commission_display:"Comisión",expensas_display:"Expensas",repairs_display:"Reparaciones",fees_display:"Honorarios",net_display:"Neto a transferir",status_display:"Estado",transfer_date_display:"Fecha de pago",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      const actionsHtml = `${!s.transferred?`<button onclick="markTransferred(${s.id})">Marcar como pagado</button>`:`<button onclick="markTransferred(${s.id})">Editar fecha/forma de pago</button>`}<button onclick="printSettlement(${s.id})">Imprimir</button><button style="color:var(--red)" onclick="deleteSettlement(${s.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForTenant(s.tenant_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_display:"Propiedad",rent_display:"Alquiler cobrado",commission_display:"Comisión",expensas_display:"Expensas",repairs_display:"Reparaciones",fees_display:"Honorarios",net_display:"Neto a transferir",status_display:"Estado",transfer_date_display:"Fecha de pago",payment_methods_display:"Forma de pago",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${t?t.name:'-'} — ${s.period}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin liquidaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
@@ -3327,8 +3418,13 @@ async function markTransferred(id){
   const dateStr = prompt('¿Qué día se hizo (o se va a hacer) el pago al propietario?\n\nFormato: AAAA-MM-DD', (s && s.transfer_date) || today);
   if(dateStr === null) return; // canceló
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ toast('La fecha tiene que tener el formato AAAA-MM-DD, por ejemplo 2026-08-15.'); return; }
-  try{ await api(`/settlements/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({transferred:true, transfer_date:dateStr})}); loadSettlements(); }
-  catch(err){ toast(err.message); }
+  openPaymentMethodsModal('¿Cómo se pagó?', `Neto a transferir: $${Number(s.net).toLocaleString('es-AR')} — podés combinar varias formas.`, async (rows) => {
+    try{
+      await api(`/settlements/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({transferred:true, transfer_date:dateStr, payment_methods: rows})});
+      loadSettlements();
+    }catch(err){ toast(err.message); }
+  });
+  setTimeout(()=>{ const amtInput = document.querySelector('#pm-rows-list .pm-amount'); if(amtInput && s){ amtInput.value = s.net; updatePaymentMethodsTotal(); } }, 0);
 }
 async function deleteSettlement(id){ if(!confirm('¿Borrar?')) return; try{ await api(`/settlements/${id}`,{method:'DELETE'}); loadSettlements(); }catch(err){ toast(err.message); } }
 
