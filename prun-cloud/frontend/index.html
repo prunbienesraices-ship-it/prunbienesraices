@@ -61,13 +61,13 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   <div class="nav-links" id="nav-links-el">
     <a href="#propiedades">Propiedades</a>
     <a href="#contacto">Contacto</a>
+    <button class="btn btn-outline" style="padding:9px 16px" onclick="openClassifieds()">🛍️ Clasificados</button>
     <button class="btn" style="padding:9px 16px;background:var(--yellow);color:var(--black);border-color:var(--yellow)" onclick="openModal('survey-modal')">📅 Registrarme</button>
     <span id="nav-guest">
       <button class="btn btn-outline" style="margin-right:8px;padding:9px 16px" onclick="openModal('login-modal')">Ingresar</button>
     </span>
     <span id="nav-user" style="display:none;color:#fff;font-size:13px;align-items:center;gap:10px;flex-wrap:wrap">
       <span>Hola, <strong id="nav-user-name"></strong></span>
-      <button class="btn btn-outline" style="padding:9px 16px" onclick="openClassifieds()">🛍️ Clasificados</button>
       <button class="btn btn-outline" id="nav-owner-btn" style="display:none;padding:9px 16px" onclick="openOwnerPortal()">🔧 Mis reclamos</button>
       <button class="btn btn-outline" id="nav-guarantor-btn" style="display:none;padding:9px 16px" onclick="openGuarantorPortal()">🔧 Mis reclamos</button>
       <button class="btn btn-outline" id="nav-tenant-btn" style="display:none;padding:9px 16px" onclick="openTenantReclamos()">🔧 Mis reclamos</button>
@@ -622,7 +622,7 @@ async function loadClassifiedsList(){
   box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
   try{
     const url = city ? `${API}/classifieds?city=${encodeURIComponent(city)}` : `${API}/classifieds`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const res = await fetch(url, SITE_TOKEN ? { headers: { Authorization: `Bearer ${SITE_TOKEN}` } } : {});
     const list = await res.json();
     if(!res.ok) throw new Error(list.error || 'No pudimos cargar los clasificados.');
     box.innerHTML = list.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">` + list.map(c => `
@@ -638,6 +638,12 @@ async function loadClassifiedsList(){
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
 function openPostClassifiedForm(){
+  if(!SITE_TOKEN){
+    closeModal('classifieds-modal');
+    toast('Iniciá sesión para poder publicar.');
+    openModal('login-modal');
+    return;
+  }
   document.getElementById('classified-post-form').reset();
   document.getElementById('classified-post-msg').textContent = '';
   openModal('classified-post-modal');
@@ -668,11 +674,11 @@ async function openClassifiedDetail(id){
   const box = document.getElementById('classified-detail-content');
   box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
   try{
-    const res = await fetch(`${API}/classifieds/${id}`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+    const res = await fetch(`${API}/classifieds/${id}`, SITE_TOKEN ? { headers: { Authorization: `Bearer ${SITE_TOKEN}` } } : {});
     const c = await res.json();
     if(!res.ok) throw new Error(c.error || 'No pudimos cargar la publicación.');
     CURRENT_CLASSIFIED = c;
-    const isOwner = SITE_USER.email === c.user_email;
+    const isOwner = !!SITE_USER && SITE_USER.email === c.user_email;
     box.innerHTML = `
       ${c.photos && c.photos.length ? `<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px">${c.photos.map(p=>`<img src="${p}" style="height:140px;border-radius:4px">`).join('')}</div>` : ''}
       <h3 style="font-size:18px;margin-bottom:4px">${c.title}</h3>
@@ -686,17 +692,22 @@ async function openClassifiedDetail(id){
         </div>
         <h4 style="font-size:14px;margin-bottom:8px">Conversaciones con interesados</h4>
         <div id="classified-threads-list"><p style="color:var(--gray);font-size:13px">Cargando...</p></div>
-      ` : `
+      ` : SITE_TOKEN ? `
         <h4 style="font-size:14px;margin-bottom:8px">Tu conversación con quien publicó</h4>
         <div id="classified-chat-messages" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
         <div style="display:flex;gap:8px">
           <input type="text" id="classified-chat-input" placeholder="Escribí tu mensaje..." style="flex:1">
           <button class="btn" onclick="sendClassifiedMessage()">Enviar</button>
         </div>
+      ` : `
+        <div style="background:var(--cream);padding:14px;text-align:center">
+          <p style="font-size:13px;margin-bottom:10px">Iniciá sesión para escribirle en privado a quien publicó.</p>
+          <button class="btn" onclick="closeModal('classified-detail-modal');openModal('login-modal')">Iniciar sesión</button>
+        </div>
       `}
     `;
     if(isOwner) loadClassifiedThreadsOwner(id);
-    else loadClassifiedChat(id, SITE_USER.email);
+    else if(SITE_TOKEN) loadClassifiedChat(id, SITE_USER.email);
   }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
 }
 async function loadClassifiedThreadsOwner(id){
