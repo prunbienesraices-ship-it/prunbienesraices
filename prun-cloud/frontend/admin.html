@@ -661,7 +661,12 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
       <button class="btn rc-tab-btn" data-tab="otherPaid" onclick="switchRentCollectionTab('otherPaid')" style="padding:8px 14px;background:#fff;color:var(--black)">Otros cargos abonados</button>
       <button class="btn rc-tab-btn" data-tab="all" onclick="switchRentCollectionTab('all')" style="padding:8px 14px;background:#fff;color:var(--black)">Todo (abonados y no abonados)</button>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="rentcol-tbody-search" placeholder="🔎 Buscar por inquilino, propiedad..." oninput="filterTable(this.value,'rentcol-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="rentcol-tbody"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="rentcol-tbody-search" placeholder="🔎 Buscar por inquilino, propiedad..." oninput="filterTable(this.value,'rentcol-tbody')" style="max-width:300px;margin-bottom:10px" data-branch-filter-target="rentcol-tbody">
+      <label style="font-size:12px;color:var(--gray)">Desde <input type="date" id="rc-filter-from" onchange="switchRentCollectionTab(RENT_COLLECTION_TAB)" style="padding:6px"></label>
+      <label style="font-size:12px;color:var(--gray)">Hasta <input type="date" id="rc-filter-to" onchange="switchRentCollectionTab(RENT_COLLECTION_TAB)" style="padding:6px"></label>
+      <button class="btn" style="background:#fff;color:var(--black);font-size:12px;padding:8px 12px;margin-bottom:10px" onclick="document.getElementById('rc-filter-from').value='';document.getElementById('rc-filter-to').value='';switchRentCollectionTab(RENT_COLLECTION_TAB)">Limpiar fechas</button>
+    </div>
     <div class="table-wrap"><table>
       <thead><tr id="rentcol-thead"><th></th><th>Inquilino</th></tr></thead>
       <tbody id="rentcol-tbody"></tbody>
@@ -3023,6 +3028,25 @@ function switchRentCollectionTab(tab){
   if(!RENT_COLLECTION_REPORT){ tbody.innerHTML = ''; return; }
   const r = RENT_COLLECTION_REPORT;
 
+  // Filtro por fecha (desde/hasta): usa la fecha real del pago si la tiene
+  // (para los ya abonados), o si no, el primer día del período (mes) al
+  // que corresponde -- así también sirve para filtrar los pendientes.
+  const dateFrom = document.getElementById('rc-filter-from').value;
+  const dateTo = document.getElementById('rc-filter-to').value;
+  function rowDateForFilter(row){
+    if(row.date) return row.date;
+    if(row.period) return /^\d{4}-\d{2}$/.test(row.period) ? row.period + '-01' : null;
+    return null;
+  }
+  function passesDateFilter(row){
+    if(!dateFrom && !dateTo) return true;
+    const d = rowDateForFilter(row);
+    if(!d) return true; // si no tiene fecha reconocible, no se lo filtra afuera
+    if(dateFrom && d < dateFrom) return false;
+    if(dateTo && d > dateTo) return false;
+    return true;
+  }
+
   const money = row => `${row.currency} ${Math.round(row.amount).toLocaleString('es-AR')}`;
   const rowHtml = (row, conceptLabel, estadoLabel, estadoColor) => {
     const detailObj = {
@@ -3047,9 +3071,9 @@ function switchRentCollectionTab(tab){
       ...r.expensasPaid.map(x=>({...x, tipo:'Expensas', estado:'Abonado', color:'var(--green)'})),
       ...r.otherPending.map(x=>({...x, tipo:'Otro cargo', estado:'Pendiente', color:'var(--red)'})),
       ...r.otherPaid.map(x=>({...x, tipo:'Otro cargo', estado:'Abonado', color:'var(--green)'})),
-    ];
+    ].filter(passesDateFilter);
     tbody.innerHTML = combined.length ? combined.map(row => rowHtml(row, row.tipo, row.estado, row.color)).join('')
-      : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:20px">Sin datos.</td></tr>';
+      : '<tr><td colspan="3" style="text-align:center;color:var(--gray);padding:20px">Sin datos en ese rango de fechas.</td></tr>';
     return;
   }
 
@@ -3062,7 +3086,8 @@ function switchRentCollectionTab(tab){
     otherPending: { list: r.otherPending, concept: 'Otro cargo', estado: 'Pendiente', color: 'var(--red)' },
     otherPaid: { list: r.otherPaid, concept: 'Otro cargo', estado: 'Abonado', color: 'var(--green)' },
   }[tab];
-  tbody.innerHTML = map.list.length ? map.list.map(row => {
+  const filteredList = map.list.filter(passesDateFilter);
+  tbody.innerHTML = filteredList.length ? filteredList.map(row => {
     const detailObj = { property_name: row.propertyName, edificio: row.developmentName || '-', periodo: row.periodLabel, monto: money(row) };
     let actionsHtml = `<button onclick="openPaymentsModal(${row.tenantId})">Ver pagos</button><button onclick="sendPaymentDetail(${row.tenantId})">Enviar detalle de pago</button>`;
     if(tab === 'rentPaid' && USER.role === 'superadmin'){
@@ -3070,7 +3095,7 @@ function switchRentCollectionTab(tab){
     }
     return `<tr data-branch-id="${row.branchId||''}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",edificio:"Edificio",periodo:"Período",monto:"Monto"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${row.tenantName} — ${map.concept} ${row.periodLabel} <span style="color:${map.color};font-weight:700">(${map.estado})</span></td></tr>`;
-  }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin registros en esta vista.</td></tr>';
+  }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin registros en ese rango de fechas.</td></tr>';
 }
 // Solo el Administrador puede deshacer un pago de alquiler ya registrado,
 // por si se cargó mal o hay que corregirlo. Vuelve a aparecer como pendiente.
