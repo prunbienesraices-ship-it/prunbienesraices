@@ -4040,8 +4040,11 @@ async function runReminderNow(tipo){
   toast('Enviando avisos, puede tardar un momento...');
   try{
     const result = await api(`/site-config/run-${tipo}-reminders`, {method:'POST'});
-    if(result.skipped) toast('Ese aviso está apagado — prendelo primero y guardá los cambios.');
-    else toast(`Listo: se mandaron ${result.enviados} aviso(s).`);
+    if(result.skipped){ toast('Ese aviso está apagado — prendelo primero y guardá los cambios.'); return; }
+    toast(`Listo: se mandaron ${result.enviados} aviso(s).`);
+    if(result.detalle && result.detalle.length){
+      alert(`Detalle de lo que hizo con cada inquilino:\n\n${result.detalle.join('\n')}`);
+    }
   }catch(err){ toast(err.message); }
 }
 async function loadSiteConfig(){
