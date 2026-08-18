@@ -1545,8 +1545,8 @@ function addExportButtonsToAllTables(){
   document.querySelectorAll('.page-head').forEach(head=>{
     if(head.querySelector('.export-btn')) return;
     let el = head.nextElementSibling;
-    while(el && !el.classList.contains('table-wrap')) el = el.nextElementSibling;
-    if(!el) return;
+    while(el && !el.classList.contains('table-wrap') && !el.classList.contains('page-head')) el = el.nextElementSibling;
+    if(!el || !el.classList.contains('table-wrap')) return; // no hay una tabla simple antes del proximo titulo — no le agrega boton (ej: Caja, que tiene su propio exportador)
     const table = el.querySelector('table');
     const h2 = head.querySelector('h2');
     if(!table || !h2) return;
