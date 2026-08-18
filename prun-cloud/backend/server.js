@@ -211,4 +211,18 @@ ensureAdminAccount().then(() => ensureContractTemplate()).then(() => ensurePayme
     console.log(` Puerto: ${PORT}`);
     console.log('==================================================');
   });
+
+  // Avisos automáticos (pago y renovación de contrato) — se revisan solos
+  // cada 1 hora mientras el servidor esté despierto, y cada uno respeta si
+  // está prendido o apagado en "Apariencia del sitio". Nota: en el plan
+  // gratuito de Render, el servidor se duerme sin uso, así que esto corre
+  // de forma confiable mientras haya visitas al sitio o al panel — no es
+  // un cron 100% puntual a una hora fija.
+  const { runPaymentReminders, runRenewalReminders } = require('./reminders');
+  function checkReminders() {
+    runPaymentReminders().catch(err => console.error('Error en avisos de pago ->', err.message));
+    runRenewalReminders().catch(err => console.error('Error en avisos de renovación ->', err.message));
+  }
+  setTimeout(checkReminders, 60 * 1000); // primer chequeo 1 minuto despues de arrancar
+  setInterval(checkReminders, 60 * 60 * 1000); // despues, cada 1 hora
 });
