@@ -53,14 +53,7 @@ router.get('/', requireAuth, async (req, res) => {
       });
     });
 
-    // --- Pagos de obra (salida) ---
-    const { data: obras } = await supabase.from('obras').select('id, nombre');
-    const obraNameById = {}; (obras || []).forEach(o => { obraNameById[o.id] = o.nombre; });
-    const { data: obraPagos } = await supabase.from('obra_pagos').select('*');
-    (obraPagos || []).forEach(p => {
-      if (!p.monto) return;
-      addMovement(p.account_id, 'salida', 'Obra', Number(p.monto), p.fecha, `${obraNameById[p.obra_id] || '-'} — ${p.destino}: ${p.concepto || ''} (${p.metodo || ''})`);
-    });
+    // Nota: los pagos de Control de Obra NO se reflejan en Caja (a pedido).
 
     // --- Pagos a proveedores por reparaciones (salida) ---
     const { data: repairs } = await supabase.from('repairs').select('*');
