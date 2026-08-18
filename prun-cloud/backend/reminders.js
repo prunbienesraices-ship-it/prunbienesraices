@@ -27,16 +27,17 @@ async function runPaymentReminders() {
 
   const { data: tenants } = await supabase.from('tenants').select('*');
   let enviados = 0;
+  const detalle = [];
   for (const tenant of tenants || []) {
     try {
-      if (computeTenantStatus(tenant) === 'rescindido') continue;
-      if (!tenant.email) continue;
+      if (computeTenantStatus(tenant) === 'rescindido') { detalle.push(`${tenant.name}: contrato ya finalizado`); continue; }
+      if (!tenant.email) { detalle.push(`${tenant.name}: no tiene email cargado`); continue; }
       const missing = getMissingPayments(tenant);
-      if (!missing.length) continue;
-      if (await yaSeAviso('payment', tenant.id, DIAS_ENTRE_AVISOS_PAGO)) continue;
+      if (!missing.length) { detalle.push(`${tenant.name}: no debe ningún mes de alquiler`); continue; }
+      if (await yaSeAviso('payment', tenant.id, DIAS_ENTRE_AVISOS_PAGO)) { detalle.push(`${tenant.name}: ya se le avisó hace menos de ${DIAS_ENTRE_AVISOS_PAGO} días`); continue; }
 
       const items = await buildTenantDetailItems(tenant);
-      if (!items.length) continue;
+      if (!items.length) { detalle.push(`${tenant.name}: no se pudo armar el detalle de pago (revisar manualmente)`); continue; }
       const { data: property } = await supabase.from('properties').select('title').eq('id', tenant.property_id).maybeSingle();
       const footerNotes = await getPaymentDetailNotes();
       const headerLines = await getPaymentDetailHeaderLines();
@@ -48,11 +49,13 @@ async function runPaymentReminders() {
       await sendMail({ to: tenant.email, subject: 'Recordatorio de pago pendiente', html });
       await registrarAviso('payment', tenant.id);
       enviados++;
+      detalle.push(`${tenant.name}: enviado ✔`);
     } catch (err) {
+      detalle.push(`${tenant.name}: error — ${err.message}`);
       console.error(`Error mandando recordatorio de pago a inquilino ${tenant.id} ->`, err.message);
     }
   }
-  return { enviados };
+  return { enviados, detalle };
 }
 
 // Avisa cuando un contrato está por vencer (dentro de DIAS_ANTES_RENOVACION
