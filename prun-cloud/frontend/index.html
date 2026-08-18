@@ -74,6 +74,8 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
       <button class="btn btn-outline" id="nav-expensas-btn" style="display:none;padding:9px 16px" onclick="openMyExpensas()">🧾 Expensas de mi edificio</button>
       <button class="btn btn-outline" id="nav-detail-btn" style="display:none;padding:9px 16px" onclick="openMyPaymentDetail()">📋 Mi detalle de pago</button>
       <button class="btn btn-outline" id="nav-payments-btn" style="display:none;padding:9px 16px" onclick="openMyPayments()">💳 Mis pagos</button>
+      <button class="btn btn-outline" id="nav-contract-btn" style="display:none;padding:9px 16px" onclick="openMyContract()">📄 Contrato</button>
+      <button class="btn btn-outline" style="padding:9px 16px" onclick="openChangePasswordModal()">🔑 Contraseña</button>
       <button class="btn btn-outline" style="padding:9px 16px" onclick="userLogout()">Salir</button>
     </span>
   </div>
@@ -336,6 +338,14 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
   </div>
 </div>
 
+<div class="modal-overlay" id="contract-view-modal">
+  <div class="modal-box" style="max-width:560px">
+    <button class="modal-close" onclick="closeModal('contract-view-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Contrato</h3>
+    <div id="contract-view-content"><p style="color:var(--gray)">Cargando...</p></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="payments-modal">
   <div class="modal-box" style="max-width:600px">
     <button class="modal-close" onclick="closeModal('payments-modal')">✕</button>
@@ -378,6 +388,47 @@ footer{background:var(--black);color:#8a8880;padding:24px 0;text-align:center;fo
       <button class="btn" type="submit">Ingresar</button>
     </form>
     <p style="font-size:12px;color:var(--gray);margin-top:12px">¿Todavía no tenés cuenta? <a href="#" onclick="closeModal('login-modal');openModal('survey-modal');return false" style="text-decoration:underline">Registrate acá</a></p>
+    <p style="font-size:12px;color:var(--gray);margin-top:6px"><a href="#" onclick="closeModal('login-modal');openModal('forgot-password-modal');return false" style="text-decoration:underline">¿Olvidaste tu contraseña?</a></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="forgot-password-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('forgot-password-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:6px">Recuperar contraseña</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Escribí tu email y te mandamos un link para elegir una contraseña nueva.</p>
+    <div class="msg" id="forgot-password-msg"></div>
+    <form id="forgot-password-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="email" id="fp-email" placeholder="Email" required>
+      <button class="btn" type="submit">Mandar link</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reset-password-modal">
+  <div class="modal-box">
+    <h3 style="font-size:18px;margin-bottom:6px">Elegir nueva contraseña</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Escribí tu nueva contraseña.</p>
+    <div class="msg" id="reset-password-msg"></div>
+    <form id="reset-password-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="password" id="rp-password" placeholder="Nueva contraseña" required minlength="4">
+      <input type="password" id="rp-password2" placeholder="Repetí la contraseña" required minlength="4">
+      <button class="btn" type="submit">Guardar</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="change-password-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('change-password-modal')">✕</button>
+    <h3 style="font-size:18px;margin-bottom:14px">Cambiar contraseña</h3>
+    <div class="msg" id="change-password-msg"></div>
+    <form id="change-password-form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="password" id="cp-current" placeholder="Contraseña actual" required>
+      <input type="password" id="cp-new" placeholder="Contraseña nueva" required minlength="4">
+      <input type="password" id="cp-new2" placeholder="Repetí la contraseña nueva" required minlength="4">
+      <button class="btn" type="submit">Guardar</button>
+    </form>
   </div>
 </div>
 
@@ -402,6 +453,7 @@ function refreshUserNav(){
     document.getElementById('nav-expensas-btn').style.display = (SITE_USER.role === 'owner' || SITE_USER.role === 'tenant') ? 'inline-block' : 'none';
     document.getElementById('nav-detail-btn').style.display = (SITE_USER.role === 'tenant' || SITE_USER.role === 'owner') ? 'inline-block' : 'none';
     document.getElementById('nav-payments-btn').style.display = (SITE_USER.role === 'tenant' || SITE_USER.role === 'owner' || SITE_USER.role === 'guarantor') ? 'inline-block' : 'none';
+    document.getElementById('nav-contract-btn').style.display = (SITE_USER.role === 'tenant' || SITE_USER.role === 'owner') ? 'inline-block' : 'none';
   } else {
     document.getElementById('nav-guest').style.display = 'inline';
     document.getElementById('nav-user').style.display = 'none';
@@ -612,6 +664,107 @@ function toast(message){
   clearTimeout(el._t);
   el._t = setTimeout(()=>{ el.style.opacity = '0'; }, 2500);
 }
+// =====================================================================
+// CONTRASEÑA — cambiarla estando logueado, o recuperarla por mail si la
+// olvidaste.
+// =====================================================================
+// Muestra el contrato ya generado (solo lectura — no se puede editar desde
+// acá; si hace falta un cambio, hay que pedírselo a la inmobiliaria).
+async function openMyContract(){
+  openModal('contract-view-modal');
+  const box = document.getElementById('contract-view-content');
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    if(SITE_USER.role === 'tenant'){
+      const res = await fetch(`${API}/tenant-portal/my-contract`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error);
+      box.innerHTML = data.hasContract
+        ? `<p style="font-size:13px;margin-bottom:14px">Generado el ${new Date(data.generatedAt).toLocaleDateString('es-AR')}.</p><a class="btn" href="${data.url}" target="_blank">Descargar contrato</a>`
+        : '<p style="color:var(--gray)">Todavía no se generó tu contrato — cuando la inmobiliaria lo genere, vas a poder verlo acá.</p>';
+    } else if(SITE_USER.role === 'owner'){
+      const res = await fetch(`${API}/owner-portal/my-contracts`, { headers: { Authorization: `Bearer ${SITE_TOKEN}` } });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error);
+      box.innerHTML = data.contracts.length ? data.contracts.map(c => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <div><strong>${c.tenantName}</strong> — ${c.propertyTitle}<br><span style="color:var(--gray)">Generado el ${new Date(c.generatedAt).toLocaleDateString('es-AR')}</span></div>
+          <a href="${c.url}" target="_blank" style="text-decoration:underline;white-space:nowrap;margin-left:10px">Descargar</a>
+        </div>
+      `).join('') : '<p style="color:var(--gray)">Todavía no hay contratos generados para tus propiedades.</p>';
+    }
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+function openChangePasswordModal(){
+  document.getElementById('change-password-form').reset();
+  document.getElementById('change-password-msg').textContent = '';
+  openModal('change-password-modal');
+}
+document.getElementById('change-password-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const msg = document.getElementById('change-password-msg');
+  msg.textContent = ''; msg.className = 'msg';
+  const current_password = document.getElementById('cp-current').value;
+  const new_password = document.getElementById('cp-new').value;
+  const new_password2 = document.getElementById('cp-new2').value;
+  if(new_password !== new_password2){ msg.textContent = 'Las contraseñas nuevas no coinciden.'; msg.className = 'msg error'; return; }
+  try{
+    const res = await fetch(`${API}/auth/site-user/password`, {
+      method:'PUT', headers:{'Content-Type':'application/json', Authorization:`Bearer ${SITE_TOKEN}`},
+      body: JSON.stringify({ current_password, new_password }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos cambiar la contraseña.');
+    msg.textContent = '¡Listo! Tu contraseña se cambió correctamente.'; msg.className = 'msg success';
+    setTimeout(()=>closeModal('change-password-modal'), 1500);
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
+document.getElementById('forgot-password-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const msg = document.getElementById('forgot-password-msg');
+  msg.textContent = ''; msg.className = 'msg';
+  try{
+    const res = await fetch(`${API}/auth/forgot-password`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: document.getElementById('fp-email').value }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos procesar el pedido.');
+    msg.textContent = data.message; msg.className = 'msg success';
+    document.getElementById('forgot-password-form').reset();
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
+document.getElementById('reset-password-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const msg = document.getElementById('reset-password-msg');
+  msg.textContent = ''; msg.className = 'msg';
+  const p1 = document.getElementById('rp-password').value;
+  const p2 = document.getElementById('rp-password2').value;
+  if(p1 !== p2){ msg.textContent = 'Las contraseñas no coinciden.'; msg.className = 'msg error'; return; }
+  try{
+    const res = await fetch(`${API}/auth/reset-password`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: RESET_TOKEN, new_password: p1 }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No pudimos cambiar la contraseña.');
+    msg.textContent = '¡Listo! Ya podés iniciar sesión con tu contraseña nueva.'; msg.className = 'msg success';
+    document.getElementById('reset-password-form').reset();
+    setTimeout(()=>{ closeModal('reset-password-modal'); openModal('login-modal'); }, 1500);
+  }catch(err){ msg.textContent = err.message; msg.className = 'msg error'; }
+});
+// Si la URL trae ?reset=TOKEN (vino del link del mail), abre directo el
+// modal para elegir la contraseña nueva.
+let RESET_TOKEN = null;
+(function checkResetTokenInUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('reset');
+  if(token){
+    RESET_TOKEN = token;
+    openModal('reset-password-modal');
+  }
+})();
+
 function openClassifieds(){
   openModal('classifieds-modal');
   loadClassifiedsList();

@@ -254,6 +254,10 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <button class="btn admin-tab-btn" data-group="cuentas" onclick="switchAdminTab('cuentas')" style="background:#fff;color:var(--black)">💰 Cuentas</button>
     <button class="btn admin-tab-btn" data-group="operaciones" onclick="switchAdminTab('operaciones')" style="background:#fff;color:var(--black)">🔧 Operaciones</button>
     <button class="btn admin-tab-btn" data-group="config" onclick="switchAdminTab('config')" style="background:#fff;color:var(--black)">⚙️ Configuración</button>
+    <div style="position:relative;flex:1;min-width:220px;max-width:340px">
+      <input type="text" id="global-search-input" placeholder="🔎 Buscar inquilino, propietario, garante..." oninput="runGlobalSearch(this.value)" onfocus="runGlobalSearch(this.value)" style="width:100%">
+      <div id="global-search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--black);max-height:340px;overflow-y:auto;z-index:200;margin-top:4px"></div>
+    </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
     <label style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--gray)">Informe:</label>
@@ -659,6 +663,15 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
       </div>
     </div>
     <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Refleja automáticamente todos los cobros y pagos del sistema (alquileres, otros conceptos, liquidaciones a propietarios, obra, y pagos a proveedores), agrupados por cuenta. También podés cargar movimientos sueltos (ej: publicidad, gastos varios) con "+ Nuevo movimiento".</p>
+    <div id="caja-cierre-box" style="display:none;background:var(--cream);padding:14px 18px;margin-bottom:18px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:8px">Cierre de mes (solo Administrador)</div>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:10px">Una vez cerrado un mes, el resto del personal ya no puede cargar ni borrar movimientos sueltos ahí — vos sí podés, cuando quieras.</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <input type="month" id="caja-cierre-period">
+        <button class="btn" style="font-size:12px;padding:8px 14px" onclick="cerrarMesCaja()">Cerrar este mes</button>
+      </div>
+      <div id="caja-cierres-list" style="font-size:12px"></div>
+    </div>
     <div id="caja-content"><p style="color:var(--gray)">Cargando...</p></div>
 
     <div class="page-head" style="margin-top:36px">
@@ -906,6 +919,18 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
           <div class="form-row"><label>Color principal del sitio</label><input type="color" id="sc-primary-color" style="height:44px;padding:4px"></div>
         </div>
         <div class="form-row"><label>Texto del pie de página</label><input type="text" id="sc-footer-text"></div>
+
+        <div class="section-label"><span>Avisos automáticos</span></div>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px">Se revisan solos cada 1 hora mientras el sitio tenga visitas. Podés prenderlos o apagarlos cuando quieras.</p>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+          <input type="checkbox" id="sc-payment-reminders" style="width:auto"> Avisos de pago automáticos (le manda el detalle de pago a quien tenga algo pendiente, cada 3 días como máximo)
+          <button class="btn" type="button" style="font-size:11px;padding:6px 10px;margin-left:auto" onclick="runReminderNow('payment')">Probar ahora</button>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer">
+          <input type="checkbox" id="sc-renewal-reminders" style="width:auto"> Avisos de renovación de contrato (avisa cuando falten 30 días o menos para el vencimiento)
+          <button class="btn" type="button" style="font-size:11px;padding:6px 10px;margin-left:auto" onclick="runReminderNow('renewal')">Probar ahora</button>
+        </label>
+
         <button class="btn" type="submit" style="width:100%;margin-top:6px">Guardar cambios</button>
       </form>
     </div>
@@ -1488,6 +1513,46 @@ function getSectionElements(pageHead){
   }
   return elements;
 }
+// =====================================================================
+// BUSCADOR GENERAL — busca por nombre, DNI o email entre inquilinos,
+// propietarios y garantes, y abre directo la ficha de la persona.
+// =====================================================================
+let GLOBAL_SEARCH_RESULTS = [];
+function runGlobalSearch(query){
+  const box = document.getElementById('global-search-results');
+  const q = query.trim().toLowerCase();
+  if(q.length < 2){ box.style.display = 'none'; return; }
+  const matches = (name, dni, email) => (name||'').toLowerCase().includes(q) || (dni||'').includes(q) || (email||'').toLowerCase().includes(q);
+  const results = [];
+  (ALL_TENANTS_CACHE||[]).forEach(t => { if(matches(t.name, t.dni, t.email)) results.push({ tipo:'Inquilino', nombre:t.name, obj:t }); });
+  (ALL_OWNERS||[]).forEach(o => { if(matches(o.name, o.dni, o.email)) results.push({ tipo:'Propietario', nombre:o.name, obj:o }); });
+  (ALL_GUARANTORS||[]).forEach(g => { if(matches(g.name, g.dni, g.email)) results.push({ tipo:'Garante', nombre:g.name, obj:g }); });
+
+  GLOBAL_SEARCH_RESULTS = results;
+  if(!results.length){ box.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--gray)">Sin resultados.</div>'; box.style.display = 'block'; return; }
+  box.innerHTML = results.slice(0,15).map((r,i) => `
+    <div style="padding:10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px" onclick="selectGlobalSearchResult(${i})" onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
+      <strong>${r.nombre}</strong> <span style="color:var(--gray);font-size:11px;text-transform:uppercase">— ${r.tipo}</span>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+}
+function selectGlobalSearchResult(i){
+  const r = GLOBAL_SEARCH_RESULTS[i];
+  document.getElementById('global-search-results').style.display = 'none';
+  document.getElementById('global-search-input').value = '';
+  switchAdminTab('datos'); // inquilinos, propietarios y garantes viven en esta pestaña
+  if(r.tipo === 'Inquilino') openTenantModal(r.obj);
+  else if(r.tipo === 'Propietario') openOwnerModal(r.obj);
+  else if(r.tipo === 'Garante') openGuarantorModal(r.obj);
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#global-search-input') && !e.target.closest('#global-search-results')){
+    const box = document.getElementById('global-search-results');
+    if(box) box.style.display = 'none';
+  }
+});
+
 function switchAdminTab(group){
   ADMIN_ACTIVE_TAB = group;
   document.querySelectorAll('.admin-tab-btn').forEach(b=>{
@@ -1883,6 +1948,8 @@ async function loadCaja(){
   try{
     const data = await api('/caja');
     CAJA_DATA_CACHE = data;
+    renderCajaCierres(data.cierres || []);
+    document.getElementById('caja-cierre-box').style.display = USER.role === 'superadmin' ? 'block' : 'none';
     const accounts = data.accounts.filter(a => a.id === 'sin_cuenta' ? a.movements.length > 0 : true);
     if(!accounts.length){ box.innerHTML = '<p style="color:var(--gray)">No hay cuentas cargadas todavía — creá alguna en "Cuentas bancarias".</p>'; return; }
 
@@ -1922,6 +1989,32 @@ async function loadCaja(){
 function toggleCajaAccount(id){
   const el = document.getElementById(`caja-account-${id}`);
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function renderCajaCierres(cierres){
+  const box = document.getElementById('caja-cierres-list');
+  if(!cierres.length){ box.innerHTML = '<p style="color:var(--gray)">Todavía no cerraste ningún mes.</p>'; return; }
+  box.innerHTML = cierres.map(c => `
+    <span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);padding:4px 10px;margin:0 6px 6px 0">
+      🔒 ${c.period}
+      ${USER.role === 'superadmin' ? `<button style="color:var(--red);font-size:11px" onclick="reabrirMesCaja('${c.period}')">Reabrir</button>` : ''}
+    </span>
+  `).join('');
+}
+async function cerrarMesCaja(){
+  const period = document.getElementById('caja-cierre-period').value;
+  if(!period){ toast('Elegí el mes que querés cerrar.'); return; }
+  if(!confirm(`¿Cerrar ${period}? El resto del personal ya no va a poder cargar ni borrar movimientos sueltos en ese mes.`)) return;
+  try{
+    await api('/caja/cerrar-mes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({period})});
+    toast('Mes cerrado.'); loadCaja();
+  }catch(err){ toast(err.message); }
+}
+async function reabrirMesCaja(period){
+  if(!confirm(`¿Reabrir ${period}?`)) return;
+  try{
+    await api(`/caja/cerrar-mes/${period}`, {method:'DELETE'});
+    toast('Mes reabierto.'); loadCaja();
+  }catch(err){ toast(err.message); }
 }
 function openCajaMovimientoModal(){
   document.getElementById('caja-movimiento-form').reset();
@@ -3943,6 +4036,14 @@ async function savePaymentDetailTemplate(){
     toast('Modelo de detalle de pago guardado.');
   }catch(err){ toast(err.message); }
 }
+async function runReminderNow(tipo){
+  toast('Enviando avisos, puede tardar un momento...');
+  try{
+    const result = await api(`/site-config/run-${tipo}-reminders`, {method:'POST'});
+    if(result.skipped) toast('Ese aviso está apagado — prendelo primero y guardá los cambios.');
+    else toast(`Listo: se mandaron ${result.enviados} aviso(s).`);
+  }catch(err){ toast(err.message); }
+}
 async function loadSiteConfig(){
   try{
     const c = await api('/site-config');
@@ -3955,6 +4056,8 @@ async function loadSiteConfig(){
     document.getElementById('sc-whatsapp').value = c.whatsapp_number || '';
     document.getElementById('sc-primary-color').value = c.primary_color || '#F4C300';
     document.getElementById('sc-footer-text').value = c.footer_text || '';
+    document.getElementById('sc-payment-reminders').checked = !!c.payment_reminders_enabled;
+    document.getElementById('sc-renewal-reminders').checked = !!c.renewal_reminders_enabled;
     document.getElementById('sc-hero-image-status').textContent = c.hero_image ? '✔ Ya hay una imagen de fondo cargada. Subí una nueva para reemplazarla.' : '';
     document.getElementById('sc-logo-image-status').textContent = c.logo_image ? '✔ Ya hay un logo cargado. Subí uno nuevo para reemplazarlo.' : '';
   }catch(err){ toast('No pudimos cargar la apariencia del sitio.'); }
@@ -3965,6 +4068,8 @@ document.getElementById('site-config-form').addEventListener('submit', async e=>
   ['logo-text','hero-title','hero-subtitle','contact-phone','contact-email','office-address','whatsapp','primary-color','footer-text'].forEach(f=>{
     fd.append(f.replace(/-/g,'_'), document.getElementById('sc-'+f).value);
   });
+  fd.append('payment_reminders_enabled', document.getElementById('sc-payment-reminders').checked);
+  fd.append('renewal_reminders_enabled', document.getElementById('sc-renewal-reminders').checked);
   const heroFile = document.getElementById('sc-hero-image').files[0];
   if(heroFile) fd.append('hero_image', heroFile);
   const logoFile = document.getElementById('sc-logo-image').files[0];
