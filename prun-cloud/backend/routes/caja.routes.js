@@ -141,4 +141,39 @@ router.delete('/cerrar-mes/:period', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Cierra automáticamente todos los meses pasados que todavía sigan
+// abiertos (nunca el mes actual). Revisa desde el movimiento manual más
+// viejo hasta el mes anterior al de hoy, así se pone al día solo aunque
+// el servidor haya estado dormido varios meses sin uso.
+async function autoCloseCajaPastMonths() {
+  const now = new Date();
+  const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const { data: cierres } = await supabase.from('caja_cierres').select('period');
+  const closedSet = new Set((cierres || []).map(c => c.period));
+
+  const { data: oldestMov } = await supabase.from('caja_movimientos').select('fecha').not('fecha', 'is', null).order('fecha', { ascending: true }).limit(1);
+  let cursor;
+  if (oldestMov && oldestMov.length) {
+    const d = new Date(oldestMov[0].fecha + 'T00:00:00');
+    cursor = new Date(d.getFullYear(), d.getMonth(), 1);
+  } else {
+    cursor = new Date(now.getFullYear(), now.getMonth() - 1, 1); // si no hay nada cargado, solo revisa el mes pasado
+  }
+
+  const cerradosAhora = [];
+  while (true) {
+    const period = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+    if (period >= currentPeriod) break; // nunca cierra el mes actual ni futuros
+    if (!closedSet.has(period)) {
+      const { error } = await supabase.from('caja_cierres').insert([{ period, closed_by: 'Automático (1° de mes)' }]);
+      if (!error) cerradosAhora.push(period);
+    }
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  if (cerradosAhora.length) console.log(`Caja: se cerraron automáticamente los meses ${cerradosAhora.join(', ')}.`);
+  return cerradosAhora;
+}
+
 module.exports = router;
+module.exports.autoCloseCajaPastMonths = autoCloseCajaPastMonths;
