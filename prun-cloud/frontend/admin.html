@@ -925,10 +925,12 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
           <input type="checkbox" id="sc-payment-reminders" style="width:auto"> Avisos de pago automáticos (le manda el detalle de pago a quien tenga algo pendiente, cada 3 días como máximo)
           <button class="btn" type="button" style="font-size:11px;padding:6px 10px;margin-left:auto" onclick="runReminderNow('payment')">Probar ahora</button>
+          <button class="btn" type="button" style="font-size:11px;padding:6px 10px;background:#fff;color:var(--black)" onclick="resetReminderLog('payment')">Reiniciar espera</button>
         </label>
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer">
           <input type="checkbox" id="sc-renewal-reminders" style="width:auto"> Avisos de renovación de contrato (avisa cuando falten 30 días o menos para el vencimiento)
           <button class="btn" type="button" style="font-size:11px;padding:6px 10px;margin-left:auto" onclick="runReminderNow('renewal')">Probar ahora</button>
+          <button class="btn" type="button" style="font-size:11px;padding:6px 10px;background:#fff;color:var(--black)" onclick="resetReminderLog('renewal')">Reiniciar espera</button>
         </label>
 
         <button class="btn" type="submit" style="width:100%;margin-top:6px">Guardar cambios</button>
@@ -4045,6 +4047,13 @@ async function runReminderNow(tipo){
     if(result.detalle && result.detalle.length){
       alert(`Detalle de lo que hizo con cada inquilino:\n\n${result.detalle.join('\n')}`);
     }
+  }catch(err){ toast(err.message); }
+}
+async function resetReminderLog(tipo){
+  if(!confirm('Esto borra el registro de "ya se le avisó" de TODOS los inquilinos para este aviso, para poder probarlo de nuevo ahora mismo sin esperar. ¿Continuar?')) return;
+  try{
+    await api(`/site-config/reminder-log?tipo=${tipo}`, {method:'DELETE'});
+    toast('Listo, ya podés tocar "Probar ahora" de nuevo.');
   }catch(err){ toast(err.message); }
 }
 async function loadSiteConfig(){
