@@ -18,11 +18,11 @@ router.get('/', requireAuth, async (req, res) => {
     const SIN_CUENTA = 'sin_cuenta';
     accountMap[SIN_CUENTA] = { id: SIN_CUENTA, name: 'Sin cuenta asignada', account_type: '-', balance: 0, movements: [] };
 
-    function addMovement(accountId, tipo, origen, monto, fecha, detalle) {
+    function addMovement(accountId, tipo, origen, monto, fecha, detalle, movId) {
       const key = accountId && accountMap[accountId] ? accountId : SIN_CUENTA;
       const signedAmount = tipo === 'entrada' ? monto : -monto;
       accountMap[key].balance += signedAmount;
-      accountMap[key].movements.push({ tipo, origen, monto, fecha, detalle });
+      accountMap[key].movements.push({ tipo, origen, monto, fecha, detalle, movId: movId || null });
     }
 
     // --- Cobros de alquiler ---
@@ -71,6 +71,13 @@ router.get('/', requireAuth, async (req, res) => {
       });
     });
 
+    // --- Movimientos sueltos cargados a mano (ej: publicidad, gastos varios) ---
+    const { data: manuales } = await supabase.from('caja_movimientos').select('*');
+    (manuales || []).forEach(m => {
+      if (!m.monto) return;
+      addMovement(m.account_id, m.tipo, 'Movimiento manual', Number(m.monto), m.fecha, `${m.concepto}${m.notes ? ' — ' + m.notes : ''}`, m.id);
+    });
+
     // Ordena los movimientos de cada cuenta del más reciente al más viejo.
     Object.values(accountMap).forEach(acc => {
       acc.movements.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
@@ -81,6 +88,27 @@ router.get('/', requireAuth, async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Error al armar la Caja.' });
   }
+});
+
+// Carga un movimiento suelto a mano (ej: gasto de publicidad, un ingreso
+// que no viene de ningún otro lado del sistema).
+router.post('/movimiento', requireAuth, async (req, res) => {
+  const b = req.body;
+  if (!b.concepto) return res.status(400).json({ error: 'Contanos de qué es el movimiento.' });
+  if (!b.monto) return res.status(400).json({ error: 'Cargá un monto.' });
+  const { data, error } = await supabase.from('caja_movimientos').insert([{
+    account_id: b.account_id || null, tipo: b.tipo === 'entrada' ? 'entrada' : 'salida',
+    concepto: b.concepto, monto: Number(b.monto) || 0, fecha: b.fecha || new Date().toISOString().slice(0, 10),
+    notes: b.notes || '',
+  }]).select().single();
+  if (error) return res.status(500).json({ error: 'Error al cargar el movimiento.' });
+  res.status(201).json(data);
+});
+
+router.delete('/movimiento/:id', requireAuth, async (req, res) => {
+  const { error } = await supabase.from('caja_movimientos').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: 'Error al borrar el movimiento.' });
+  res.json({ ok: true });
 });
 
 module.exports = router;
