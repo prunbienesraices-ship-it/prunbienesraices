@@ -249,6 +249,12 @@ th{background:#fafaf7;text-transform:uppercase;font-size:10px;color:var(--gray);
     <h2 style="font-size:22px">Dashboard</h2>
     <div><span id="session-label" style="font-size:12px;color:var(--gray);margin-right:14px"></span><a href="index.html" target="_blank" class="btn" style="background:none;color:var(--black);margin-right:8px;text-decoration:none;display:inline-block">Ver sitio ↗</a><button class="btn" onclick="logout()" style="background:none;color:var(--black)">Salir</button></div>
   </div>
+  <div id="admin-tabs-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;border-bottom:2px solid var(--line);padding-bottom:14px">
+    <button class="btn admin-tab-btn" data-group="datos" onclick="switchAdminTab('datos')">📋 Datos</button>
+    <button class="btn admin-tab-btn" data-group="cuentas" onclick="switchAdminTab('cuentas')" style="background:#fff;color:var(--black)">💰 Cuentas</button>
+    <button class="btn admin-tab-btn" data-group="operaciones" onclick="switchAdminTab('operaciones')" style="background:#fff;color:var(--black)">🔧 Operaciones</button>
+    <button class="btn admin-tab-btn" data-group="config" onclick="switchAdminTab('config')" style="background:#fff;color:var(--black)">⚙️ Configuración</button>
+  </div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
     <label style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--gray)">Informe:</label>
     <select id="stats-branch-filter" onchange="loadStats()" style="max-width:260px">
@@ -1446,6 +1452,65 @@ function initCollapsibleSections(){
     };
   });
 }
+
+// =====================================================================
+// PESTAÑAS DEL PANEL — agrupa las secciones en 4 categorías (Datos,
+// Cuentas, Operaciones, Configuración), sin mover el HTML de lugar: solo
+// muestra/oculta cada sección completa según a qué grupo pertenece su
+// título. Dashboard y "Cobros del mes actual" quedan siempre visibles,
+// sin pestaña, en cualquier grupo que estés mirando.
+const SECTION_GROUPS = {
+  'Propiedades': 'datos', 'Consultas': 'datos', 'Inquilinos': 'datos', 'Edificios / Conjuntos': 'datos',
+  'Propietarios': 'datos', 'Garantes': 'datos', 'Clientes registrados en el sitio': 'datos',
+
+  'Caja': 'cuentas', 'Cuentas bancarias': 'cuentas', 'Expensas por edificio': 'cuentas',
+  'Cobranzas (otros conceptos)': 'cuentas', 'Liquidaciones al propietario': 'cuentas',
+
+  'Reparaciones': 'operaciones', 'Control de Obra': 'operaciones', 'Proveedores': 'operaciones',
+  'Pipeline de Ventas': 'operaciones', 'Agenda': 'operaciones', 'Clasificados': 'operaciones',
+  'Comprobantes de pago cargados por inquilinos': 'operaciones', 'Cuestionarios "Agendarme" recibidos': 'operaciones',
+
+  'Usuarios del panel': 'config', 'Sucursales': 'config', 'Modelo de contrato de alquiler': 'config',
+  'Modelo de detalle de pago': 'config', 'Apariencia del sitio': 'config', 'Auditoría': 'config',
+};
+const SIEMPRE_VISIBLES = ['Dashboard', 'Cobros del mes actual'];
+let ADMIN_ACTIVE_TAB = 'datos';
+
+// Junta el page-head y todo lo que le pertenece (mismo criterio que ya
+// usa initCollapsibleSections, para no duplicar lógica ni arriesgar que
+// se desincronicen).
+function getSectionElements(pageHead){
+  const elements = [pageHead];
+  let el = pageHead.nextElementSibling;
+  while(el && !el.classList.contains('page-head') && !el.querySelector('.page-head')){
+    elements.push(el);
+    el = el.nextElementSibling;
+  }
+  return elements;
+}
+function switchAdminTab(group){
+  ADMIN_ACTIVE_TAB = group;
+  document.querySelectorAll('.admin-tab-btn').forEach(b=>{
+    const active = b.dataset.group === group;
+    b.style.background = active ? '' : '#fff';
+    b.style.color = active ? '' : 'var(--black)';
+  });
+  document.querySelectorAll('.page-head').forEach(pageHead=>{
+    const h2 = pageHead.querySelector('h2');
+    if(!h2) return;
+    const title = h2.textContent.replace('▸','').replace('▾','').trim();
+    if(SIEMPRE_VISIBLES.includes(title)) return; // nunca se tocan
+    const sectionGroup = SECTION_GROUPS[title];
+    if(!sectionGroup) return; // titulo no mapeado, no se toca por las dudas
+    const show = sectionGroup === group;
+    if(show){
+      pageHead.style.display = ''; // el titulo se muestra; su contenido queda como estaba (colapsado o no)
+    } else {
+      getSectionElements(pageHead).forEach(el => { el.style.display = 'none'; }); // toda la sección se esconde, título incluido
+    }
+  });
+}
+
 function toggleRowDetail(btn, colspan, dataObj, labelMap, actionsHtml){
   const tr = btn.closest('tr');
   const next = tr.nextElementSibling;
@@ -1628,6 +1693,7 @@ async function startApp(){
   addExportButtonsToAllTables();
   addBranchFiltersToSearchInputs();
   initCollapsibleSections();
+  switchAdminTab('datos');
   const appObserver = new MutationObserver(()=>{
     clearTimeout(window._rolePermTimer);
     window._rolePermTimer = setTimeout(applyRolePermissions, 150);
