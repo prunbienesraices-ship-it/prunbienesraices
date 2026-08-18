@@ -1,8 +1,10 @@
 // routes/auth.routes.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const supabase = require('../supabaseClient');
 const { generateToken, requireAuth, requireSuperadmin } = require('../auth');
+const { sendMail } = require('../mailer');
 
 const router = express.Router();
 
@@ -225,6 +227,79 @@ router.put('/staff/:id/password', requireSuperadmin, async (req, res) => {
     const password_hash = bcrypt.hashSync(password, 10);
     const { error } = await supabase.from('admin_accounts').update({ password_hash }).eq('id', req.params.id);
     if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al restablecer la contraseña.' });
+  }
+});
+
+// Cambiar la contraseña (logueado) — para inquilinos, propietarios,
+// garantes o cualquier otra cuenta del sitio. Pide la contraseña actual
+// para confirmar que es la persona dueña de la cuenta.
+router.put('/site-user/password', requireAuth, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!new_password || new_password.length < 4) return res.status(400).json({ error: 'La contraseña nueva tiene que tener al menos 4 caracteres.' });
+    const { data: user } = await supabase.from('site_users').select('*').eq('email', req.user.email).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'No encontramos tu cuenta.' });
+    if (!bcrypt.compareSync(current_password || '', user.password_hash)) {
+      return res.status(401).json({ error: 'La contraseña actual no es correcta.' });
+    }
+    const password_hash = bcrypt.hashSync(new_password, 10);
+    await supabase.from('site_users').update({ password_hash }).eq('id', user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al cambiar la contraseña.' });
+  }
+});
+
+// "Olvidé mi contraseña" — genera un link de un solo uso, válido 1 hora, y
+// lo manda por mail. No confirma si el mail existe o no en la respuesta,
+// para no filtrar esa información a quien lo esté probando.
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Ingresá tu email.' });
+    const { data: user } = await supabase.from('site_users').select('id, name, email').eq('email', email).maybeSingle();
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hora
+      await supabase.from('site_users').update({ reset_token: token, reset_token_expires: expires }).eq('id', user.id);
+      const siteUrl = process.env.SITE_URL || 'https://prunbienesraices.onrender.com';
+      const resetLink = `${siteUrl}/index.html?reset=${token}`;
+      try {
+        await sendMail({
+          to: user.email, subject: 'Recuperar contraseña — Prun Bienes Raíces',
+          html: `<div style="font-family:Arial,sans-serif;max-width:480px">
+            <p>Hola ${user.name || ''},</p>
+            <p>Nos pediste recuperar tu contraseña. Tocá este link para elegir una nueva (válido por 1 hora):</p>
+            <p><a href="${resetLink}" style="background:#111;color:#fff;padding:10px 18px;text-decoration:none;display:inline-block">Elegir nueva contraseña</a></p>
+            <p style="font-size:12px;color:#777">Si no pediste esto, ignorá este mail — tu contraseña actual sigue funcionando igual.</p>
+          </div>`,
+        });
+      } catch (mailErr) { console.error('No se pudo enviar el mail de recuperación ->', mailErr.message); }
+    }
+    // Siempre responde lo mismo, exista o no la cuenta.
+    res.json({ ok: true, message: 'Si ese email está registrado, te llegó un mail con el link para recuperar tu contraseña.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al procesar el pedido.' });
+  }
+});
+
+// Confirma el link de recuperación y define la contraseña nueva.
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+    if (!token || !new_password || new_password.length < 4) return res.status(400).json({ error: 'Faltan datos, o la contraseña es muy corta.' });
+    const { data: user } = await supabase.from('site_users').select('*').eq('reset_token', token).maybeSingle();
+    if (!user || !user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+      return res.status(400).json({ error: 'Ese link ya venció o no es válido. Pedí uno nuevo.' });
+    }
+    const password_hash = bcrypt.hashSync(new_password, 10);
+    await supabase.from('site_users').update({ password_hash, reset_token: null, reset_token_expires: null }).eq('id', user.id);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

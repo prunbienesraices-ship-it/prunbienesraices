@@ -188,4 +188,28 @@ router.post('/payments', requireAuth, upload.single('file'), async (req, res) =>
   }
 });
 
+// El propietario puede ver (pero no modificar) los contratos ya generados
+// de los inquilinos de sus propiedades.
+router.get('/my-contracts', requireAuth, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { data: owner } = await supabase.from('owners').select('id').eq('email', email).maybeSingle();
+    if (!owner) return res.json({ isOwner: false, contracts: [] });
+    const { data: properties } = await supabase.from('properties').select('id, title').eq('owner_id', owner.id);
+    const propertyIds = (properties || []).map(p => p.id);
+    let contracts = [];
+    if (propertyIds.length) {
+      const { data: tenants } = await supabase.from('tenants').select('name, property_id, contract_file_url, contract_generated_at').in('property_id', propertyIds).not('contract_file_url', 'is', null);
+      contracts = (tenants || []).map(t => ({
+        tenantName: t.name, propertyTitle: (properties.find(p => p.id === t.property_id) || {}).title || '-',
+        url: t.contract_file_url, generatedAt: t.contract_generated_at,
+      }));
+    }
+    res.json({ isOwner: true, contracts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al buscar los contratos.' });
+  }
+});
+
 module.exports = router;

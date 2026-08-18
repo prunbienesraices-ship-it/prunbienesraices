@@ -163,6 +163,27 @@ router.get('/tenants/:id/contract', requireAuth, async (req, res) => {
     const buffer = await Packer.toBuffer(doc);
 
     const safeName = (property ? property.title : tenant.name).replace(/[^a-zA-Z0-9]+/g, '_');
+
+    // Guarda una copia del contrato en el storage, asociada al inquilino (y
+    // por lo tanto también visible para el propietario de esa propiedad),
+    // para que ambos la puedan volver a ver más adelante sin regenerarla.
+    try {
+      const fileName = `contrato-${tenant.id}-${Date.now()}.docx`;
+      const { error: uploadErr } = await supabase.storage.from('property-photos').upload(fileName, buffer, {
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      if (!uploadErr) {
+        const { data: pub } = supabase.storage.from('property-photos').getPublicUrl(fileName);
+        await supabase.from('tenants').update({
+          contract_file_url: pub.publicUrl, contract_generated_at: new Date().toISOString(),
+        }).eq('id', tenant.id);
+      } else {
+        console.error('No se pudo guardar una copia del contrato ->', uploadErr.message);
+      }
+    } catch (saveErr) {
+      console.error('No se pudo guardar una copia del contrato ->', saveErr.message);
+    }
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="Contrato_${safeName}.docx"`);
     res.send(buffer);

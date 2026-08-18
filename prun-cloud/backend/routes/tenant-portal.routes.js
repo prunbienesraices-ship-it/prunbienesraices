@@ -149,4 +149,17 @@ router.get('/payment-detail', requireAuth, async (req, res) => {
   }
 });
 
+// El inquilino puede ver (pero no modificar) el contrato ya generado.
+router.get('/my-contract', requireAuth, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { data: tenant } = await supabase.from('tenants').select('contract_file_url, contract_generated_at').eq('email', email).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (!tenant || !tenant.contract_file_url) return res.json({ hasContract: false });
+    res.json({ hasContract: true, url: tenant.contract_file_url, generatedAt: tenant.contract_generated_at });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al buscar tu contrato.' });
+  }
+});
+
 module.exports = router;

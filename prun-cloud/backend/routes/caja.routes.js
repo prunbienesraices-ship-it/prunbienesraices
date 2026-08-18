@@ -76,12 +76,26 @@ router.get('/', requireAuth, async (req, res) => {
       acc.movements.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
     });
 
-    res.json({ accounts: Object.values(accountMap) });
+    const { data: cierres } = await supabase.from('caja_cierres').select('*').order('period', { ascending: false });
+
+    res.json({ accounts: Object.values(accountMap), cierres: cierres || [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al armar la Caja.' });
   }
 });
+
+const STAFF_SUPERADMIN = 'superadmin';
+
+// Un mes cerrado no deja cargar/borrar movimientos MANUALES de ese período,
+// salvo que quien lo pida sea el Administrador (que puede tocar cualquier
+// mes, cerrado o no, cuando haga falta corregir algo).
+async function periodoEstaCerrado(fecha) {
+  if (!fecha) return false;
+  const period = fecha.slice(0, 7); // "YYYY-MM"
+  const { data } = await supabase.from('caja_cierres').select('id').eq('period', period).maybeSingle();
+  return !!data;
+}
 
 // Carga un movimiento suelto a mano (ej: gasto de publicidad, un ingreso
 // que no viene de ningún otro lado del sistema).
@@ -89,18 +103,41 @@ router.post('/movimiento', requireAuth, async (req, res) => {
   const b = req.body;
   if (!b.concepto) return res.status(400).json({ error: 'Contanos de qué es el movimiento.' });
   if (!b.monto) return res.status(400).json({ error: 'Cargá un monto.' });
+  const fecha = b.fecha || new Date().toISOString().slice(0, 10);
+  if (req.user.role !== STAFF_SUPERADMIN && await periodoEstaCerrado(fecha)) {
+    return res.status(403).json({ error: 'Ese mes ya está cerrado — solo el Administrador puede cargar movimientos ahí.' });
+  }
   const { data, error } = await supabase.from('caja_movimientos').insert([{
     account_id: b.account_id || null, tipo: b.tipo === 'entrada' ? 'entrada' : 'salida',
-    concepto: b.concepto, monto: Number(b.monto) || 0, fecha: b.fecha || new Date().toISOString().slice(0, 10),
-    notes: b.notes || '',
+    concepto: b.concepto, monto: Number(b.monto) || 0, fecha, notes: b.notes || '',
   }]).select().single();
   if (error) return res.status(500).json({ error: 'Error al cargar el movimiento.' });
   res.status(201).json(data);
 });
 
 router.delete('/movimiento/:id', requireAuth, async (req, res) => {
+  const { data: current } = await supabase.from('caja_movimientos').select('fecha').eq('id', req.params.id).maybeSingle();
+  if (current && req.user.role !== STAFF_SUPERADMIN && await periodoEstaCerrado(current.fecha)) {
+    return res.status(403).json({ error: 'Ese mes ya está cerrado — solo el Administrador puede borrar movimientos ahí.' });
+  }
   const { error } = await supabase.from('caja_movimientos').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ error: 'Error al borrar el movimiento.' });
+  res.json({ ok: true });
+});
+
+// Cerrar / reabrir un mes — solo el Administrador.
+router.post('/cerrar-mes', requireAuth, async (req, res) => {
+  if (req.user.role !== STAFF_SUPERADMIN) return res.status(403).json({ error: 'Solo el Administrador puede cerrar un mes.' });
+  const { period } = req.body;
+  if (!/^\d{4}-\d{2}$/.test(period || '')) return res.status(400).json({ error: 'Formato de período inválido (tiene que ser AAAA-MM).' });
+  const { data, error } = await supabase.from('caja_cierres').insert([{ period, closed_by: req.user.email || req.user.name || '' }]).select().single();
+  if (error) return res.status(500).json({ error: 'Ese mes ya estaba cerrado, o hubo un error al cerrarlo.' });
+  res.status(201).json(data);
+});
+router.delete('/cerrar-mes/:period', requireAuth, async (req, res) => {
+  if (req.user.role !== STAFF_SUPERADMIN) return res.status(403).json({ error: 'Solo el Administrador puede reabrir un mes.' });
+  const { error } = await supabase.from('caja_cierres').delete().eq('period', req.params.period);
+  if (error) return res.status(500).json({ error: 'Error al reabrir el mes.' });
   res.json({ ok: true });
 });
 
