@@ -75,4 +75,22 @@ router.post('/run-renewal-reminders', requireSuperadmin, async (req, res) => {
   }
 });
 
+// Borra el registro de "ya se le avisó" de un aviso puntual, para poder
+// probarlo de nuevo ahora mismo en vez de esperar los días de espera
+// entre un aviso y el siguiente. Solo el Administrador.
+router.delete('/reminder-log', requireSuperadmin, async (req, res) => {
+  try {
+    const { tipo, tenant_id } = req.query;
+    if (!tipo) return res.status(400).json({ error: 'Falta indicar el tipo de aviso.' });
+    let query = supabase.from('reminder_log').delete().eq('tipo', tipo);
+    if (tenant_id) query = query.eq('tenant_id', tenant_id);
+    const { error } = await query;
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al reiniciar el aviso.' });
+  }
+});
+
 module.exports = router;
