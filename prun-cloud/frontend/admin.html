@@ -648,6 +648,7 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
       <h2 style="font-size:20px">Caja</h2>
       <div style="display:flex;gap:8px">
         <button class="btn" style="background:#fff;color:var(--black)" onclick="openCajaMovimientoModal()">+ Nuevo movimiento</button>
+        <button class="btn" style="background:#fff;color:var(--black)" onclick="openCajaExportModal()">⬇ Exportar</button>
         <button class="btn" onclick="loadCaja()">🔄 Actualizar</button>
       </div>
     </div>
@@ -1246,6 +1247,34 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
   </div>
 </div>
 
+<div class="modal-overlay" id="caja-export-modal">
+  <div class="modal-box">
+    <h3 style="font-size:17px;margin-bottom:16px">Exportar Caja</h3>
+    <div class="section-label"><span>Cuentas a incluir</span></div>
+    <label style="display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer;font-weight:700">
+      <input type="checkbox" id="ce-select-all" checked onchange="toggleAllCajaExportAccounts(this)" style="width:auto"> Todas las cuentas
+    </label>
+    <div id="ce-accounts-list" style="margin-bottom:16px;padding-left:6px"></div>
+
+    <div class="section-label"><span>Rango de fechas (opcional)</span></div>
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-row"><label>Desde</label><input type="date" id="ce-desde"></div>
+      <div class="form-row"><label>Hasta</label><input type="date" id="ce-hasta"></div>
+    </div>
+
+    <div class="section-label"><span>Tipo de movimiento</span></div>
+    <div style="display:flex;gap:16px;margin-bottom:20px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="ce-entradas" checked style="width:auto"> Entradas</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="ce-salidas" checked style="width:auto"> Salidas</label>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn" type="button" onclick="exportCajaData()">⬇ Exportar a Excel</button>
+      <button class="btn" type="button" style="background:#fff;color:var(--black)" onclick="closeModal('caja-export-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Proveedores -->
 <div class="modal-overlay" id="provider-modal">
   <div class="modal-box">
@@ -1367,6 +1396,7 @@ let ALL_EXPENSAS = [];
 let ALL_OWNERS = [];
 let ALL_GUARANTORS = [];
 let ALL_BANK_ACCOUNTS = [];
+let CAJA_DATA_CACHE = null;
 let ALL_DEALS_CACHE = [];
 let ALL_TENANTS_CACHE = [];
 let ALL_SITE_USERS = [];
@@ -1786,6 +1816,7 @@ async function loadCaja(){
   box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
   try{
     const data = await api('/caja');
+    CAJA_DATA_CACHE = data;
     const accounts = data.accounts.filter(a => a.id === 'sin_cuenta' ? a.movements.length > 0 : true);
     if(!accounts.length){ box.innerHTML = '<p style="color:var(--gray)">No hay cuentas cargadas todavía — creá alguna en "Cuentas bancarias".</p>'; return; }
 
@@ -1853,6 +1884,69 @@ async function deleteCajaMovimiento(id){
   if(!confirm('¿Borrar este movimiento?')) return;
   try{ await api(`/caja/movimiento/${id}`, {method:'DELETE'}); loadCaja(); }
   catch(err){ toast(err.message); }
+}
+// ---------- EXPORTAR CAJA ----------
+async function openCajaExportModal(){
+  if(!CAJA_DATA_CACHE) await loadCaja();
+  const list = document.getElementById('ce-accounts-list');
+  const accounts = CAJA_DATA_CACHE.accounts.filter(a => a.id === 'sin_cuenta' ? a.movements.length > 0 : true);
+  list.innerHTML = accounts.map(a => `
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer">
+      <input type="checkbox" class="ce-account-check" value="${a.id}" checked style="width:auto"> ${a.name}${a.account_type!=='-'?' ('+(ACCOUNT_TYPE_LABEL[a.account_type]||a.account_type)+')':''}
+    </label>
+  `).join('');
+  document.getElementById('ce-select-all').checked = true;
+  document.getElementById('ce-desde').value = '';
+  document.getElementById('ce-hasta').value = '';
+  document.getElementById('ce-entradas').checked = true;
+  document.getElementById('ce-salidas').checked = true;
+  document.getElementById('caja-export-modal').classList.add('active');
+}
+function toggleAllCajaExportAccounts(checkbox){
+  document.querySelectorAll('.ce-account-check').forEach(c => c.checked = checkbox.checked);
+}
+function exportCajaData(){
+  if(!CAJA_DATA_CACHE){ toast('Esperá a que termine de cargar la Caja.'); return; }
+  const selectedIds = Array.from(document.querySelectorAll('.ce-account-check:checked')).map(c => c.value);
+  if(!selectedIds.length){ toast('Elegí al menos una cuenta.'); return; }
+  const desde = document.getElementById('ce-desde').value;
+  const hasta = document.getElementById('ce-hasta').value;
+  const incluirEntradas = document.getElementById('ce-entradas').checked;
+  const incluirSalidas = document.getElementById('ce-salidas').checked;
+  if(!incluirEntradas && !incluirSalidas){ toast('Elegí al menos un tipo de movimiento (entradas o salidas).'); return; }
+
+  const accounts = CAJA_DATA_CACHE.accounts.filter(a => selectedIds.includes(String(a.id)));
+  const rows = [];
+  let totalEntradas = 0, totalSalidas = 0;
+  accounts.forEach(a => {
+    a.movements.forEach(m => {
+      if(desde && (m.fecha||'') < desde) return;
+      if(hasta && (m.fecha||'') > hasta) return;
+      if(m.tipo === 'entrada' && !incluirEntradas) return;
+      if(m.tipo === 'salida' && !incluirSalidas) return;
+      if(m.tipo === 'entrada') totalEntradas += m.monto; else totalSalidas += m.monto;
+      rows.push({ cuenta: a.name, fecha: m.fecha||'-', tipo: m.tipo==='entrada'?'Entrada':'Salida', origen: m.origen, detalle: m.detalle||'-', monto: m.monto });
+    });
+  });
+  if(!rows.length){ toast('No hay movimientos que coincidan con ese filtro.'); return; }
+  rows.sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+
+  const escape = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const headers = ['Cuenta','Fecha','Tipo','Origen','Detalle','Monto'];
+  const lines = [headers.map(escape).join(',')];
+  rows.forEach(r => lines.push([r.cuenta, r.fecha, r.tipo, r.origen, r.detalle, r.monto].map(escape).join(',')));
+  lines.push('');
+  lines.push([escape('TOTAL ENTRADAS'), '', '', '', '', totalEntradas].join(','));
+  lines.push([escape('TOTAL SALIDAS'), '', '', '', '', totalSalidas].join(','));
+  lines.push([escape('SALDO NETO DEL PERÍODO'), '', '', '', '', totalEntradas - totalSalidas].join(','));
+
+  const csv = lines.join('\n');
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `caja-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+  closeModal('caja-export-modal');
 }
 
 async function loadStats(){
