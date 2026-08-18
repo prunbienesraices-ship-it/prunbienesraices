@@ -588,6 +588,7 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
       <div class="field wide"><label>Concepto</label><input type="text" name="concepto" placeholder="Ej: Anticipo semana 3" required></div>
       <div class="field"><label>Monto</label><input type="number" name="monto" step="0.01" min="0" required></div>
       <div class="field"><label>Método</label><input type="text" name="metodo" placeholder="Efectivo / transferencia"></div>
+      <div class="field"><label>Cuenta (para la Caja)</label><select name="account_id" id="co-pago-account"><option value="">Sin cuenta específica</option></select></div>
       <div class="field"><label>Fecha</label><input type="date" name="fecha" required></div>
       <div class="submit-cell"><button type="submit" class="btn">Registrar pago</button></div>
     </form>
@@ -643,6 +644,13 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
   </table></div>
 
   <div id="financiero-section" style="display:none">
+    <div class="page-head" style="margin-top:36px">
+      <h2 style="font-size:20px">Caja</h2>
+      <button class="btn" onclick="loadCaja()">🔄 Actualizar</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px">Refleja automáticamente todos los cobros y pagos del sistema (alquileres, otros conceptos, liquidaciones a propietarios, obra, y pagos a proveedores), agrupados por cuenta.</p>
+    <div id="caja-content"><p style="color:var(--gray)">Cargando...</p></div>
+
     <div class="page-head" style="margin-top:36px">
       <h2 style="font-size:20px">Cobros del mes actual</h2>
     </div>
@@ -815,8 +823,11 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
     <div style="background:#fff;border:1.5px solid var(--line);padding:24px;max-width:640px;margin-bottom:20px">
       <form id="bankaccount-form" style="display:flex;flex-direction:column;gap:12px">
         <input type="hidden" id="ba-id">
-        <input type="text" id="ba-name" placeholder="Nombre de la cuenta (ej: Cuenta corriente Banco Galicia)" required>
-        <select id="ba-type"><option value="banco">Banco</option><option value="cooperativa">Cooperativa</option></select>
+        <input type="text" id="ba-name" placeholder="Nombre de la cuenta (ej: Cuenta corriente Banco Galicia, o Caja chica)" required>
+        <div class="form-grid">
+          <select id="ba-type"><option value="banco">Banco</option><option value="cooperativa">Cooperativa</option><option value="efectivo">Efectivo</option><option value="otro">Otro</option></select>
+          <input type="number" step="0.01" id="ba-saldo-inicial" placeholder="Saldo inicial (opcional)">
+        </div>
         <textarea id="ba-notes" placeholder="Notas (opcional, ej: N° de cuenta, CBU)" rows="2"></textarea>
         <div style="display:flex;gap:10px">
           <button class="btn" type="submit" style="flex:1">Guardar cuenta</button>
@@ -1552,7 +1563,7 @@ async function startApp(){
   api('/bank-accounts').then(list => ALL_BANK_ACCOUNTS = list).catch(()=>{}); // todo el personal necesita la lista para elegir cuenta al pagar, aunque solo el Administrador la edite
   if(USER.role !== 'vendedor'){
     document.getElementById('financiero-section').style.display = 'block';
-    loadRentCollection(); loadCharges(); loadSettlements();
+    loadCaja(); loadRentCollection(); loadCharges(); loadSettlements();
   } else {
     document.getElementById('financiero-section').style.display = 'none';
   }
@@ -1706,7 +1717,7 @@ async function loadBankAccounts(){
       const actionsHtml = `<button onclick='editBankAccount(${JSON.stringify(a).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteBankAccount(${a.id})">Borrar</button>`;
       return `
       <tr><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(a).replace(/'/g,"&#39;")}, {account_type:"Tipo",notes:"Notas"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
-      <td>${a.name} — ${a.account_type==='cooperativa'?'Cooperativa':'Banco'}</td></tr>`;
+      <td>${a.name} — ${a.account_type==='cooperativa'?'Cooperativa':a.account_type==='efectivo'?'Efectivo':a.account_type==='otro'?'Otro':'Banco'}</td></tr>`;
     }).join('')
       : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Todavía no cargaste ninguna cuenta.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
@@ -1715,6 +1726,7 @@ function editBankAccount(a){
   document.getElementById('ba-id').value = a.id;
   document.getElementById('ba-name').value = a.name;
   document.getElementById('ba-type').value = a.account_type;
+  document.getElementById('ba-saldo-inicial').value = a.saldo_inicial || '';
   document.getElementById('ba-notes').value = a.notes || '';
   document.getElementById('bankaccount-cancel-btn').style.display = 'inline-block';
 }
@@ -1729,6 +1741,7 @@ document.getElementById('bankaccount-form').addEventListener('submit', async e=>
   const body = {
     name: document.getElementById('ba-name').value,
     account_type: document.getElementById('ba-type').value,
+    saldo_inicial: document.getElementById('ba-saldo-inicial').value || 0,
     notes: document.getElementById('ba-notes').value,
   };
   try{
@@ -1741,6 +1754,56 @@ async function deleteBankAccount(id){
   if(!confirm('¿Borrar esta cuenta?')) return;
   try{ await api(`/bank-accounts/${id}`, {method:'DELETE'}); toast('Cuenta borrada'); loadBankAccounts(); }
   catch(err){ toast(err.message); }
+}
+
+// =====================================================================
+// CAJA — junta automáticamente todos los cobros y pagos del sistema,
+// agrupados por cuenta, mostrando el saldo actual de cada una.
+// =====================================================================
+const ACCOUNT_TYPE_LABEL = { banco:'Banco', cooperativa:'Cooperativa', efectivo:'Efectivo', otro:'Otro' };
+async function loadCaja(){
+  const box = document.getElementById('caja-content');
+  box.innerHTML = '<p style="color:var(--gray)">Cargando...</p>';
+  try{
+    const data = await api('/caja');
+    const accounts = data.accounts.filter(a => a.id === 'sin_cuenta' ? a.movements.length > 0 : true);
+    if(!accounts.length){ box.innerHTML = '<p style="color:var(--gray)">No hay cuentas cargadas todavía — creá alguna en "Cuentas bancarias".</p>'; return; }
+
+    box.innerHTML = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+        ${accounts.map(a => `
+          <div style="background:#fff;border:1.5px solid var(--line);padding:14px 18px;min-width:180px;cursor:pointer" onclick="toggleCajaAccount('${a.id}')">
+            <div style="font-size:11px;color:var(--gray);text-transform:uppercase">${a.name}${a.account_type!=='-'?' ('+(ACCOUNT_TYPE_LABEL[a.account_type]||a.account_type)+')':''}</div>
+            <div style="font-size:20px;font-weight:900;color:${a.balance<0?'var(--red)':'var(--green)'}">$${Math.round(a.balance).toLocaleString('es-AR')}</div>
+            <div style="font-size:11px;color:var(--gray)">${a.movements.length} movimiento(s) — tocá para ver</div>
+          </div>
+        `).join('')}
+      </div>
+      ${accounts.map(a => `
+        <div id="caja-account-${a.id}" style="display:none;margin-bottom:24px">
+          <h4 style="font-size:14px;margin-bottom:8px">${a.name}${a.account_type!=='-'?' ('+(ACCOUNT_TYPE_LABEL[a.account_type]||a.account_type)+')':''}</h4>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Detalle</th><th class="num">Monto</th></tr></thead>
+            <tbody>
+              ${a.movements.length ? a.movements.map(m => `
+                <tr>
+                  <td>${m.fecha||'-'}</td>
+                  <td style="color:${m.tipo==='entrada'?'var(--green)':'var(--red)'};font-weight:700">${m.tipo==='entrada'?'Entrada':'Salida'}</td>
+                  <td>${m.origen}</td>
+                  <td>${m.detalle||'-'}</td>
+                  <td class="num" style="color:${m.tipo==='entrada'?'var(--green)':'var(--red)'}">${m.tipo==='entrada'?'+':'-'}$${Math.round(m.monto).toLocaleString('es-AR')}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:14px">Sin movimientos todavía.</td></tr>'}
+            </tbody>
+          </table></div>
+        </div>
+      `).join('')}
+    `;
+  }catch(err){ box.innerHTML = `<p style="color:var(--red)">${err.message}</p>`; }
+}
+function toggleCajaAccount(id){
+  const el = document.getElementById(`caja-account-${id}`);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 async function loadStats(){
@@ -2847,12 +2910,25 @@ async function loadRepairs(){
         ? r.images.map(url => `<a href="${url}" target="_blank"><img src="${url}" style="width:60px;height:60px;object-fit:cover;border:1px solid var(--line);margin-right:6px;border-radius:4px"></a>`).join('')
         : '';
       const priorityDisplay = `${PRIORITY_ICON[r.priority]||'🔵'} ${PRIORITY_LABEL[r.priority]||'Media'}`;
-      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}`, images_html: imagesHtml, priority_display: priorityDisplay, estimated_date: r.estimated_date || '' };
-      const actionsHtml = `<button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button>`;
-      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",priority_display:"Prioridad",estimated_date:"Fecha estimada",cost_display:"Costo",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas",images_html:"Fotos"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
+      const paidToProvider = (r.payments||[]).reduce((s,p)=>s+p.amount,0);
+      const detailObj = { ...r, property_name: prop?prop.title:'-', cost_display: `$${Number(r.cost).toLocaleString('es-AR')}`, paid_display: `$${paidToProvider.toLocaleString('es-AR')}`, images_html: imagesHtml, priority_display: priorityDisplay, estimated_date: r.estimated_date || '' };
+      const actionsHtml = `<button onclick="registerRepairPayment(${r.id}, ${r.cost||0}, ${paidToProvider})">Registrar pago</button><button onclick='openRepairModal(${JSON.stringify(r).replace(/'/g,"&#39;")})'>Editar</button><button style="color:var(--red)" onclick="deleteRepair(${r.id})">Borrar</button>`;
+      return `<tr data-branch-id="${branchIdForProperty(r.property_id)}"><td><button class="row-expand-btn" style="background:none;border:none;cursor:pointer;font-size:14px" onclick='toggleRowDetail(this, 2, ${JSON.stringify(detailObj).replace(/'/g,"&#39;")}, {property_name:"Propiedad",status:"Estado",priority_display:"Prioridad",estimated_date:"Fecha estimada",cost_display:"Costo",paid_display:"Pagado al proveedor",payer:"Paga",type:"Tipo",provider:"Proveedor",notes:"Notas",images_html:"Fotos"}, ${JSON.stringify(actionsHtml).replace(/'/g,"&#39;")})'>▸</button></td>
       <td>${PRIORITY_ICON[r.priority]||'🔵'} ${r.title}</td></tr>`;
     }).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--gray);padding:20px">Sin reparaciones cargadas.</td></tr>';
   }catch(err){ tbody.innerHTML = `<tr><td colspan="2">Error: ${err.message}</td></tr>`; }
+}
+// Registra un pago al proveedor de esta reparación, usando el mismo modal
+// de forma de pago combinada (para que quede reflejado en la Caja).
+async function registerRepairPayment(id, cost, paidSoFar){
+  const pending = Math.max(0, Number(cost) - Number(paidSoFar));
+  openPaymentMethodsModal('Pago al proveedor', pending ? `Costo total: $${Number(cost).toLocaleString('es-AR')} — pagado hasta ahora: $${Number(paidSoFar).toLocaleString('es-AR')}` : '', async (rows) => {
+    try{
+      await api(`/repairs/${id}/pay`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({rows})});
+      toast('Pago registrado'); loadRepairs();
+    }catch(err){ toast(err.message); }
+  });
+  if(pending) setTimeout(()=>{ const amtInput = document.querySelector('#pm-rows-list .pm-amount'); if(amtInput){ amtInput.value = pending; updatePaymentMethodsTotal(); } }, 0);
 }
 function openRepairModal(r){
   document.getElementById('repair-modal-title').textContent = r ? 'Editar reparación' : 'Nueva reparación';
@@ -3270,16 +3346,17 @@ function addPaymentMethodRow(prefillAmount){
   const c = document.getElementById('pm-rows-list');
   const div = document.createElement('div');
   div.className = 'dyn-row';
-  const accountOptions = (ALL_BANK_ACCOUNTS||[]).map(a=>`<option value="${a.id}">${a.name} (${a.account_type==='cooperativa'?'Cooperativa':'Banco'})</option>`).join('');
+  const typeLabel = t => t==='cooperativa'?'Cooperativa':t==='efectivo'?'Efectivo':t==='otro'?'Otro':'Banco';
+  const accountOptions = (ALL_BANK_ACCOUNTS||[]).map(a=>`<option value="${a.id}">${a.name} (${typeLabel(a.account_type)})</option>`).join('');
   div.innerHTML = `
-    <select class="pm-method" onchange="togglePmAccountVisibility(this)">
+    <select class="pm-method">
       <option value="Transferencia">Transferencia</option>
       <option value="Tarjeta">Tarjeta</option>
       <option value="Efectivo">Efectivo</option>
       <option value="Otro">Otro</option>
     </select>
     <input type="number" step="0.01" class="pm-amount" placeholder="Monto" value="${prefillAmount||''}" oninput="updatePaymentMethodsTotal()">
-    <select class="pm-account" style="display:none">
+    <select class="pm-account">
       <option value="">Sin cuenta específica</option>
       ${accountOptions}
     </select>
@@ -3290,10 +3367,6 @@ function addPaymentMethodRow(prefillAmount){
 }
 // La cuenta (banco/cooperativa) solo tiene sentido si la forma de pago es
 // transferencia — para tarjeta/efectivo no aplica, así que se esconde sola.
-function togglePmAccountVisibility(select){
-  const accountSelect = select.closest('.dyn-row').querySelector('.pm-account');
-  accountSelect.style.display = select.value === 'Transferencia' ? 'inline-block' : 'none';
-}
 function updatePaymentMethodsTotal(){
   const total = Array.from(document.querySelectorAll('#pm-rows-list .pm-amount')).reduce((s,i)=>s+(parseFloat(i.value)||0),0);
   document.getElementById('pm-total-display').textContent = `Total: $${total.toLocaleString('es-AR')}`;
@@ -3351,7 +3424,7 @@ async function loadSettlements(){
       const prop = t ? ALL_PROPERTIES.find(p=>p.id===t.property_id) : null;
       const fmt = n => `$${Number(n||0).toLocaleString('es-AR')}`;
       const paymentMethodsDisplay = (s.payment_methods && s.payment_methods.length)
-        ? s.payment_methods.map(pm => `${pm.method}${pm.account_name?' — '+pm.account_name+(pm.account_type?' ('+(pm.account_type==='cooperativa'?'Cooperativa':'Banco')+')':''):''}: ${fmt(pm.amount)}${pm.detalle?' — '+pm.detalle:''}`).join(' | ')
+        ? s.payment_methods.map(pm => `${pm.method}${pm.account_name?' — '+pm.account_name+(pm.account_type?' ('+(pm.account_type==='cooperativa'?'Cooperativa':pm.account_type==='efectivo'?'Efectivo':pm.account_type==='otro'?'Otro':'Banco')+')':''):''}: ${fmt(pm.amount)}${pm.detalle?' — '+pm.detalle:''}`).join(' | ')
         : '-';
       const detailObj = {
         property_display: prop ? prop.title : '-',
@@ -3975,7 +4048,8 @@ window.openObraApp = null; // se define mas abajo
       monto: parseFloat(f.monto.value)||0,
       metodo: f.metodo.value.trim(),
       fecha: f.fecha.value,
-      moneda: f.destino.value === 'Luis' ? f.moneda.value : 'ARS'
+      moneda: f.destino.value === 'Luis' ? f.moneda.value : 'ARS',
+      account_id: f.account_id.value || null,
     };
     try{
       await api(`/obras/${OBRA_ID}/pagos`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry)});
@@ -4423,6 +4497,9 @@ window.openObraApp = null; // se define mas abajo
     OBRA_ID = obraId;
     document.getElementById('obra-app').style.display = 'block';
     document.getElementById('obras-lista-wrap').style.display = 'none';
+    const accSelect = document.getElementById('co-pago-account');
+    const typeLabel = t => t==='cooperativa'?'Cooperativa':t==='efectivo'?'Efectivo':t==='otro'?'Otro':'Banco';
+    accSelect.innerHTML = '<option value="">Sin cuenta específica</option>' + (ALL_BANK_ACCOUNTS||[]).map(a=>`<option value="${a.id}">${a.name} (${typeLabel(a.account_type)})</option>`).join('');
     await loadObraState();
   };
   window.closeObraApp = function(){
