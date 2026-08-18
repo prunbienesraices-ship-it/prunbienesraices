@@ -121,7 +121,7 @@ router.post('/:id/pagos', requireAuth, async (req, res) => {
   const b = req.body;
   const { data, error } = await supabase.from('obra_pagos').insert([{
     obra_id: req.params.id, destino: b.destino, concepto: b.concepto || '', monto: Number(b.monto) || 0,
-    metodo: b.metodo || '', fecha: b.fecha || null, moneda: b.moneda || 'ARS',
+    metodo: b.metodo || '', fecha: b.fecha || null, moneda: b.moneda || 'ARS', account_id: b.account_id || null,
   }]).select().single();
   if (error) return res.status(500).json({ error: 'Error al registrar el pago.' });
   res.status(201).json(data);

@@ -98,4 +98,26 @@ router.delete('/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Registra un pago al proveedor por esta reparación (puede ser en varias
+// formas de pago combinadas, cada una con su propia cuenta).
+router.post('/:id/pay', requireAuth, async (req, res) => {
+  try {
+    const { data: current } = await supabase.from('repairs').select('payments').eq('id', req.params.id).maybeSingle();
+    if (!current) return res.status(404).json({ error: 'No encontramos esa reparación.' });
+    const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'Cargá al menos un monto.' });
+    const today = new Date().toISOString().slice(0, 10);
+    const payments = [...(current.payments || []), ...rows.map(r => ({
+      date: today, amount: Number(r.amount) || 0, method: r.method || '', detalle: r.detalle || '',
+      account_id: r.account_id || null,
+    }))];
+    const { data, error } = await supabase.from('repairs').update({ payments }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al registrar el pago.' });
+  }
+});
+
 module.exports = router;
