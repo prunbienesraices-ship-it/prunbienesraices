@@ -23,6 +23,7 @@ router.put('/', requireSuperadmin, upload.fields([{ name: 'hero_image', maxCount
       .forEach(f => { if (b[f] !== undefined) updates[f] = b[f]; });
     if (b.payment_reminders_enabled !== undefined) updates.payment_reminders_enabled = b.payment_reminders_enabled === 'true' || b.payment_reminders_enabled === true;
     if (b.renewal_reminders_enabled !== undefined) updates.renewal_reminders_enabled = b.renewal_reminders_enabled === 'true' || b.renewal_reminders_enabled === true;
+    if (b.monthly_summary_enabled !== undefined) updates.monthly_summary_enabled = b.monthly_summary_enabled === 'true' || b.monthly_summary_enabled === true;
 
     const files = req.files || {};
     if (files.hero_image && files.hero_image[0]) {
@@ -72,6 +73,16 @@ router.post('/run-renewal-reminders', requireSuperadmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al correr los avisos de renovación.' });
+  }
+});
+router.post('/run-monthly-summary-reminders', requireSuperadmin, async (req, res) => {
+  try {
+    const { runMonthlySummary } = require('../reminders');
+    const result = await runMonthlySummary();
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al correr el resumen mensual.' });
   }
 });
 
