@@ -4,7 +4,7 @@
 // apagar por separado desde "Apariencia del sitio" en el panel.
 const supabase = require('./supabaseClient');
 const { sendMail } = require('./mailer');
-const { buildTenantDetailItems, buildDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, getMissingPayments, getCurrentRentAmount } = require('./paymentDetail');
+const { buildTenantDetailItems, buildDetailHtml, getSiteConfig, getPaymentDetailNotes, getPaymentDetailHeaderLines, computeTenantStatus, getMissingPayments } = require('./paymentDetail');
 
 const DIAS_ENTRE_AVISOS_PAGO = 3; // no perseguir a nadie todos los dias
 const DIAS_ANTES_RENOVACION = 30; // avisar cuando falten 30 dias o menos
@@ -117,10 +117,10 @@ async function runRenewalReminders() {
 }
 
 // Resumen del mes: el día 1 (o cuando el servidor se despierte y todavía
-// no se le mandó nada a alguien en ESTE mes puntual), le avisa a cada
-// inquilino con contrato vigente ese mes cuánto es el alquiler que le
-// corresponde pagar — es un aviso preventivo, no de deuda (no importa si
-// todavía no venció ni si ya pagó).
+// no se le mandó nada a alguien en ESTE mes puntual), le manda a cada
+// inquilino con contrato vigente ese mes el DETALLE COMPLETO de lo que le
+// corresponde pagar (alquiler + expensas + otros conceptos cargados) —
+// el mismo cálculo que usa "Enviar detalle de pago" a mano.
 async function runMonthlySummary() {
   const config = await getSiteConfig();
   if (!config || !config.monthly_summary_enabled) return { skipped: true };
@@ -143,18 +143,18 @@ async function runMonthlySummary() {
       if (!tenant.email) { detalle.push(`${tenant.name}: no tiene email cargado`); continue; }
       if (await yaSeAvisoEstePeriodo('monthly_summary', tenant.id, currentPeriod)) { detalle.push(`${tenant.name}: ya se le mandó el resumen de este mes`); continue; }
 
-      const rent = getCurrentRentAmount(tenant);
+      const items = await buildTenantDetailItems(tenant);
+      if (!items.length) { detalle.push(`${tenant.name}: no tiene nada para mostrar este mes (alquiler, expensas u otros conceptos)`); continue; }
+      const { data: property } = await supabase.from('properties').select('title').eq('id', tenant.property_id).maybeSingle();
+      const footerNotes = await getPaymentDetailNotes();
+      const headerLines = await getPaymentDetailHeaderLines();
       const mesLabel = now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-
-      await sendMail({
-        to: tenant.email, subject: `Tu alquiler de ${mesLabel}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:480px">
-          <p>Hola ${tenant.name},</p>
-          <p>Te escribimos para recordarte el alquiler correspondiente a <strong>${mesLabel}</strong>:</p>
-          <p style="font-size:18px;font-weight:bold">${tenant.currency || 'ARS'} ${Math.round(rent).toLocaleString('es-AR')}</p>
-          <p>Recordá que tenés hasta el día 10 para pagarlo sin recargo.</p>
-        </div>`,
+      const html = buildDetailHtml({
+        tenantName: tenant.name, propertyLabel: property ? property.title : '-',
+        items, config, currency: tenant.currency || 'ARS', footerNotes, headerLines,
       });
+
+      await sendMail({ to: tenant.email, subject: `Tu detalle de pago de ${mesLabel}`, html });
       await registrarAviso('monthly_summary', tenant.id, currentPeriod);
       enviados++;
       detalle.push(`${tenant.name}: enviado ✔`);
