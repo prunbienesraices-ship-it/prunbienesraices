@@ -932,6 +932,11 @@ Arena fina|3|m³|45000" style="width:100%; font-family:'IBM Plex Mono',monospace
           <button class="btn" type="button" style="font-size:11px;padding:6px 10px;margin-left:auto" onclick="runReminderNow('renewal')">Probar ahora</button>
           <button class="btn" type="button" style="font-size:11px;padding:6px 10px;background:#fff;color:var(--black)" onclick="resetReminderLog('renewal')">Reiniciar espera</button>
         </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer">
+          <input type="checkbox" id="sc-monthly-summary" style="width:auto"> Resumen del alquiler el día 1 de cada mes (le avisa a todo inquilino con contrato vigente cuánto le corresponde pagar ese mes, aunque todavía no haya vencido)
+          <button class="btn" type="button" style="font-size:11px;padding:6px 10px;margin-left:auto" onclick="runReminderNow('monthly-summary')">Probar ahora</button>
+          <button class="btn" type="button" style="font-size:11px;padding:6px 10px;background:#fff;color:var(--black)" onclick="resetReminderLog('monthly_summary')">Reiniciar espera</button>
+        </label>
 
         <button class="btn" type="submit" style="width:100%;margin-top:6px">Guardar cambios</button>
       </form>
@@ -4070,6 +4075,7 @@ async function loadSiteConfig(){
     document.getElementById('sc-footer-text').value = c.footer_text || '';
     document.getElementById('sc-payment-reminders').checked = !!c.payment_reminders_enabled;
     document.getElementById('sc-renewal-reminders').checked = !!c.renewal_reminders_enabled;
+    document.getElementById('sc-monthly-summary').checked = !!c.monthly_summary_enabled;
     document.getElementById('sc-hero-image-status').textContent = c.hero_image ? '✔ Ya hay una imagen de fondo cargada. Subí una nueva para reemplazarla.' : '';
     document.getElementById('sc-logo-image-status').textContent = c.logo_image ? '✔ Ya hay un logo cargado. Subí uno nuevo para reemplazarlo.' : '';
   }catch(err){ toast('No pudimos cargar la apariencia del sitio.'); }
@@ -4082,6 +4088,7 @@ document.getElementById('site-config-form').addEventListener('submit', async e=>
   });
   fd.append('payment_reminders_enabled', document.getElementById('sc-payment-reminders').checked);
   fd.append('renewal_reminders_enabled', document.getElementById('sc-renewal-reminders').checked);
+  fd.append('monthly_summary_enabled', document.getElementById('sc-monthly-summary').checked);
   const heroFile = document.getElementById('sc-hero-image').files[0];
   if(heroFile) fd.append('hero_image', heroFile);
   const logoFile = document.getElementById('sc-logo-image').files[0];
