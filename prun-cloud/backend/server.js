@@ -220,10 +220,11 @@ ensureAdminAccount().then(() => ensureContractTemplate()).then(() => ensurePayme
   // esto corre de forma confiable mientras haya visitas al sitio o al
   // panel — no es un cron 100% puntual a una hora fija, pero se pone al
   // día solo apenas alguien entra.
-  const { runPaymentReminders, runRenewalReminders } = require('./reminders');
+  const { runPaymentReminders, runRenewalReminders, runMonthlySummary } = require('./reminders');
   function checkReminders() {
     runPaymentReminders().catch(err => console.error('Error en avisos de pago ->', err.message));
     runRenewalReminders().catch(err => console.error('Error en avisos de renovación ->', err.message));
+    runMonthlySummary().catch(err => console.error('Error en el resumen mensual del día 1 ->', err.message));
     cajaRoutes.autoCloseCajaPastMonths().catch(err => console.error('Error cerrando meses de Caja ->', err.message));
   }
   setTimeout(checkReminders, 60 * 1000); // primer chequeo 1 minuto despues de arrancar
